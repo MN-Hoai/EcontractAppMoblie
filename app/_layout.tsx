@@ -17,31 +17,19 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
+    
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="certificate-info"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="choose-certificate"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="identity-verification"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen name="id-camera-front" options={{ headerShown: false }} />
-        <Stack.Screen name="id-camera-back" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="identity-verified"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen name="id-information" options={{ headerShown: false }} />
-        <Stack.Screen name="sign-contract" options={{ headerShown: false }} />
-        <Stack.Screen name="sign-val" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 56 } }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="certificate-info" />
+        <Stack.Screen name="choose-certificate" />
+        <Stack.Screen name="identity-verification" />
+        <Stack.Screen name="id-camera-front" />
+        <Stack.Screen name="id-camera-back" />
+        <Stack.Screen name="identity-verified" />
+        <Stack.Screen name="id-information" />
+        <Stack.Screen name="sign-contract" />
         <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}
