@@ -257,6 +257,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     flex: 1,
   },
+  topProgressWrap: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  topProgressBar: {
+    flexDirection: "row",
+    height: 6,
+    borderRadius: 6,
+    overflow: "hidden",
+    backgroundColor: "rgba(0,0,0,0.06)",
+  },
+  segment: {
+    flex: 1,
+  },
+  segmentDone: { backgroundColor: "#4CAF50" },
+  segmentActive: { backgroundColor: "#21C4F3" },
+  segmentTodo: { backgroundColor: "rgba(0,0,0,0.08)" },
   buttonContainer: {
     paddingBottom: 24,
   },

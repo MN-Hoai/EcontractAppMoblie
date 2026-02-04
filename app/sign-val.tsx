@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
-export default function SignContractScreen() {
+export default function SignValScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
@@ -36,67 +36,69 @@ export default function SignContractScreen() {
       <View style={styles.topProgressWrap}>
         <View style={styles.topProgressBar}>
           <View style={[styles.segment, styles.segmentDone]} />
+          <View style={[styles.segment, styles.segmentDone]} />
           <View style={[styles.segment, styles.segmentActive]} />
-          <View style={[styles.segment, styles.segmentTodo]} />
         </View>
       </View>
 
       {/* Step Title */}
       <View style={styles.stepContainer}>
-        <ThemedText style={styles.stepLabel}>BƯỚC 2</ThemedText>
+        <ThemedText style={styles.stepLabel}>BƯỚC 3</ThemedText>
         <ThemedText style={styles.stepTitle}>
-          Ký hợp đồng sử dụng chứng thư số
+          Nghiệm thu chứng thư số
         </ThemedText>
         <ThemedText style={styles.stepDescription}>
-          Quý khách vui lòng kiểm tra thông tin hợp đồng và biên bản
+          Quý khách vui lòng xác nhận nghiệm thu
         </ThemedText>
       </View>
 
       {/* Content */}
       <View style={styles.content}>
-        {/* Customer info section */}
-        <View style={styles.sectionHeader}>
+        {/* Contract verification details */}
+        <View style={styles.sectionHeaderSmall}>
           <ThemedText style={styles.sectionHeaderText}>
-            THÔNG TIN KHÁCH HÀNG
+            THÔNG TIN CHỨNG THƯ SỐ
           </ThemedText>
         </View>
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Họ và tên</ThemedText>
-            <ThemedText style={styles.infoValue}>PHAM DUC HUY</ThemedText>
-          </View>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Ngày sinh</ThemedText>
-            <ThemedText style={styles.infoValue}>13/08/1989</ThemedText>
-          </View>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Giới tính</ThemedText>
-            <ThemedText style={styles.infoValue}>Nam</ThemedText>
-          </View>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Địa chỉ thường trú</ThemedText>
+            <ThemedText style={styles.infoLabel}>Số Serial</ThemedText>
             <ThemedText style={styles.infoValueSmall}>
-              P310 Tt 76 Phố Thọ Lão, Đồng Mác, QUAN HAI BA TRUNG, HA NOI, VN
+              5404fffeb7033fb316d672201c010446
             </ThemedText>
           </View>
+          <View style={styles.rowDivider} />
           <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Mã đơn hàng</ThemedText>
-            <ThemedText style={styles.infoValue}>6209443990</ThemedText>
+            <ThemedText style={styles.infoLabel}>Tổ chức phát hành</ThemedText>
+            <ThemedText style={styles.infoValueSmall}>
+              C=VN, O=Viettel Group, CN=Viettel-CA RS
+            </ThemedText>
+          </View>
+          <View style={styles.rowDivider} />
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Thông tin thuê bao</ThemedText>
+            <ThemedText style={styles.infoValueSmall}>
+              UID=CMND:001089020747, CN=PHAM ĐỨC HUY, L=NAM ĐỊNH, C=VN
+            </ThemedText>
+          </View>
+          <View style={styles.rowDivider} />
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Ngày bắt đầu</ThemedText>
+            <ThemedText style={styles.infoValue}>16/10/2024</ThemedText>
+          </View>
+          <View style={styles.rowDivider} />
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Ngày kết thúc</ThemedText>
+            <ThemedText style={styles.infoValue}>16/10/2025</ThemedText>
           </View>
         </View>
 
-        {/* Contract info */}
-        <View style={styles.sectionHeaderSmall}>
-          <ThemedText style={styles.sectionHeaderText}>
-            THÔNG TIN HỢP ĐỒNG
-          </ThemedText>
-        </View>
         <TouchableOpacity
           style={styles.contractRow}
           onPress={() => router.push("/")}
         >
           <ThemedText style={styles.contractRowText}>
-            Hợp đồng cung cấp dịch vụ
+            Biên bản nghiệm thu
           </ThemedText>
           <MaterialCommunityIcons
             name="chevron-right"
@@ -104,57 +106,17 @@ export default function SignContractScreen() {
             color="#7A7A7A"
           />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.contractRow}
-          onPress={() => router.push("/sign-val")}
-        >
-          <ThemedText style={styles.contractRowText}>
-            Biên bản xác nhận xử lý dữ liệu
-          </ThemedText>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={20}
-            color="#7A7A7A"
-          />
-        </TouchableOpacity>
-
-        {/* Warning box */}
-        <View style={styles.warningBox}>
-          <MaterialCommunityIcons
-            name="alert-circle-outline"
-            size={18}
-            color="#A57D00"
-            style={{ marginRight: 8 }}
-          />
-          <ThemedText style={styles.warningText}>
-            Vui lòng kiểm tra ký thông tin trước khi xác nhận
-          </ThemedText>
-        </View>
-
-        {/* OTP + confirm area (static) */}
-        <ThemedText style={styles.otpHint}>
-          Chúng tôi đã gửi mã OTP đến số điện thoại 098*****308
-        </ThemedText>
-        <View style={styles.otpBox}>
-          <ThemedText style={styles.otpText}>243877</ThemedText>
-        </View>
       </View>
 
       {/* Action Button */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[styles.signButton, { backgroundColor: "#2196F3" }]}
-          onPress={() => router.push("/sign-val")}
+          style={[styles.confirmButton, { backgroundColor: "#0D6EFD" }]}
+          onPress={() => router.push("/choose-certificate2")}
         >
-          <ThemedText style={styles.buttonText}>
-            Xác nhận và tiếp tục
+          <ThemedText style={styles.confirmButtonText}>
+            Xác nhận nghiệm thu
           </ThemedText>
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={20}
-            color="white"
-            style={{ marginLeft: 8 }}
-          />
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -266,6 +228,10 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "right",
   },
+  rowDivider: {
+    height: 1,
+    backgroundColor: "rgba(0,0,0,0.04)",
+  },
   contractRow: {
     backgroundColor: "#FFFFFF",
     paddingVertical: 14,
@@ -320,6 +286,18 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     paddingBottom: 24,
+  },
+  confirmButton: {
+    width: "100%",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "700",
   },
   signButton: {
     flexDirection: "row",

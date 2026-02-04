@@ -88,10 +88,12 @@ export default function IDInformationScreen() {
         <View style={{ width: 28 }} />
       </View>
 
-      {/* Progress Bar */}
-      <View style={styles.progressContainer}>
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: "33%" }]} />
+      {/* Top progress */}
+      <View style={styles.topProgressWrap}>
+        <View style={styles.topProgressBar}>
+          <View style={[styles.segment, styles.segmentActive]} />
+          <View style={[styles.segment, styles.segmentTodo]} />
+          <View style={[styles.segment, styles.segmentTodo]} />
         </View>
       </View>
 
@@ -226,6 +228,24 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "#2196F3",
   },
+
+  topProgressWrap: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  topProgressBar: {
+    flexDirection: "row",
+    height: 6,
+    borderRadius: 6,
+    overflow: "hidden",
+    backgroundColor: "rgba(0,0,0,0.06)",
+  },
+  segment: {
+    flex: 1,
+  },
+  segmentDone: { backgroundColor: "#4CAF50" },
+  segmentActive: { backgroundColor: "#21C4F3" },
+  segmentTodo: { backgroundColor: "rgba(0,0,0,0.08)" },
   stepContainer: {
     marginBottom: 24,
   },

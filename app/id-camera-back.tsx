@@ -4,7 +4,13 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Animated,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function IDCameraBackScreen() {
   const colorScheme = useColorScheme();
@@ -14,6 +20,7 @@ export default function IDCameraBackScreen() {
   const cameraRef = useRef<CameraView>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (!permission) {
@@ -26,16 +33,29 @@ export default function IDCameraBackScreen() {
 
     try {
       setIsCapturing(true);
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 0.95,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
         base64: false,
       });
 
-      // Store the photos and proceed to verification
+      // Store the photos and proceed to information screen
       setTimeout(() => {
         setIsCapturing(false);
         router.push({
-          pathname: "/identity-verified",
+          pathname: "/id-information",
           params: { photoFront, photoBack: photo.uri },
         });
       }, 500);
@@ -46,7 +66,7 @@ export default function IDCameraBackScreen() {
   };
 
   const handleRetry = () => {
-    Alert.alert("Thử lại", "Vui lòng chụp lại mặt sau CCCD");
+    router.back();
   };
 
   if (!permission?.granted) {
@@ -58,16 +78,25 @@ export default function IDCameraBackScreen() {
         ]}
       >
         <View style={styles.permissionContainer}>
-          <MaterialCommunityIcons name="camera-off" size={64} color="#FF6B6B" />
-          <ThemedText style={styles.permissionText}>
+          <View style={styles.permissionIconContainer}>
+            <MaterialCommunityIcons
+              name="camera-off"
+              size={80}
+              color="#FF6B6B"
+            />
+          </View>
+          <ThemedText style={styles.permissionTitle}>
             Cần quyền truy cập camera
+          </ThemedText>
+          <ThemedText style={styles.permissionSubtitle}>
+            Để có thể chụp ảnh CCCD của bạn
           </ThemedText>
           <TouchableOpacity
             style={styles.permissionButton}
             onPress={requestPermission}
           >
             <ThemedText style={styles.permissionButtonText}>
-              Cấp quyền
+              Cấp quyền camera
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -84,80 +113,95 @@ export default function IDCameraBackScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.headerButton}
+        >
           <MaterialCommunityIcons name="arrow-left" size={28} color="white" />
         </TouchableOpacity>
-        <ThemedText type="title" style={{ fontSize: 18, color: "white" }}>
-          Chụp mặt sau CCCD
-        </ThemedText>
+        <View style={styles.headerTitleContainer}>
+          <ThemedText type="title" style={styles.headerTitle}>
+            Chụp mặt sau CCCD
+          </ThemedText>
+          <ThemedText style={styles.headerSubtitle}>Bước 2/2</ThemedText>
+        </View>
         <View style={{ width: 28 }} />
       </View>
 
       {/* Camera Preview Area */}
       <CameraView ref={cameraRef} style={styles.cameraContainer} facing="back">
-        {/* Progress Indicator */}
-        <View style={styles.progressOverlay}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: "100%" }]} />
-          </View>
-          <ThemedText style={styles.progressText}>Bước 2 / 2</ThemedText>
-        </View>
-        {/* Camera overlay frame */}
+        {/* Darkened area outside frame */}
+        <View style={styles.darkOverlay} />
+
         {/* Camera overlay frame */}
         <View style={styles.frameOverlay}>
           <View style={[styles.corner, styles.topLeft]} />
           <View style={[styles.corner, styles.topRight]} />
           <View style={[styles.corner, styles.bottomLeft]} />
           <View style={[styles.corner, styles.bottomRight]} />
-        </View>
 
-        {/* Instruction text */}
-        <View style={styles.instructionOverlay}>
-          <MaterialCommunityIcons
-            name="id-card"
-            size={60}
-            color="rgba(255, 255, 255, 0.5)"
-            style={{ transform: [{ rotateY: "180deg" }] }}
-          />
-          <ThemedText style={styles.overlayText}>
-            Đặt mặt sau CCCD vào khung
-          </ThemedText>
+          {/* Instruction text */}
+          <View style={styles.instructionOverlay}>
+            <MaterialCommunityIcons
+              name="id-card"
+              size={80}
+              color="rgba(255, 255, 255, 0.4)"
+              style={{ transform: [{ rotateY: "180deg" }] }}
+            />
+            <ThemedText style={styles.overlayText}>
+              Đặt mặt sau vào khung
+            </ThemedText>
+            <ThemedText style={styles.overlaySubtext}>
+              Đảm bảo rõ nét và không bị che
+            </ThemedText>
+          </View>
         </View>
       </CameraView>
 
       {/* Bottom Controls */}
       <View style={styles.controlsContainer}>
         <View style={styles.guidanceBox}>
-          <ThemedText style={styles.guidanceTitle}>Lưu ý:</ThemedText>
-          <View style={styles.guidanceItem}>
+          <View style={styles.guidanceTitleContainer}>
             <MaterialCommunityIcons
-              name="check"
-              size={16}
-              color="#4CAF50"
+              name="information-outline"
+              size={18}
+              color="#21C4F3"
               style={{ marginRight: 8 }}
             />
+            <ThemedText style={styles.guidanceTitle}>Hướng dẫn chụp</ThemedText>
+          </View>
+          <View style={styles.guidanceItem}>
+            <View style={styles.guidanceCheckmark}>
+              <MaterialCommunityIcons
+                name="check-bold"
+                size={12}
+                color="white"
+              />
+            </View>
             <ThemedText style={styles.guidanceText}>
               Đặt thẳng mặt sau CCCD
             </ThemedText>
           </View>
           <View style={styles.guidanceItem}>
-            <MaterialCommunityIcons
-              name="check"
-              size={16}
-              color="#4CAF50"
-              style={{ marginRight: 8 }}
-            />
+            <View style={styles.guidanceCheckmark}>
+              <MaterialCommunityIcons
+                name="check-bold"
+                size={12}
+                color="white"
+              />
+            </View>
             <ThemedText style={styles.guidanceText}>
               Rõ nét toàn bộ thông tin
             </ThemedText>
           </View>
           <View style={styles.guidanceItem}>
-            <MaterialCommunityIcons
-              name="check"
-              size={16}
-              color="#4CAF50"
-              style={{ marginRight: 8 }}
-            />
+            <View style={styles.guidanceCheckmark}>
+              <MaterialCommunityIcons
+                name="check-bold"
+                size={12}
+                color="white"
+              />
+            </View>
             <ThemedText style={styles.guidanceText}>
               Không bị che khuất
             </ThemedText>
@@ -167,33 +211,39 @@ export default function IDCameraBackScreen() {
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity
-            style={[styles.secondaryButton, { borderColor: "white" }]}
+            style={styles.secondaryButton}
             onPress={handleRetry}
           >
-            <MaterialCommunityIcons name="refresh" size={24} color="white" />
-            <ThemedText style={styles.secondaryButtonText}>Thử lại</ThemedText>
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={22}
+              color="#21C4F3"
+            />
+            <ThemedText style={styles.secondaryButtonText}>Quay lại</ThemedText>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.captureButton, { opacity: isCapturing ? 0.6 : 1 }]}
-            onPress={handleCapture}
-            disabled={isCapturing}
+          <Animated.View
+            style={[
+              styles.captureButtonWrapper,
+              { transform: [{ scale: scaleAnim }] },
+            ]}
           >
-            <View style={styles.captureInner}>
+            <TouchableOpacity
+              style={[styles.captureButton, { opacity: isCapturing ? 0.8 : 1 }]}
+              onPress={handleCapture}
+              disabled={isCapturing}
+            >
               {!isCapturing ? (
-                <MaterialCommunityIcons name="camera" size={32} color="white" />
+                <MaterialCommunityIcons name="camera" size={36} color="white" />
               ) : (
                 <MaterialCommunityIcons
                   name="loading"
-                  size={32}
+                  size={36}
                   color="white"
                 />
               )}
-            </View>
-            <ThemedText style={styles.captureButtonText}>
-              {isCapturing ? "Đang chụp..." : "Chụp"}
-            </ThemedText>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </Animated.View>
 
           <View style={{ width: 80 }} />
         </View>
@@ -210,21 +260,42 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 24,
   },
-  permissionText: {
-    fontSize: 16,
-    marginTop: 16,
-    marginBottom: 20,
+  permissionIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255, 107, 107, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  permissionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  permissionSubtitle: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: 32,
+    textAlign: "center",
   },
   permissionButton: {
-    backgroundColor: "#2196F3",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: "#21C4F3",
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    shadowColor: "#21C4F3",
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   permissionButtonText: {
     color: "white",
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
   },
   header: {
@@ -232,35 +303,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingTop: 24,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-  },
-  progressOverlay: {
-    paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    position: "absolute",
-    top: 100,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+    paddingTop: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(33, 196, 243, 0.2)",
   },
-  progressBar: {
-    height: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 2,
-    overflow: "hidden",
-    marginBottom: 8,
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#2196F3",
+  headerTitleContainer: {
+    alignItems: "center",
   },
-  progressText: {
+  headerTitle: {
+    fontSize: 18,
     color: "white",
+    fontWeight: "700",
+  },
+  headerSubtitle: {
+    color: "rgba(255, 255, 255, 0.6)",
     fontSize: 12,
-    textAlign: "right",
+    marginTop: 2,
   },
   cameraContainer: {
     flex: 1,
@@ -268,126 +336,172 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  frameOverlay: {
-    width: "85%",
-    height: "90%",
-    borderWidth: 2,
-    borderColor: "rgba(33, 196, 243, 0.5)",
-    borderRadius: 12,
+  darkOverlay: {
     position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+  },
+  frameOverlay: {
+    width: "82%",
+    aspectRatio: 0.6,
+    borderWidth: 2.5,
+    borderColor: "#21C4F3",
+    borderRadius: 16,
+    position: "absolute",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#21C4F3",
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
   },
   corner: {
     position: "absolute",
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
     borderColor: "#21C4F3",
-    borderWidth: 2,
+    borderWidth: 3,
   },
   topLeft: {
-    top: -2,
-    left: -2,
+    top: -6,
+    left: -6,
     borderBottomWidth: 0,
     borderRightWidth: 0,
-    borderTopLeftRadius: 12,
+    borderTopLeftRadius: 16,
   },
   topRight: {
-    top: -2,
-    right: -2,
+    top: -6,
+    right: -6,
     borderBottomWidth: 0,
     borderLeftWidth: 0,
-    borderTopRightRadius: 12,
+    borderTopRightRadius: 16,
   },
   bottomLeft: {
-    bottom: -2,
-    left: -2,
+    bottom: -6,
+    left: -6,
     borderTopWidth: 0,
     borderRightWidth: 0,
-    borderBottomLeftRadius: 12,
+    borderBottomLeftRadius: 16,
   },
   bottomRight: {
-    bottom: -2,
-    right: -2,
+    bottom: -6,
+    right: -6,
     borderTopWidth: 0,
     borderLeftWidth: 0,
-    borderBottomRightRadius: 12,
+    borderBottomRightRadius: 16,
   },
   instructionOverlay: {
     alignItems: "center",
-    zIndex: 1,
+    justifyContent: "center",
   },
   overlayText: {
     color: "white",
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: "600",
     marginTop: 12,
     textAlign: "center",
   },
+  overlaySubtext: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: "center",
+  },
   controlsContainer: {
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
     paddingHorizontal: 16,
     paddingVertical: 16,
-    paddingBottom: 24,
+    paddingBottom: 28,
   },
   guidanceBox: {
-    backgroundColor: "rgba(76, 175, 80, 0.1)",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
+    backgroundColor: "rgba(33, 196, 243, 0.08)",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
     borderLeftWidth: 4,
-    borderLeftColor: "#4CAF50",
+    borderLeftColor: "#21C4F3",
+    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderTopColor: "rgba(33, 196, 243, 0.2)",
+    borderRightColor: "rgba(33, 196, 243, 0.2)",
+    borderBottomColor: "rgba(33, 196, 243, 0.2)",
+  },
+  guidanceTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
   },
   guidanceTitle: {
-    color: "white",
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 8,
+    color: "#21C4F3",
+    fontSize: 14,
+    fontWeight: "700",
   },
   guidanceItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 8,
+  },
+  guidanceCheckmark: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#21C4F3",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
   },
   guidanceText: {
-    color: "white",
-    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.85)",
+    fontSize: 13,
     opacity: 0.9,
     flex: 1,
   },
   actionButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "center",
   },
   secondaryButton: {
     width: 80,
     paddingVertical: 12,
     borderRadius: 12,
-    borderWidth: 2,
+    borderWidth: 1.5,
+    borderColor: "#21C4F3",
+    backgroundColor: "rgba(33, 196, 243, 0.1)",
     alignItems: "center",
     justifyContent: "center",
   },
   secondaryButtonText: {
-    color: "white",
-    fontSize: 11,
+    color: "#21C4F3",
+    fontSize: 12,
     fontWeight: "600",
     marginTop: 4,
   },
-  captureButton: {
-    width: 100,
+  captureButtonWrapper: {
+    justifyContent: "center",
     alignItems: "center",
   },
-  captureInner: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#2196F3",
+  captureButton: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: "#21C4F3",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    shadowColor: "#21C4F3",
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
   },
   captureButtonText: {
     color: "white",
     fontSize: 13,
     fontWeight: "600",
     textAlign: "center",
+    marginTop: 8,
   },
 });

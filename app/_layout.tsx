@@ -41,6 +41,7 @@ export default function RootLayout() {
         />
         <Stack.Screen name="id-information" options={{ headerShown: false }} />
         <Stack.Screen name="sign-contract" options={{ headerShown: false }} />
+        <Stack.Screen name="sign-val" options={{ headerShown: false }} />
         <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}

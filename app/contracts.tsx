@@ -143,28 +143,6 @@ export default function ContractsScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Top Navigation Bar */}
-      <View
-        style={[
-          styles.topNav,
-          { backgroundColor: isDark ? "#062329" : "#FFFFFF" },
-        ]}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={22}
-            color={isDark ? "#FFF" : "#000"}
-          />
-        </TouchableOpacity>
-        <ThemedText
-          style={[styles.topNavTitle, { color: isDark ? "#FFF" : "#000" }]}
-        >
-          Hợp Đồng
-        </ThemedText>
-        <View style={{ width: 28 }} />
-      </View>
-
       {pendingContracts.length > 0 && (
         <View style={styles.section}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
