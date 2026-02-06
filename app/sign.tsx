@@ -2,131 +2,95 @@ import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function SignScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSign = () => {
-    setShowSuccess(true);
-  };
-
-  const handleConfirm = () => {
-    setShowSuccess(false);
-    router.push("/contracts");
+    router.push("/sign-otp");
   };
 
   return (
-    <ScrollView
+    <View
       style={[
         styles.container,
         { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
       ]}
-      showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={26} color="#0F1720" />
-        </TouchableOpacity>
-        <ThemedText type="title" style={{ fontSize: 18, fontWeight: "700" }}>
-          Ký số
-        </ThemedText>
-        <View style={{ width: 28 }} />
-      </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <MaterialCommunityIcons name="arrow-left" size={26} />
+          </TouchableOpacity>
 
-      <View style={styles.section}>
-        <View style={[styles.infoCard, styles.cardElevated]}>
-          <View style={styles.infoRowCard}>
-            <ThemedText style={styles.infoLabelMuted}>Tên văn bản</ThemedText>
-            <ThemedText style={styles.infoValueSmall}>
-              Viettel-CA_RS_HopDongChoVay_...pdf
-            </ThemedText>
+          <ThemedText style={{ fontSize: 18, fontWeight: "700" }}>
+            Ký số
+          </ThemedText>
+
+          <View style={{ width: 28 }} />
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText style={styles.cardTitle}>
+            Hợp đồng cho vay
+          </ThemedText>
+
+          <View style={[styles.infoCard, styles.cardElevated]}>
+            <InfoRow label="Tên văn bản" value="Viettel-CA_RS_HopDongChoVay.pdf" />
+            <InfoRow label="Mô tả ký" value="Ký số văn bản Vay thấu chi" />
+            <InfoRow label="Nhà cung cấp" value="Viettel-CA RS" />
+            <InfoRow label="Thời gian còn lại" value="175 giây" bold />
           </View>
-          <View style={styles.infoRowCard}>
-            <ThemedText style={styles.infoLabelMuted}>Mô tả ký</ThemedText>
-            <ThemedText style={styles.infoValueSmall}>
-              Ký số văn bản Vay thấu chi
-            </ThemedText>
-          </View>
-          <View style={styles.infoRowCard}>
-            <ThemedText style={styles.infoLabelMuted}>Nhà cung cấp</ThemedText>
-            <ThemedText style={styles.infoValueSmall}>Viettel-CA RS</ThemedText>
-          </View>
-          <View style={styles.infoRowCard}>
-            <ThemedText style={styles.infoLabelMuted}>
-              Thời gian xác thực ký còn lại
-            </ThemedText>
-            <ThemedText style={styles.infoValue}>175 giây</ThemedText>
+
+          <ThemedText style={[styles.cardTitle, { marginTop: 18 }]}>
+            Giấy đăng ký sử dụng CKS
+          </ThemedText>
+
+          <View style={[styles.infoCard, styles.cardElevated]}>
+            <InfoRow label="Tên văn bản" value="GiayDangKyCKS.pdf" />
+            <InfoRow label="Mô tả ký" value="Đăng ký chứng thư số" />
+            <InfoRow label="Nhà cung cấp" value="Viettel-CA RS" />
           </View>
         </View>
-        <View style={[styles.infoCard, styles.cardElevated, { marginTop: 12 }]}>
-          <View style={styles.infoRowCard}>
-            <ThemedText style={styles.infoLabelMuted}>Tên văn bản</ThemedText>
-            <ThemedText style={styles.infoValueSmall}>
-              Viettel-CA_RS_GiayDangKyCKS_...pdf
-            </ThemedText>
-          </View>
-          <View style={styles.infoRowCard}>
-            <ThemedText style={styles.infoLabelMuted}>Mô tả ký</ThemedText>
-            <ThemedText style={styles.infoValueSmall}>
-              Ký số văn bản Đăng ký sử dụng chứng thư số
-            </ThemedText>
-          </View>
-          <View style={styles.infoRowCard}>
-            <ThemedText style={styles.infoLabelMuted}>Nhà cung cấp</ThemedText>
-            <ThemedText style={styles.infoValueSmall}>Viettel-CA RS</ThemedText>
-          </View>
-        </View>
-      </View>
+      </ScrollView>
 
-      <View style={styles.buttonContainer}>
+      {/* BUTTON BOTTOM */}
+      <View style={styles.fixedButtonWrap}>
         <TouchableOpacity style={styles.signButton} onPress={handleSign}>
           <ThemedText style={styles.signButtonText}>Ký số</ThemedText>
         </TouchableOpacity>
       </View>
-
-      {/* Success Modal */}
-      <Modal visible={showSuccess} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.successModal,
-              { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
-            ]}
-          >
-            <View style={styles.successIcon}>
-              <MaterialCommunityIcons
-                name="check-circle"
-                size={56}
-                color="#4CAF50"
-              />
-            </View>
-            <ThemedText style={styles.successTitle}>Ký thành công</ThemedText>
-            <ThemedText style={styles.successMessage}>
-              Tài liệu của bạn đã được ký thành công.
-            </ThemedText>
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleConfirm}
-            >
-              <ThemedText style={styles.confirmButtonText}>Xác nhận</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </ScrollView>
+    </View>
   );
 }
+type InfoRowProps = {
+  label: string;
+  value: string;
+  bold?: boolean;
+};
+
+function InfoRow({ label, value, bold = false }: InfoRowProps) {
+  return (
+    <View style={styles.infoRowCard}>
+      <ThemedText style={styles.infoLabelMuted}>{label}</ThemedText>
+      <ThemedText style={[styles.infoValueSmall, bold && { fontWeight: "700" }]}>
+        {value}
+      </ThemedText>
+    </View>
+  );
+}
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16 },
@@ -228,4 +192,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+  cardTitle: {
+  fontSize: 15,
+  fontWeight: "700",
+  marginBottom: 8,
+},
+
+fixedButtonWrap: {
+  position: "absolute",
+  left: 16,
+  right: 16,
+  bottom: 24,
+},
+
 });

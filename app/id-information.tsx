@@ -2,8 +2,8 @@ import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface IDInfo {
   fullName: string;
@@ -37,12 +37,30 @@ export default function IDInformationScreen() {
     email: "datik.93t@gmail.com",
   });
 
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdown, setCountdown] = useState(80);
+
+  useEffect(() => {
+    if (!showCountdown) return;
+
+    if (countdown === 0) {
+      router.push({
+        pathname: "/sign-contract",
+        params: { photoFront, photoBack, idInfo: JSON.stringify(idInfo) },
+      });
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [showCountdown, countdown]);
+
   const handleConfirm = () => {
-    // Proceed to next step in signing process
-    router.push({
-      pathname: "/sign-contract",
-      params: { photoFront, photoBack, idInfo: JSON.stringify(idInfo) },
-    });
+    // Show countdown modal
+    setShowCountdown(true);
   };
 
   const handleEdit = () => {
@@ -66,13 +84,14 @@ export default function IDInformationScreen() {
   );
 
   return (
-    <ScrollView
-      style={[
-        styles.container,
-        { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={[
+          styles.container,
+          { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -198,7 +217,37 @@ export default function IDInformationScreen() {
           />
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      <Modal visible={showCountdown} transparent animationType="fade" onRequestClose={() => {}}>
+      <View style={styles.countdownOverlay}>
+        <View style={styles.countdownBox}>
+          <MaterialCommunityIcons
+            name="timer-sand"
+            size={20}
+            color="#FF6B6B"
+            style={{ marginBottom: 6 }}
+          />
+          <ThemedText style={styles.countdownTime}>{countdown} giây</ThemedText>
+          <ThemedText style={styles.countdownMessage}>
+            Để tiếp tục đăng ký "Chứng thư số" xin quý khách vui lòng đợi hệ thống tiếp nhận và xử lý thông tin
+          </ThemedText>
+          <TouchableOpacity 
+            style={styles.countdownButton} 
+            onPress={() => {
+              setShowCountdown(false);
+              router.push({
+                pathname: "/sign-contract",
+                params: { photoFront, photoBack, idInfo: JSON.stringify(idInfo) },
+              });
+            }}
+          >
+            <ThemedText style={styles.countdownButtonText}>Tiếp tục</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+    </View>
   );
 }
 
@@ -346,5 +395,52 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 14,
     fontWeight: "600",
+  },
+  countdownOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  countdownBox: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    width: "85%",
+    maxWidth: 300,
+  },
+  countdownTime: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#FF6B6B",
+    marginBottom: 12,
+    fontVariant: ["tabular-nums"],
+  },
+  countdownMessage: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    color: "#888",
+    marginBottom: 20,
+  },
+  countdownButton: {
+    backgroundColor: "#2196F3",
+    paddingVertical: 11,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    width: "100%",
+    alignItems: "center",
+    shadowColor: "#2196F3",
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  countdownButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "white",
   },
 });

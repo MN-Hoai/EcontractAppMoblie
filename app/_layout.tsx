@@ -19,7 +19,7 @@ export default function RootLayout() {
   return (
     
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 56 } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 40 , backgroundColor: "#FFFFFF"} }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="login" />
         <Stack.Screen name="certificate-info" />
@@ -30,6 +30,8 @@ export default function RootLayout() {
         <Stack.Screen name="identity-verified" />
         <Stack.Screen name="id-information" />
         <Stack.Screen name="sign-contract" />
+        <Stack.Screen name="sign-otp" />
+
         <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}

@@ -46,11 +46,8 @@ export default function ContractsScreen() {
   const signedContracts = contracts.filter((c) => c.status === "signed");
 
   const handleSign = (contractId: string) => {
-    // Navigate to certificate info page
-    router.push({
-      pathname: "/certificate-info",
-      params: { contractId },
-    });
+    // Navigate to contract reader page first (read -> agree -> start signing)
+    router.push({ pathname: "/contract-detail", params: { contractId } });
   };
 
   const ContractCard = ({
@@ -74,7 +71,13 @@ export default function ContractsScreen() {
               : "#E5F5E3",
         },
       ]}
-      onPress={() => (isPending ? handleSign(contract.id) : null)}
+onPress={() =>
+  router.push({
+    pathname: "/contract-content",
+    params: { contractId: contract.id },
+  })
+}
+
     >
       <View style={styles.contractHeader}>
         <View style={styles.contractIconContainer}>
@@ -145,9 +148,18 @@ export default function ContractsScreen() {
     >
       {pendingContracts.length > 0 && (
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Chờ Ký ({pendingContracts.length})
-          </ThemedText>
+          <View style={styles.headerWithBack}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backIconButton}>
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color={isDark ? "#FFFFFF" : "#000000"}
+              />
+            </TouchableOpacity>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Chờ Ký ({pendingContracts.length})
+            </ThemedText>
+          </View>
           {pendingContracts.map((contract) => (
             <ContractCard
               key={contract.id}
@@ -217,10 +229,22 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  headerWithBack: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 8,
+    paddingTop: 15,
+  },
+  backIconButton: {
+    padding: 8,
+    marginRight: 4,
+  },
   sectionTitle: {
     marginBottom: 12,
     fontSize: 18,
     fontWeight: "600",
+    paddingTop: 15,
   },
   contractCard: {
     borderRadius: 12,

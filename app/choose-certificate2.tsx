@@ -4,11 +4,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface CertificateProvider {
@@ -65,13 +65,12 @@ export default function ChooseCertificate2Screen() {
   );
 
   return (
-    <ScrollView
-      style={[
-        styles.container,
-        { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={[styles.screen, { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" }]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: 220 }}
+        showsVerticalScrollIndicator={false}
+      >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -247,16 +246,25 @@ export default function ChooseCertificate2Screen() {
         </View>
       </Modal>
 
-      {/* Bottom CTA */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.continueButton, { backgroundColor: "#0D6EFD" }]}
-          onPress={() => router.push("/sign")}
-        >
-          <ThemedText style={styles.buttonText}>Gửi yêu cầu ký số</ThemedText>
-        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Fixed footer */}
+      <View style={[styles.footer, { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" }]}>
+        <ThemedText style={styles.disclaimerText}>
+          Bằng cách bấm chọn vào "Gửi yêu cầu ký số", tôi đã đọc hiểu và đồng ý
+          với Điều kiện & điều khoản sử dụng Chứng thư số của VietinBank
+        </ThemedText>
+
+        <View style={styles.footerButtonWrap}>
+          <TouchableOpacity
+            style={[styles.continueButton, { backgroundColor: "#0D6EFD" }]}
+            onPress={() => router.push("/sign")}
+          >
+            <ThemedText style={styles.buttonText}>Gửi yêu cầu ký số</ThemedText>
+          </TouchableOpacity>
+        </View>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -375,4 +383,24 @@ const styles = StyleSheet.create({
   modalLabel: { color: "#7A7A7A", fontSize: 13, flex: 1 },
   modalValue: { fontSize: 13, fontWeight: "700" },
   modalValueSmall: { fontSize: 13, color: "#333", marginTop: 4 },
+  disclaimerText: {
+    fontSize: 12,
+    color: "#666666",
+    marginHorizontal: 16,
+    marginBottom: 16,
+    lineHeight: 18,
+    textAlign:"justify"
+  },
+  screen: { flex: 1 },
+  scroll: { flex: 1, paddingHorizontal: 16 },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.04)",
+    paddingTop: 12,
+    paddingBottom: 18,
+    paddingHorizontal: 16,
+  },
+  footerButtonWrap: {
+    marginTop: 8,
+  },
 });

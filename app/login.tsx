@@ -4,22 +4,24 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
-    Alert,
-    Image,
-    ImageBackground,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [idNumber, setIdNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -54,154 +56,156 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
-    >
+    <View style={{ flex: 1 }}>
       <ImageBackground
         source={require("@/assets/images/ThemeLogin.png")}
         style={styles.backgroundImageFull}
         resizeMode="cover"
       >
-        <ScrollView
-          style={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
         >
-          <View style={styles.headerBackground}>
-            {/* Logo Container */}
-            <View style={styles.logoContainer}>
-              <Image
-                source={require("@/assets/images/Logo.png")}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-
-            {/* Language Selector */}
-            <TouchableOpacity
-              style={styles.languageSelector}
-              onPress={() => setLang((s) => (s === "vi" ? "en" : "vi"))}
-            >
-              <MaterialCommunityIcons name="translate" size={20} color="#FFF" />
-              <ThemedText style={styles.languageText}>
-                {lang === "vi" ? "🇻🇳 Tiếng Việt" : "🇬🇧 English"}
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
-
-          {/* Login Form Container */}
-          <View style={styles.formContainer}>
-            <View
-              style={[
-                styles.loginBox,
-                {
-                  backgroundColor: isDark ? "#1D3D47" : "#E0F7FF",
-                  shadowColor: isDark ? "#000" : "#00000015",
-                  marginTop: "20%",
-                },
-              ]}
-            >
-              {/* ID Number Input */}
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: isDark ? "#2D4D57" : "#FFFFFF",
-                      color: isDark ? "#FFF" : "#000",
-                    },
-                  ]}
-                  placeholder="Nhập Email"
-                  placeholderTextColor={isDark ? "#999" : "#999"}
-                  value={idNumber}
-                  onChangeText={setIdNumber}
-                  keyboardType="email-address"
-                  returnKeyType="next"
-                  onSubmitEditing={() => passwordInputRef.current?.focus()}
+          <ScrollView
+            style={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.headerBackground}>
+              {/* Logo Container */}
+              <View style={styles.logoContainer}>
+                <Image
+                  source={require("@/assets/images/Logo.png")}
+                  style={styles.logo}
+                  resizeMode="contain"
                 />
               </View>
 
-              {/* Password Input */}
-              <View style={styles.inputWrapper}>
-                <View style={styles.passwordInputContainer}>
+              {/* Language Selector */}
+              <TouchableOpacity
+                style={styles.languageSelector}
+                onPress={() => setLang((s) => (s === "vi" ? "en" : "vi"))}
+              >
+                <MaterialCommunityIcons name="translate" size={20} color="#FFF" />
+                <ThemedText style={styles.languageText}>
+                  {lang === "vi" ? "🇻🇳 Tiếng Việt" : "🇬🇧 English"}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {/* Login Form Container */}
+            <View style={styles.formContainer}>
+              <View
+                style={[
+                  styles.loginBox,
+                  {
+                    backgroundColor: isDark ? "#1D3D47" : "#E0F7FF",
+                    shadowColor: isDark ? "#000" : "#00000015",
+                    marginTop: "20%",
+                  },
+                ]}
+              >
+                {/* ID Number Input */}
+                <View style={styles.inputWrapper}>
                   <TextInput
-                    ref={passwordInputRef}
                     style={[
                       styles.input,
-                      styles.passwordInput,
                       {
                         backgroundColor: isDark ? "#2D4D57" : "#FFFFFF",
                         color: isDark ? "#FFF" : "#000",
                       },
                     ]}
-                    placeholder="Mật khẩu"
+                    placeholder="Nhập Email"
                     placeholderTextColor={isDark ? "#999" : "#999"}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    returnKeyType="done"
-                    onSubmitEditing={handleLogin}
+                    value={idNumber}
+                    onChangeText={setIdNumber}
+                    keyboardType="email-address"
+                    returnKeyType="next"
+                    onSubmitEditing={() => passwordInputRef.current?.focus()}
                   />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <MaterialCommunityIcons
-                      name={showPassword ? "eye" : "eye-off"}
-                      size={20}
-                      color={isDark ? "#00AAFF" : "#007AFF"}
+                </View>
+
+                {/* Password Input */}
+                <View style={styles.inputWrapper}>
+                  <View style={styles.passwordInputContainer}>
+                    <TextInput
+                      ref={passwordInputRef}
+                      style={[
+                        styles.input,
+                        styles.passwordInput,
+                        {
+                          backgroundColor: isDark ? "#2D4D57" : "#FFFFFF",
+                          color: isDark ? "#FFF" : "#000",
+                        },
+                      ]}
+                      placeholder="Mật khẩu"
+                      placeholderTextColor={isDark ? "#999" : "#999"}
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                      returnKeyType="done"
+                      onSubmitEditing={handleLogin}
                     />
+                    <TouchableOpacity
+                      style={styles.eyeIcon}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <MaterialCommunityIcons
+                        name={showPassword ? "eye" : "eye-off"}
+                        size={20}
+                        color={isDark ? "#00AAFF" : "#007AFF"}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Forgot Password Link */}
+                <TouchableOpacity
+                  style={styles.forgotPasswordContainer}
+                  onPress={handleForgotPassword}
+                >
+                  <ThemedText style={styles.forgotPasswordText}>
+                    Quên mật khẩu?
+                  </ThemedText>
+                </TouchableOpacity>
+
+                {/* Login Button */}
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={handleLogin}
+                  activeOpacity={0.8}
+                >
+                  <ThemedText style={styles.loginButtonText}>
+                    Đăng nhập
+                  </ThemedText>
+                </TouchableOpacity>
+
+                {/* Sign Up Text */}
+                <View style={styles.signUpContainer}>
+                  <ThemedText
+                    style={[
+                      styles.signUpText,
+                      { color: isDark ? "#BBB" : "#666" },
+                    ]}
+                  >
+                    Bạn chưa có tài khoản?{" "}
+                  </ThemedText>
+                  <TouchableOpacity onPress={handleSignUp}>
+                    <ThemedText style={styles.signUpLink}>
+                      Đăng ký ngay
+                    </ThemedText>
                   </TouchableOpacity>
                 </View>
               </View>
-
-              {/* Forgot Password Link */}
-              <TouchableOpacity
-                style={styles.forgotPasswordContainer}
-                onPress={handleForgotPassword}
-              >
-                <ThemedText style={styles.forgotPasswordText}>
-                  Quên mật khẩu?
-                </ThemedText>
-              </TouchableOpacity>
-
-              {/* Login Button */}
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={handleLogin}
-                activeOpacity={0.8}
-              >
-                <ThemedText style={styles.loginButtonText}>
-                  Đăng nhập
-                </ThemedText>
-              </TouchableOpacity>
-
-              {/* Sign Up Text */}
-              <View style={styles.signUpContainer}>
-                <ThemedText
-                  style={[
-                    styles.signUpText,
-                    { color: isDark ? "#BBB" : "#666" },
-                  ]}
-                >
-                  Bạn chưa có tài khoản?{" "}
-                </ThemedText>
-                <TouchableOpacity onPress={handleSignUp}>
-                  <ThemedText style={styles.signUpLink}>
-                    Đăng ký ngay
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
             </View>
-          </View>
-        </ScrollView>
-        {/* ECONTRACTS Text - fixed at bottom so it's not moved by keyboard */}
-        <View style={styles.footerContainer} pointerEvents="none">
-          <ThemedText style={styles.econTractsText}>ECONTRACTS</ThemedText>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </ImageBackground>
-    </KeyboardAvoidingView>
+
+      <View style={[styles.footerContainer, { bottom: 10 + insets.bottom }]} pointerEvents="none">
+        <ThemedText style={styles.econTractsText}>ECONTRACTS</ThemedText>
+      </View>
+    </View>
   );
 }
 
@@ -361,10 +365,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingBottom: 0,
+    zIndex: 999,
+    elevation: 999,
   },
   econTractsText: {
     color: "#FFFFFF",
     fontSize: 32,
+    lineHeight: 40,
     fontWeight: "700",
     letterSpacing: 2,
   },

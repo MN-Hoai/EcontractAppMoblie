@@ -5,6 +5,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   StyleSheet,
@@ -19,6 +20,7 @@ export default function IDCameraBackScreen() {
   const { photoFront } = useLocalSearchParams();
   const cameraRef = useRef<CameraView>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -52,13 +54,16 @@ export default function IDCameraBackScreen() {
       });
 
       // Store the photos and proceed to information screen
+      // show verification spinner, simulate verification, then navigate
+      setIsCapturing(false);
+      setVerifying(true);
       setTimeout(() => {
-        setIsCapturing(false);
+        setVerifying(false);
         router.push({
           pathname: "/id-information",
           params: { photoFront, photoBack: photo.uri },
         });
-      }, 500);
+      }, 1800);
     } catch {
       setIsCapturing(false);
       Alert.alert("Lỗi", "Không thể chụp ảnh. Vui lòng thử lại.");
@@ -248,6 +253,14 @@ export default function IDCameraBackScreen() {
           <View style={{ width: 80 }} />
         </View>
       </View>
+      {verifying && (
+        <View style={styles.verifyingOverlay} pointerEvents="none">
+          <View style={styles.verifyingBox}>
+            <ActivityIndicator size="large" color="#21C4F3" />
+            <ThemedText style={styles.verifyingText}>Đang xác thực thông tin...</ThemedText>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -297,6 +310,25 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  verifyingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  verifyingBox: {
+    width: 240,
+    padding: 20,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    alignItems: 'center',
+  },
+  verifyingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
   },
   header: {
     flexDirection: "row",

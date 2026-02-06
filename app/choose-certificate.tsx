@@ -66,13 +66,19 @@ export default function ChooseCertificateScreen() {
   );
 
   return (
+    <View
+    style={[
+      styles.container,
+      { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
+    ]}
+  >
+
+
     <ScrollView
-      style={[
-        styles.container,
-        { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
+  showsVerticalScrollIndicator={false}
+  contentContainerStyle={{ paddingBottom: 160 }}
+>
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -173,10 +179,12 @@ export default function ChooseCertificateScreen() {
         </View>
       </View>
 
-      {/* Terms Notice */}
+      
+    </ScrollView>
+    {/* Terms Notice */}
       <View style={styles.termsNoticeContainer}>
         <ThemedText style={styles.termsNoticeText}>
-          Bằng cách chọn vào &quot;Tiếp tục&quot; tôi đồng ý để VietinBank gửi
+          Bằng cách chọn vào &quot;Tiếp tục&quot; tôi đồng ý để itc gửi
           các thông tin cá nhân của tôi cho nhà cung cấp để phục vụ việc đăng ký
           chứng thư số
         </ThemedText>
@@ -200,11 +208,18 @@ export default function ChooseCertificateScreen() {
           <ThemedText style={styles.buttonText}>Tiếp tục</ThemedText>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+       </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fixedFooter: {
+  position: "absolute",
+  left: 16,
+  right: 16,
+  bottom: 20,
+},
+
   container: {
     flex: 1,
     paddingHorizontal: 16,

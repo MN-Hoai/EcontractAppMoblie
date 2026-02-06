@@ -81,38 +81,7 @@ export default function HomeScreen() {
 
       {/* Main Content */}
       <View style={styles.contentContainer}>
-        {/* Login Button */}
-        <TouchableOpacity
-          style={[
-            styles.card,
-            styles.loginCard,
-            {
-              backgroundColor: isDark ? "#1D3D47" : "#E0F7FF",
-              borderLeftColor: "#00A8E8",
-            },
-          ]}
-          onPress={() => router.push("../login")}
-          activeOpacity={0.8}
-        >
-          <View style={styles.contractHeader}>
-            <View
-              style={[
-                styles.contractIconBg,
-                { backgroundColor: "rgba(0, 168, 232, 0.1)" },
-              ]}
-            >
-              <MaterialCommunityIcons name="login" size={32} color="#00A8E8" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <ThemedText type="subtitle" style={styles.contractTitle}>
-                Đăng Nhập
-              </ThemedText>
-              <ThemedText style={styles.contractSubtitle}>
-                Đăng nhập bằng số CCCD
-              </ThemedText>
-            </View>
-          </View>
-        </TouchableOpacity>
+       
 
         {/* Contracts Section */}
         <TouchableOpacity

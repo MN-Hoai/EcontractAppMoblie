@@ -2,21 +2,71 @@ import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function SignContractScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
 
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(44);
+  const [otp, setOtp] = useState("");
+  const scrollViewRef = useRef<ScrollView>(null);
+  const VALID_OTP = "000000";
+
+  const isOtpValid = otp === VALID_OTP;
+  const isOtpComplete = otp.length === 6;
+
+  useEffect(() => {
+    if (!showCountdown) return;
+
+    if (countdown === 0) {
+      setShowCountdown(false);
+      setShowSuccess(true);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [showCountdown, countdown]);
+
+  const handleOtpSubmit = () => {
+    if (isOtpValid) {
+      setShowCountdown(true);
+      setCountdown(5);
+    }
+  };
+
+  const handleOtpChange = (text: string) => {
+    setOtp(text);
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollToEnd({ animated: true });
+    }
+  };
+
   return (
-    <ScrollView
-      style={[
-        styles.container,
-        { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
-      ]}
-      showsVerticalScrollIndicator={false}
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={[
+            styles.container,
+            { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -135,16 +185,50 @@ export default function SignContractScreen() {
         <ThemedText style={styles.otpHint}>
           Chúng tôi đã gửi mã OTP đến số điện thoại 098*****308
         </ThemedText>
-        <View style={styles.otpBox}>
-          <ThemedText style={styles.otpText}>243877</ThemedText>
-        </View>
+        <TextInput
+          style={[
+            styles.otpInput,
+            { 
+              borderColor: isOtpComplete ? (isOtpValid ? "#4CAF50" : "#FF6B6B") : isDark ? "#38434D" : "#D0D0D0",
+              color: isDark ? "#FFFFFF" : "#000000",
+              backgroundColor: isDark ? "#1D3D47" : "#F5F5F5"
+            }
+          ]}
+          placeholder="000000"
+          placeholderTextColor={isDark ? "#666" : "#AAA"}
+          maxLength={6}
+          keyboardType="numeric"
+          value={otp}
+          onChangeText={handleOtpChange}
+        />
+
+        {isOtpComplete && (
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+            <MaterialCommunityIcons
+              name={isOtpValid ? "check-circle" : "alert-circle"}
+              size={20}
+              color={isOtpValid ? "#4CAF50" : "#FF6B6B"}
+              style={{ marginRight: 8 }}
+            />
+            <ThemedText style={{ color: isOtpValid ? "#4CAF50" : "#FF6B6B", fontSize: 13, fontWeight: "600" }}>
+              {isOtpValid ? "Mã OTP chính xác" : "Mã OTP không đúng"}
+            </ThemedText>
+          </View>
+        )}
       </View>
 
       {/* Action Button */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[styles.signButton, { backgroundColor: "#2196F3" }]}
-          onPress={() => router.push("/sign-val")}
+          style={[
+            styles.signButton, 
+            { 
+              backgroundColor: isOtpValid ? "#2196F3" : "#CCCCCC",
+              opacity: isOtpValid ? 1 : 0.6,
+            }
+          ]}
+          onPress={handleOtpSubmit}
+          disabled={!isOtpValid}
         >
           <ThemedText style={styles.buttonText}>
             Xác nhận và tiếp tục
@@ -157,7 +241,56 @@ export default function SignContractScreen() {
           />
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      {/* OTP Input Modal */}
+      <Modal visible={showCountdown} transparent animationType="fade" onRequestClose={() => {}}>
+        <View style={styles.otpModalOverlay}>
+          <View style={styles.otpModalBox}>
+            <MaterialCommunityIcons
+              name="timer-sand"
+              size={40}
+              color="#2196F3"
+              style={{ marginBottom: 12 }}
+            />
+            <ThemedText style={styles.otpCountdown}>{countdown} giây</ThemedText>
+            <ThemedText style={styles.otpMessage}>
+              Viettel đã tiếp nhận yêu cầu đăng ký Chứng thư số của Quý khách. Vui lòng chờ trong ít phút để được cấp chứng thư số
+            </ThemedText>
+            
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal visible={showSuccess} transparent animationType="fade" onRequestClose={() => {}}>
+        <View style={styles.successOverlay}>
+          <View style={styles.successBox}>
+            <View style={styles.successIconContainer}>
+              <MaterialCommunityIcons
+                name="check-circle"
+                size={60}
+                color="#2196F3"
+              />
+            </View>
+            <ThemedText style={styles.successTitle}>Thành công</ThemedText>
+            <ThemedText style={styles.successMessage}>
+              Quý khách đã ký hợp đồng thành công để sử dụng Chứng thư số
+            </ThemedText>
+            <TouchableOpacity 
+              style={styles.successButton}
+              onPress={() => {
+                setShowSuccess(false);
+                router.push("/sign-val");
+              }}
+            >
+              <ThemedText style={styles.successButtonText}>Nghiêm thu</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -304,19 +437,16 @@ const styles = StyleSheet.create({
     color: "#666666",
     marginBottom: 8,
   },
-  otpBox: {
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginBottom: 18,
-    backgroundColor: "#FFFFFF",
-  },
-  otpText: {
-    fontSize: 20,
-    letterSpacing: 6,
+  otpInput: {
+    fontSize: 24,
     fontWeight: "700",
+    letterSpacing: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderRadius: 10,
+    textAlign: "center",
+    marginBottom: 18,
   },
   buttonContainer: {
     paddingBottom: 24,
@@ -333,5 +463,137 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  otpInputHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingTop: 24,
+    marginBottom: 16,
+  },
+  otpInputContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  otpInputLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  otpInputHint: {
+    fontSize: 13,
+    color: "#999",
+    marginBottom: 16,
+  },
+  otpRetryText: {
+    fontSize: 13,
+    color: "#2196F3",
+    textAlign: "center",
+  },
+  otpInputButtonContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  otpSubmitButton: {
+    flexDirection: "row",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  otpSubmitButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  otpModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  otpModalBox: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    width: "100%",
+    maxWidth: 320,
+  },
+  otpCountdown: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#2196F3",
+    marginBottom: 12,
+  },
+  otpMessage: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+    color: "#888",
+    marginBottom: 20,
+  },
+  otpDisabledButton: {
+    backgroundColor: "#2196F3",
+    paddingVertical: 11,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    width: "100%",
+    alignItems: "center",
+  },
+  otpDisabledButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "white",
+  },
+  successOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  successBox: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    width: "100%",
+    maxWidth: 340,
+  },
+  successIconContainer: {
+    marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 12,
+    color: "#333",
+  },
+  successMessage: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+    color: "#666",
+    marginBottom: 24,
+  },
+  successButton: {
+    backgroundColor: "#2196F3",
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 10,
+    width: "100%",
+    alignItems: "center",
+  },
+  successButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "white",
   },
 });
