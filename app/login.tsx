@@ -49,11 +49,9 @@ export default function LoginScreen() {
   };
 
   const handleSignUp = () => {
-    Alert.alert(
-      "Đăng Ký",
-      "Chức năng này sẽ được thêm trong phiên bản tiếp theo",
-    );
-  };
+  router.push("/register");
+};
+
 
   return (
     <View style={{ flex: 1 }}>
