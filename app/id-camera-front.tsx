@@ -5,11 +5,11 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    Alert,
-    Animated,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  Animated,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function IDCameraFrontScreen() {
@@ -338,8 +338,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.3)",
   },
   frameOverlay: {
-    width: "82%",
-    aspectRatio: 0.6,
+    width: "90%",
+    aspectRatio: 1.5,
     borderWidth: 2.5,
     borderColor: "#21C4F3",
     borderRadius: 16,

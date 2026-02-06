@@ -128,12 +128,12 @@ const styles = StyleSheet.create({
   infoValueSmall: { fontSize: 13, flex: 1, textAlign: "right" },
   buttonContainer: { paddingVertical: 24 },
   signButton: {
-    backgroundColor: "#1976D2",
+    backgroundColor: "#2092EC",
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#1976D2",
+    shadowColor: "#2092EC",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -193,16 +193,16 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   cardTitle: {
-  fontSize: 15,
-  fontWeight: "700",
-  marginBottom: 8,
-},
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
 
-fixedButtonWrap: {
-  position: "absolute",
-  left: 16,
-  right: 16,
-  bottom: 24,
-},
+  fixedButtonWrap: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 24,
+  },
 
 });

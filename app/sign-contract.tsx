@@ -52,9 +52,9 @@ export default function SignContractScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       <View style={{ flex: 1 }}>
@@ -66,230 +66,232 @@ export default function SignContractScreen() {
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 0 }}
+
         >
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={28}
-            color={isDark ? "#FFFFFF" : "#000000"}
-          />
-        </TouchableOpacity>
-        <ThemedText type="title" style={{ fontSize: 18 }}>
-          Đăng ký Chứng thư số
-        </ThemedText>
-        <View style={{ width: 28 }} />
-      </View>
-
-      {/* Progress Bar (3 segments) */}
-      <View style={styles.topProgressWrap}>
-        <View style={styles.topProgressBar}>
-          <View style={[styles.segment, styles.segmentDone]} />
-          <View style={[styles.segment, styles.segmentActive]} />
-          <View style={[styles.segment, styles.segmentTodo]} />
-        </View>
-      </View>
-
-      {/* Step Title */}
-      <View style={styles.stepContainer}>
-        <ThemedText style={styles.stepLabel}>BƯỚC 2</ThemedText>
-        <ThemedText style={styles.stepTitle}>
-          Ký hợp đồng sử dụng chứng thư số
-        </ThemedText>
-        <ThemedText style={styles.stepDescription}>
-          Quý khách vui lòng kiểm tra thông tin hợp đồng và biên bản
-        </ThemedText>
-      </View>
-
-      {/* Content */}
-      <View style={styles.content}>
-        {/* Customer info section */}
-        <View style={styles.sectionHeader}>
-          <ThemedText style={styles.sectionHeaderText}>
-            THÔNG TIN KHÁCH HÀNG
-          </ThemedText>
-        </View>
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Họ và tên</ThemedText>
-            <ThemedText style={styles.infoValue}>PHAM DUC HUY</ThemedText>
-          </View>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Ngày sinh</ThemedText>
-            <ThemedText style={styles.infoValue}>13/08/1989</ThemedText>
-          </View>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Giới tính</ThemedText>
-            <ThemedText style={styles.infoValue}>Nam</ThemedText>
-          </View>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Địa chỉ thường trú</ThemedText>
-            <ThemedText style={styles.infoValueSmall}>
-              P310 Tt 76 Phố Thọ Lão, Đồng Mác, QUAN HAI BA TRUNG, HA NOI, VN
-            </ThemedText>
-          </View>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Mã đơn hàng</ThemedText>
-            <ThemedText style={styles.infoValue}>6209443990</ThemedText>
-          </View>
-        </View>
-
-        {/* Contract info */}
-        <View style={styles.sectionHeaderSmall}>
-          <ThemedText style={styles.sectionHeaderText}>
-            THÔNG TIN HỢP ĐỒNG
-          </ThemedText>
-        </View>
-        <TouchableOpacity
-          style={styles.contractRow}
-          onPress={() => router.push("/")}
-        >
-          <ThemedText style={styles.contractRowText}>
-            Hợp đồng cung cấp dịch vụ
-          </ThemedText>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={20}
-            color="#7A7A7A"
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.contractRow}
-          onPress={() => router.push("/sign-val")}
-        >
-          <ThemedText style={styles.contractRowText}>
-            Biên bản xác nhận xử lý dữ liệu
-          </ThemedText>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={20}
-            color="#7A7A7A"
-          />
-        </TouchableOpacity>
-
-        {/* Warning box */}
-        <View style={styles.warningBox}>
-          <MaterialCommunityIcons
-            name="alert-circle-outline"
-            size={18}
-            color="#A57D00"
-            style={{ marginRight: 8 }}
-          />
-          <ThemedText style={styles.warningText}>
-            Vui lòng kiểm tra ký thông tin trước khi xác nhận
-          </ThemedText>
-        </View>
-
-        {/* OTP + confirm area (static) */}
-        <ThemedText style={styles.otpHint}>
-          Chúng tôi đã gửi mã OTP đến số điện thoại 098*****308
-        </ThemedText>
-        <TextInput
-          style={[
-            styles.otpInput,
-            { 
-              borderColor: isOtpComplete ? (isOtpValid ? "#4CAF50" : "#FF6B6B") : isDark ? "#38434D" : "#D0D0D0",
-              color: isDark ? "#FFFFFF" : "#000000",
-              backgroundColor: isDark ? "#1D3D47" : "#F5F5F5"
-            }
-          ]}
-          placeholder="000000"
-          placeholderTextColor={isDark ? "#666" : "#AAA"}
-          maxLength={6}
-          keyboardType="numeric"
-          value={otp}
-          onChangeText={handleOtpChange}
-        />
-
-        {isOtpComplete && (
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-            <MaterialCommunityIcons
-              name={isOtpValid ? "check-circle" : "alert-circle"}
-              size={20}
-              color={isOtpValid ? "#4CAF50" : "#FF6B6B"}
-              style={{ marginRight: 8 }}
-            />
-            <ThemedText style={{ color: isOtpValid ? "#4CAF50" : "#FF6B6B", fontSize: 13, fontWeight: "600" }}>
-              {isOtpValid ? "Mã OTP chính xác" : "Mã OTP không đúng"}
-            </ThemedText>
-          </View>
-        )}
-      </View>
-
-      {/* Action Button */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[
-            styles.signButton, 
-            { 
-              backgroundColor: isOtpValid ? "#2196F3" : "#CCCCCC",
-              opacity: isOtpValid ? 1 : 0.6,
-            }
-          ]}
-          onPress={handleOtpSubmit}
-          disabled={!isOtpValid}
-        >
-          <ThemedText style={styles.buttonText}>
-            Xác nhận và tiếp tục
-          </ThemedText>
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={20}
-            color="white"
-            style={{ marginLeft: 8 }}
-          />
-        </TouchableOpacity>
-      </View>
-      </ScrollView>
-
-      {/* OTP Input Modal */}
-      <Modal visible={showCountdown} transparent animationType="fade" onRequestClose={() => {}}>
-        <View style={styles.otpModalOverlay}>
-          <View style={styles.otpModalBox}>
-            <MaterialCommunityIcons
-              name="timer-sand"
-              size={40}
-              color="#2196F3"
-              style={{ marginBottom: 12 }}
-            />
-            <ThemedText style={styles.otpCountdown}>{countdown} giây</ThemedText>
-            <ThemedText style={styles.otpMessage}>
-              Viettel đã tiếp nhận yêu cầu đăng ký Chứng thư số của Quý khách. Vui lòng chờ trong ít phút để được cấp chứng thư số
-            </ThemedText>
-            
-          </View>
-        </View>
-      </Modal>
-
-      {/* Success Modal */}
-      <Modal visible={showSuccess} transparent animationType="fade" onRequestClose={() => {}}>
-        <View style={styles.successOverlay}>
-          <View style={styles.successBox}>
-            <View style={styles.successIconContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()}>
               <MaterialCommunityIcons
-                name="check-circle"
-                size={60}
-                color="#2196F3"
+                name="arrow-left"
+                size={28}
+                color={isDark ? "#FFFFFF" : "#000000"}
               />
-            </View>
-            <ThemedText style={styles.successTitle}>Thành công</ThemedText>
-            <ThemedText style={styles.successMessage}>
-              Quý khách đã ký hợp đồng thành công để sử dụng Chứng thư số
+            </TouchableOpacity>
+            <ThemedText type="title" style={{ fontSize: 18, flex: 1 }}>
+              Đăng ký Chứng thư số
             </ThemedText>
-            <TouchableOpacity 
-              style={styles.successButton}
-              onPress={() => {
-                setShowSuccess(false);
-                router.push("/sign-val");
-              }}
+            <View style={{ width: 28 }} />
+          </View>
+
+          {/* Progress Bar (3 segments) */}
+          <View style={styles.topProgressWrap}>
+            <View style={styles.topProgressBar}>
+              <View style={[styles.segment, styles.segmentDone]} />
+              <View style={[styles.segment, styles.segmentActive]} />
+              <View style={[styles.segment, styles.segmentTodo]} />
+            </View>
+          </View>
+
+          {/* Step Title */}
+          <View style={styles.stepContainer}>
+            <ThemedText style={styles.stepLabel}>BƯỚC 2</ThemedText>
+            <ThemedText style={styles.stepTitle}>
+              Ký hợp đồng sử dụng chứng thư số
+            </ThemedText>
+            <ThemedText style={styles.stepDescription}>
+              Quý khách vui lòng kiểm tra thông tin hợp đồng và biên bản
+            </ThemedText>
+          </View>
+
+          {/* Content */}
+          <View style={styles.content}>
+            {/* Customer info section */}
+            <View style={styles.sectionHeader}>
+              <ThemedText style={styles.sectionHeaderText}>
+                THÔNG TIN KHÁCH HÀNG
+              </ThemedText>
+            </View>
+            <View style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Họ và tên</ThemedText>
+                <ThemedText style={styles.infoValue}>PHAM DUC HUY</ThemedText>
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Ngày sinh</ThemedText>
+                <ThemedText style={styles.infoValue}>13/08/1989</ThemedText>
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Giới tính</ThemedText>
+                <ThemedText style={styles.infoValue}>Nam</ThemedText>
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Địa chỉ thường trú</ThemedText>
+                <ThemedText style={styles.infoValueSmall}>
+                  P310 Tt 76 Phố Thọ Lão, Đồng Mác, QUAN HAI BA TRUNG, HA NOI, VN
+                </ThemedText>
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Mã đơn hàng</ThemedText>
+                <ThemedText style={styles.infoValue}>6209443990</ThemedText>
+              </View>
+            </View>
+
+            {/* Contract info */}
+            <View style={styles.sectionHeaderSmall}>
+              <ThemedText style={styles.sectionHeaderText}>
+                THÔNG TIN HỢP ĐỒNG
+              </ThemedText>
+            </View>
+            <TouchableOpacity
+              style={styles.contractRow}
+              onPress={() => router.push("/")}
             >
-              <ThemedText style={styles.successButtonText}>Nghiêm thu</ThemedText>
+              <ThemedText style={styles.contractRowText}>
+                Hợp đồng cung cấp dịch vụ
+              </ThemedText>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color="#7A7A7A"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.contractRow}
+              onPress={() => router.push("/sign-val")}
+            >
+              <ThemedText style={styles.contractRowText}>
+                Biên bản xác nhận xử lý dữ liệu
+              </ThemedText>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color="#7A7A7A"
+              />
+            </TouchableOpacity>
+
+            {/* Warning box */}
+            <View style={styles.warningBox}>
+              <MaterialCommunityIcons
+                name="alert-circle-outline"
+                size={18}
+                color="#A57D00"
+                style={{ marginRight: 8 }}
+              />
+              <ThemedText style={styles.warningText}>
+                Vui lòng kiểm tra ký thông tin trước khi xác nhận
+              </ThemedText>
+            </View>
+
+            {/* OTP + confirm area (static) */}
+            <ThemedText style={styles.otpHint}>
+              Chúng tôi đã gửi mã OTP đến số điện thoại 098*****308
+            </ThemedText>
+            <TextInput
+              style={[
+                styles.otpInput,
+                {
+                  borderColor: isOtpComplete ? (isOtpValid ? "#4CAF50" : "#FF6B6B") : isDark ? "#38434D" : "#D0D0D0",
+                  color: isDark ? "#FFFFFF" : "#000000",
+                  backgroundColor: isDark ? "#1D3D47" : "#F5F5F5"
+                }
+              ]}
+              placeholder="000000"
+              placeholderTextColor={isDark ? "#666" : "#AAA"}
+              maxLength={6}
+              keyboardType="numeric"
+              value={otp}
+              onChangeText={handleOtpChange}
+            />
+
+            {isOtpComplete && (
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+                <MaterialCommunityIcons
+                  name={isOtpValid ? "check-circle" : "alert-circle"}
+                  size={20}
+                  color={isOtpValid ? "#4CAF50" : "#FF6B6B"}
+                  style={{ marginRight: 8 }}
+                />
+                <ThemedText style={{ color: isOtpValid ? "#4CAF50" : "#FF6B6B", fontSize: 13, fontWeight: "600" }}>
+                  {isOtpValid ? "Mã OTP chính xác" : "Mã OTP không đúng"}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+
+          {/* Action Button */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.signButton,
+                {
+                  backgroundColor: isOtpValid ? "#2092EC" : "#CCCCCC",
+                  opacity: isOtpValid ? 1 : 0.6,
+                }
+              ]}
+              onPress={handleOtpSubmit}
+              disabled={!isOtpValid}
+            >
+              <ThemedText style={styles.buttonText}>
+                Xác nhận và tiếp tục
+              </ThemedText>
+              <MaterialCommunityIcons
+                name="arrow-right"
+                size={20}
+                color="white"
+                style={{ marginLeft: 8 }}
+              />
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </ScrollView>
+
+        {/* OTP Input Modal */}
+        <Modal visible={showCountdown} transparent animationType="fade" onRequestClose={() => { }}>
+          <View style={styles.otpModalOverlay}>
+            <View style={styles.otpModalBox}>
+              <MaterialCommunityIcons
+                name="timer-sand"
+                size={40}
+                color="#2196F3"
+                style={{ marginBottom: 12 }}
+              />
+              <ThemedText style={styles.otpCountdown}>{countdown} giây</ThemedText>
+              <ThemedText style={styles.otpMessage}>
+                Viettel đã tiếp nhận yêu cầu đăng ký Chứng thư số của Quý khách. Vui lòng chờ trong ít phút để được cấp chứng thư số
+              </ThemedText>
+
+            </View>
+          </View>
+        </Modal>
+
+        {/* Success Modal */}
+        <Modal visible={showSuccess} transparent animationType="fade" onRequestClose={() => { }}>
+          <View style={styles.successOverlay}>
+            <View style={styles.successBox}>
+              <View style={styles.successIconContainer}>
+                <MaterialCommunityIcons
+                  name="check-circle"
+                  size={60}
+                  color="#2196F3"
+                />
+              </View>
+              <ThemedText style={styles.successTitle}>Thành công</ThemedText>
+              <ThemedText style={styles.successMessage}>
+                Quý khách đã ký hợp đồng thành công để sử dụng Chứng thư số
+              </ThemedText>
+              <TouchableOpacity
+                style={styles.successButton}
+                onPress={() => {
+                  setShowSuccess(false);
+                  router.push("/sign-val");
+                }}
+              >
+                <ThemedText style={styles.successButtonText}>Nghiêm thu</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -584,7 +586,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   successButton: {
-    backgroundColor: "#2196F3",
+    backgroundColor: "#2092EC",
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 10,

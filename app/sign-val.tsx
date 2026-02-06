@@ -12,279 +12,279 @@ export default function SignValScreen() {
   const [showCertModal, setShowCertModal] = useState(false);
 
   return (
-     <View
-    style={[
-      styles.container,
-      { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
-    ]}
-  >
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
+      ]}
+    >
 
-   <ScrollView
-  showsVerticalScrollIndicator={false}
-  contentContainerStyle={{ paddingBottom: 120 }}
->
-
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={28}
-            color={isDark ? "#FFFFFF" : "#000000"}
-          />
-        </TouchableOpacity>
-        <ThemedText type="title" style={{ fontSize: 18 }}>
-          Đăng ký Chứng thư số
-        </ThemedText>
-        <View style={{ width: 28 }} />
-      </View>
-
-      {/* Progress Bar (3 segments) */}
-      <View style={styles.topProgressWrap}>
-        <View style={styles.topProgressBar}>
-          <View style={[styles.segment, styles.segmentDone]} />
-          <View style={[styles.segment, styles.segmentDone]} />
-          <View style={[styles.segment, styles.segmentActive]} />
-        </View>
-      </View>
-
-      {/* Step Title */}
-      <View style={styles.stepContainer}>
-        <ThemedText style={styles.stepLabel}>BƯỚC 3</ThemedText>
-        <ThemedText style={styles.stepTitle}>
-          Nghiệm thu chứng thư số
-        </ThemedText>
-        <ThemedText style={styles.stepDescription}>
-          Quý khách vui lòng xác nhận nghiệm thu
-        </ThemedText>
-      </View>
-
-      {/* Content */}
-      <View style={styles.content}>
-        {/* Contract verification details */}
-        <View style={styles.sectionHeaderSmall}>
-          <ThemedText style={styles.sectionHeaderText}>
-            THÔNG TIN CHỨNG THƯ SỐ
-          </ThemedText>
-        </View>
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Số Serial</ThemedText>
-            <ThemedText style={styles.infoValueSmall}>
-              5404fffeb7033fb316d672201c010446
-            </ThemedText>
-          </View>
-          <View style={styles.rowDivider} />
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Tổ chức phát hành</ThemedText>
-            <ThemedText style={styles.infoValueSmall}>
-              C=VN, O=Viettel Group, CN=Viettel-CA RS
-            </ThemedText>
-          </View>
-          <View style={styles.rowDivider} />
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Thông tin thuê bao</ThemedText>
-            <ThemedText style={styles.infoValueSmall}>
-              UID=CMND:001089020747, CN=PHAM ĐỨC HUY, L=NAM ĐỊNH, C=VN
-            </ThemedText>
-          </View>
-          <View style={styles.rowDivider} />
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Ngày bắt đầu</ThemedText>
-            <ThemedText style={styles.infoValue}>16/10/2024</ThemedText>
-          </View>
-          <View style={styles.rowDivider} />
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Ngày kết thúc</ThemedText>
-            <ThemedText style={styles.infoValue}>16/10/2025</ThemedText>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.contractRow}
-          onPress={() => setShowCertModal(true)}
-        >
-          <ThemedText style={styles.contractRowText}>
-            Biên bản nghiệm thu
-          </ThemedText>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={20}
-            color="#7A7A7A"
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Certificate Modal */}
-      <Modal
-        visible={showCertModal}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setShowCertModal(false)}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <ThemedText style={styles.modalTitle}>
-                Biên bản nghiệm thu
-              </ThemedText>
-              <TouchableOpacity onPress={() => setShowCertModal(false)}>
-                <MaterialCommunityIcons name="close" size={24} color="#000" />
-              </TouchableOpacity>
-            </View>
 
-            <ScrollView
-              style={styles.modalBody}
-              showsVerticalScrollIndicator={false}
-            >
-              {/* Header */}
-              <View style={styles.certHeader}>
-                <ThemedText style={styles.certLogo}>viettel</ThemedText>
-                <ThemedText style={styles.certSubtitle}>
-                  Trusted Certificate Provider
-                </ThemedText>
-                <ThemedText style={styles.certLocation}>
-                  Hà Nội, ngày 16 tháng 10, năm 2024
-                </ThemedText>
-              </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={28}
+              color={isDark ? "#FFFFFF" : "#000000"}
+            />
+          </TouchableOpacity>
+          <ThemedText type="title" style={{ fontSize: 18, flex: 1 }}>
+            Đăng ký Chứng thư số
+          </ThemedText>
+          <View style={{ width: 28 }} />
+        </View>
 
-              {/* Title */}
-              <ThemedText style={styles.certMainTitle}>
-                BIÊN BẢN BẢN GIAO{"\n"}CHỨNG THƯ SỐ VIETTEL-CA
-              </ThemedText>
-
-              {/* Content */}
-              <View style={styles.certContent}>
-                <ThemedText style={styles.certParagraph}>
-                  Căn cứ vào hợp đồng đã ký ngày 16. tháng 10., năm 2024 giữa
-                  TỔNG CÔNG TY VIỄN THÔNG VIETTEL - CHI NHÁNH TẬP ĐOÀN CÔNG
-                  NGHIỆP - VIỄN THÔNG QUÂN ĐỘI
-                </ThemedText>
-
-                <ThemedText style={styles.certSectionTitle}>
-                  (Bên B) và Ông/Bà: PHẠM ĐỨC HUY
-                </ThemedText>
-
-                <ThemedText style={styles.certLabel}>
-                  Hôm nay, chứng tỏi gồm:
-                </ThemedText>
-
-                <ThemedText style={styles.certSubLabel}>
-                  Bên A: Đại diện khách hàng:
-                </ThemedText>
-                <ThemedText style={styles.certValue}>
-                  Khách hàng: PHẠM ĐỨC HUY
-                </ThemedText>
-                <ThemedText style={styles.certValue}>
-                  Địa chỉ giao dịch: Trạng Tây, Nam Định, Nam Định
-                </ThemedText>
-                <ThemedText style={styles.certValue}>
-                  Số điện thoại: 0935035303
-                </ThemedText>
-                <ThemedText style={styles.certValue}>
-                  Người đại diện: PHẠM ĐỨC HUY
-                </ThemedText>
-
-                <ThemedText style={styles.certSubLabel}>
-                  Bên B: Nhà cung cấp dịch vụ
-                </ThemedText>
-                <ThemedText style={styles.certValue}>
-                  TỔNG CÔNG TY VIỄN THÔNG VIETTEL - CHI NHÁNH TẬP ĐOÀN CÔNG
-                  NGHIỆP - VIỄN THÔNG QUÂN ĐỘI
-                </ThemedText>
-                <ThemedText style={styles.certValue}>
-                  Trụ sở: Số 1 Giảng Võn Minh, Phường Kim Mã - Ba Đình - Hà Nội
-                </ThemedText>
-                <ThemedText style={styles.certValue}>
-                  Địa chỉ giao dịch: Số 1 Giảng Võn Minh, Phường Kim Mã - Ba
-                  Đình - Hà Nội
-                </ThemedText>
-                <ThemedText style={styles.certValue}>
-                  Số điện thoại: 18008168
-                </ThemedText>
-
-                <ThemedText style={styles.certSection}>
-                  Bên A kiểm tra và xác nhận thông tin của chứng thư số do bên
-                  B cấp phát hoàn toàn trùng khớp với thông tin do bên A yêu
-                  cầu. Hai bên đồng ý ký biên bản xác nhận về việc bên B đã hoàn
-                  thành việc cấp phát chứng thư số Viettel-CA cho bên A và bên A
-                  có sử dụng chứng thư số được cấp có thời hạn từ 16/10/2024 đến
-                  16/10/2025 với các nội dung cụ thể như sau:
-                </ThemedText>
-
-                <View style={styles.certInfoBox}>
-                  <ThemedText style={styles.certInfoLabel}>
-                    Số Serial:
-                  </ThemedText>
-                  <ThemedText style={styles.certInfoValue}>
-                    5404fffeb7033fb316d672201c010446
-                  </ThemedText>
-
-                  <ThemedText style={styles.certInfoLabel}>
-                    Tổ chức phát hành:
-                  </ThemedText>
-                  <ThemedText style={styles.certInfoValue}>
-                    C=VN, O=Viettel Group, CN=Viettel-CA RS
-                  </ThemedText>
-
-                  <ThemedText style={styles.certInfoLabel}>
-                    Thông tin thuê bao:
-                  </ThemedText>
-                  <ThemedText style={styles.certInfoValue}>
-                    UID=CMND:001089020747, CN=PHAM ĐỨC HUY, L=NAM ĐỊNH, C=VN
-                  </ThemedText>
-
-                  <ThemedText style={styles.certInfoLabel}>
-                    Ngày bắt đầu:
-                  </ThemedText>
-                  <ThemedText style={styles.certInfoValue}>
-                    16/10/2024
-                  </ThemedText>
-
-                  <ThemedText style={styles.certInfoLabel}>
-                    Ngày kết thúc:
-                  </ThemedText>
-                  <ThemedText style={styles.certInfoValue}>
-                    16/10/2025
-                  </ThemedText>
-                </View>
-
-                <ThemedText style={styles.certSection}>
-                  Biên bản này có giá trị pháp lý và là bằng chứng chứng thực
-                  việc cấp phát chứng thư số Viettel-CA cho bên A.
-                </ThemedText>
-              </View>
-
-              {/* Signature Area */}
-              <View style={styles.signatureArea}>
-                <View style={styles.signatureBox}>
-                  <ThemedText style={styles.signatureLabel}>Bên A</ThemedText>
-                  <View style={styles.signatureLine} />
-                  <ThemedText style={styles.signatureDate}>
-                    Ngày: 16/10/2024
-                  </ThemedText>
-                </View>
-                <View style={styles.signatureBox}>
-                  <ThemedText style={styles.signatureLabel}>Bên B</ThemedText>
-                  <View style={styles.signatureLine} />
-                  <ThemedText style={styles.signatureDate}>
-                    Ngày: 16/10/2024
-                  </ThemedText>
-                </View>
-              </View>
-            </ScrollView>
-
-            
+        {/* Progress Bar (3 segments) */}
+        <View style={styles.topProgressWrap}>
+          <View style={styles.topProgressBar}>
+            <View style={[styles.segment, styles.segmentDone]} />
+            <View style={[styles.segment, styles.segmentDone]} />
+            <View style={[styles.segment, styles.segmentActive]} />
           </View>
         </View>
-      </Modal>
+
+        {/* Step Title */}
+        <View style={styles.stepContainer}>
+          <ThemedText style={styles.stepLabel}>BƯỚC 3</ThemedText>
+          <ThemedText style={styles.stepTitle}>
+            Nghiệm thu chứng thư số
+          </ThemedText>
+          <ThemedText style={styles.stepDescription}>
+            Quý khách vui lòng xác nhận nghiệm thu
+          </ThemedText>
+        </View>
+
+        {/* Content */}
+        <View style={styles.content}>
+          {/* Contract verification details */}
+          <View style={styles.sectionHeaderSmall}>
+            <ThemedText style={styles.sectionHeaderText}>
+              THÔNG TIN CHỨNG THƯ SỐ
+            </ThemedText>
+          </View>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.infoLabel}>Số Serial</ThemedText>
+              <ThemedText style={styles.infoValueSmall}>
+                5404fffeb7033fb316d672201c010446
+              </ThemedText>
+            </View>
+            <View style={styles.rowDivider} />
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.infoLabel}>Tổ chức phát hành</ThemedText>
+              <ThemedText style={styles.infoValueSmall}>
+                C=VN, O=Viettel Group, CN=Viettel-CA RS
+              </ThemedText>
+            </View>
+            <View style={styles.rowDivider} />
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.infoLabel}>Thông tin thuê bao</ThemedText>
+              <ThemedText style={styles.infoValueSmall}>
+                UID=CMND:001089020747, CN=PHAM ĐỨC HUY, L=NAM ĐỊNH, C=VN
+              </ThemedText>
+            </View>
+            <View style={styles.rowDivider} />
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.infoLabel}>Ngày bắt đầu</ThemedText>
+              <ThemedText style={styles.infoValue}>16/10/2024</ThemedText>
+            </View>
+            <View style={styles.rowDivider} />
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.infoLabel}>Ngày kết thúc</ThemedText>
+              <ThemedText style={styles.infoValue}>16/10/2025</ThemedText>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.contractRow}
+            onPress={() => setShowCertModal(true)}
+          >
+            <ThemedText style={styles.contractRowText}>
+              Biên bản nghiệm thu
+            </ThemedText>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={20}
+              color="#7A7A7A"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Certificate Modal */}
+        <Modal
+          visible={showCertModal}
+          animationType="fade"
+          transparent={true}
+          onRequestClose={() => setShowCertModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <ThemedText style={styles.modalTitle}>
+                  Biên bản nghiệm thu
+                </ThemedText>
+                <TouchableOpacity onPress={() => setShowCertModal(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#000" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                style={styles.modalBody}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Header */}
+                <View style={styles.certHeader}>
+                  <ThemedText style={styles.certLogo}>viettel</ThemedText>
+                  <ThemedText style={styles.certSubtitle}>
+                    Trusted Certificate Provider
+                  </ThemedText>
+                  <ThemedText style={styles.certLocation}>
+                    Hà Nội, ngày 16 tháng 10, năm 2024
+                  </ThemedText>
+                </View>
+
+                {/* Title */}
+                <ThemedText style={styles.certMainTitle}>
+                  BIÊN BẢN BẢN GIAO{"\n"}CHỨNG THƯ SỐ VIETTEL-CA
+                </ThemedText>
+
+                {/* Content */}
+                <View style={styles.certContent}>
+                  <ThemedText style={styles.certParagraph}>
+                    Căn cứ vào hợp đồng đã ký ngày 16. tháng 10., năm 2024 giữa
+                    TỔNG CÔNG TY VIỄN THÔNG VIETTEL - CHI NHÁNH TẬP ĐOÀN CÔNG
+                    NGHIỆP - VIỄN THÔNG QUÂN ĐỘI
+                  </ThemedText>
+
+                  <ThemedText style={styles.certSectionTitle}>
+                    (Bên B) và Ông/Bà: PHẠM ĐỨC HUY
+                  </ThemedText>
+
+                  <ThemedText style={styles.certLabel}>
+                    Hôm nay, chứng tỏi gồm:
+                  </ThemedText>
+
+                  <ThemedText style={styles.certSubLabel}>
+                    Bên A: Đại diện khách hàng:
+                  </ThemedText>
+                  <ThemedText style={styles.certValue}>
+                    Khách hàng: PHẠM ĐỨC HUY
+                  </ThemedText>
+                  <ThemedText style={styles.certValue}>
+                    Địa chỉ giao dịch: Trạng Tây, Nam Định, Nam Định
+                  </ThemedText>
+                  <ThemedText style={styles.certValue}>
+                    Số điện thoại: 0935035303
+                  </ThemedText>
+                  <ThemedText style={styles.certValue}>
+                    Người đại diện: PHẠM ĐỨC HUY
+                  </ThemedText>
+
+                  <ThemedText style={styles.certSubLabel}>
+                    Bên B: Nhà cung cấp dịch vụ
+                  </ThemedText>
+                  <ThemedText style={styles.certValue}>
+                    TỔNG CÔNG TY VIỄN THÔNG VIETTEL - CHI NHÁNH TẬP ĐOÀN CÔNG
+                    NGHIỆP - VIỄN THÔNG QUÂN ĐỘI
+                  </ThemedText>
+                  <ThemedText style={styles.certValue}>
+                    Trụ sở: Số 1 Giảng Võn Minh, Phường Kim Mã - Ba Đình - Hà Nội
+                  </ThemedText>
+                  <ThemedText style={styles.certValue}>
+                    Địa chỉ giao dịch: Số 1 Giảng Võn Minh, Phường Kim Mã - Ba
+                    Đình - Hà Nội
+                  </ThemedText>
+                  <ThemedText style={styles.certValue}>
+                    Số điện thoại: 18008168
+                  </ThemedText>
+
+                  <ThemedText style={styles.certSection}>
+                    Bên A kiểm tra và xác nhận thông tin của chứng thư số do bên
+                    B cấp phát hoàn toàn trùng khớp với thông tin do bên A yêu
+                    cầu. Hai bên đồng ý ký biên bản xác nhận về việc bên B đã hoàn
+                    thành việc cấp phát chứng thư số Viettel-CA cho bên A và bên A
+                    có sử dụng chứng thư số được cấp có thời hạn từ 16/10/2024 đến
+                    16/10/2025 với các nội dung cụ thể như sau:
+                  </ThemedText>
+
+                  <View style={styles.certInfoBox}>
+                    <ThemedText style={styles.certInfoLabel}>
+                      Số Serial:
+                    </ThemedText>
+                    <ThemedText style={styles.certInfoValue}>
+                      5404fffeb7033fb316d672201c010446
+                    </ThemedText>
+
+                    <ThemedText style={styles.certInfoLabel}>
+                      Tổ chức phát hành:
+                    </ThemedText>
+                    <ThemedText style={styles.certInfoValue}>
+                      C=VN, O=Viettel Group, CN=Viettel-CA RS
+                    </ThemedText>
+
+                    <ThemedText style={styles.certInfoLabel}>
+                      Thông tin thuê bao:
+                    </ThemedText>
+                    <ThemedText style={styles.certInfoValue}>
+                      UID=CMND:001089020747, CN=PHAM ĐỨC HUY, L=NAM ĐỊNH, C=VN
+                    </ThemedText>
+
+                    <ThemedText style={styles.certInfoLabel}>
+                      Ngày bắt đầu:
+                    </ThemedText>
+                    <ThemedText style={styles.certInfoValue}>
+                      16/10/2024
+                    </ThemedText>
+
+                    <ThemedText style={styles.certInfoLabel}>
+                      Ngày kết thúc:
+                    </ThemedText>
+                    <ThemedText style={styles.certInfoValue}>
+                      16/10/2025
+                    </ThemedText>
+                  </View>
+
+                  <ThemedText style={styles.certSection}>
+                    Biên bản này có giá trị pháp lý và là bằng chứng chứng thực
+                    việc cấp phát chứng thư số Viettel-CA cho bên A.
+                  </ThemedText>
+                </View>
+
+                {/* Signature Area */}
+                <View style={styles.signatureArea}>
+                  <View style={styles.signatureBox}>
+                    <ThemedText style={styles.signatureLabel}>Bên A</ThemedText>
+                    <View style={styles.signatureLine} />
+                    <ThemedText style={styles.signatureDate}>
+                      Ngày: 16/10/2024
+                    </ThemedText>
+                  </View>
+                  <View style={styles.signatureBox}>
+                    <ThemedText style={styles.signatureLabel}>Bên B</ThemedText>
+                    <View style={styles.signatureLine} />
+                    <ThemedText style={styles.signatureDate}>
+                      Ngày: 16/10/2024
+                    </ThemedText>
+                  </View>
+                </View>
+              </ScrollView>
 
 
-    </ScrollView>
-          {/* Action Button */}
+            </View>
+          </View>
+        </Modal>
+
+
+      </ScrollView>
+      {/* Action Button */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[styles.confirmButton, { backgroundColor: "#0D6EFD" }]}
+          style={[styles.confirmButton, { backgroundColor: "#2092EC" }]}
           onPress={() => router.push("/choose-certificate2")}
         >
           <ThemedText style={styles.confirmButtonText}>
@@ -292,7 +292,7 @@ export default function SignValScreen() {
           </ThemedText>
         </TouchableOpacity>
       </View>
-       </View>
+    </View>
   );
 }
 
@@ -310,11 +310,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   fixedButtonWrap: {
-  position: "absolute",
-  left: 16,
-  right: 16,
-  bottom: 24,
-},
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 24,
+  },
 
   progressContainer: {
     marginBottom: 24,
@@ -654,4 +654,5 @@ const styles = StyleSheet.create({
   signatureDate: {
     fontSize: 11,
     color: "#666666",
-  },});
+  },
+});

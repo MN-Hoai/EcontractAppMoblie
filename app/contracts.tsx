@@ -71,12 +71,12 @@ export default function ContractsScreen() {
               : "#E5F5E3",
         },
       ]}
-onPress={() =>
-  router.push({
-    pathname: "/contract-content",
-    params: { contractId: contract.id },
-  })
-}
+      onPress={() =>
+        router.push({
+          pathname: "/contract-content",
+          params: { contractId: contract.id },
+        })
+      }
 
     >
       <View style={styles.contractHeader}>
@@ -90,7 +90,7 @@ onPress={() =>
                   : "handshake"
             }
             size={28}
-            color={isPending ? "#FF6B6B" : "#4CAF50"}
+            color={isPending ? "#2092EC" : "#4CAF50"}
           />
         </View>
         <View style={{ flex: 1 }}>
@@ -120,7 +120,7 @@ onPress={() =>
         <TouchableOpacity
           style={[
             styles.signButton,
-            { backgroundColor: isDark ? "#FF6B6B" : "#FF5252" },
+            { backgroundColor: isDark ? "#2092EC" : "#2092EC" },
           ]}
           onPress={() => handleSign(contract.id)}
         >

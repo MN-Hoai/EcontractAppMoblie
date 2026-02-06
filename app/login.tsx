@@ -49,8 +49,8 @@ export default function LoginScreen() {
   };
 
   const handleSignUp = () => {
-  router.push("/register");
-};
+    router.push("/register");
+  };
 
 
   return (
@@ -103,6 +103,10 @@ export default function LoginScreen() {
                   },
                 ]}
               >
+                <ThemedText style={styles.title}>
+                  ĐĂNG NHẬP
+                </ThemedText>
+
                 {/* ID Number Input */}
                 <View style={styles.inputWrapper}>
                   <TextInput
@@ -220,6 +224,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 20,
   },
+  title: {
+    textAlign: "center",
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 20,
+    color: "#007AFF",
+  },
   backgroundImage: {
     width: "100%",
     height: "120%",
@@ -326,7 +337,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   loginButton: {
-    backgroundColor: "#00A8E8",
+    backgroundColor: "#2092EC",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",

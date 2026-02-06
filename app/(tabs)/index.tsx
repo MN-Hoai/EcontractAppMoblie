@@ -1,11 +1,17 @@
-import { HelloWave } from "@/components/hello-wave";
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 // import { usePhoneStore } from "@/store/phoneStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return "Chào buổi sáng";
+  if (h < 18) return "Chào buổi chiều";
+  return "Chào buổi tối";
+};
 
 export default function HomeScreen() {
   // const phoneNumber = usePhoneStore((state) => state.phoneNumber);
@@ -50,39 +56,46 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
       {/* Header */}
-      <View
-        style={[
-          styles.headerBackground,
-          { backgroundColor: isDark ? "#1D3D47" : "#007AFF" },
+      <View style={styles.headerBackground}>
+  <View style={styles.headerCard}>
+
+    <ImageBackground
+      source={require("@/assets/images/ThemeLogin.png")}
+      style={{ flex: 1 }}
+      imageStyle={{ borderRadius: 28 }}
+    >
+      <LinearGradient
+        colors={[
+          "rgba(10,124,134,0.65)",
+          "rgba(10,124,134,0.25)"
         ]}
+        style={styles.headerOverlay}
       >
-        <ThemedView style={styles.titleContainer}>
-          <View>
-            <ThemedText
-              style={[
-                styles.headerTitle,
-                { color: isDark ? "#FFFFFF" : "#FFFFFF" },
-              ]}
-            >
-              Chào Mừng
-            </ThemedText>
-            <ThemedText
-              style={[
-                styles.headerSubtitle,
-                { color: isDark ? "#00aaff" : "rgba(255,255,255,0.8)" },
-              ]}
-            >
-              E-Contact System
-            </ThemedText>
-          </View>
-          <HelloWave />
-        </ThemedView>
-      </View>
+
+        <View style={{ marginTop: 30 }}>
+          <ThemedText style={styles.greetText}>
+            {getGreeting()} 🌤️
+          </ThemedText>
+
+          <ThemedText style={styles.greetName}>
+            LE THI THU UYEN
+          </ThemedText>
+        </View>
+
+      </LinearGradient>
+    </ImageBackground>
+
+  </View>
+</View>
+
+
 
       {/* Main Content */}
       <View style={styles.contentContainer}>
        
-
+<ThemedText type="subtitle" style={styles.sectionTitle}>
+            Nổi bật
+          </ThemedText>
         {/* Contracts Section */}
         <TouchableOpacity
           style={[
@@ -97,6 +110,7 @@ export default function HomeScreen() {
           activeOpacity={0.8}
         >
           <View style={styles.contractHeader}>
+            
             <View
               style={[
                 styles.contractIconBg,
@@ -233,7 +247,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 20,
+
     paddingBottom: 40,
   },
   titleContainer: {
@@ -254,6 +268,29 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 1,
   },
+  headerCard: {
+  height: 220,
+  borderRadius: 28,
+  overflow: "hidden",
+},
+
+headerOverlay: {
+  flex: 1,
+  padding: 20,
+  paddingTop: 50,
+},
+
+greetText: {
+  color: "rgba(255,255,255,0.9)",
+  fontSize: 14,
+},
+
+greetName: {
+  color: "white",
+  fontSize: 20,
+  fontWeight: "800",
+},
+
   card: {
     borderRadius: 16,
     padding: 16,
@@ -263,7 +300,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 0,
     gap: 8,
   },
   cardTitle: {

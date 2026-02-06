@@ -58,7 +58,7 @@ export default function IdentityVerificationScreen() {
         <ThemedText style={styles.sectionTitle}>Hướng dẫn chụp CCCD</ThemedText>
 
         <View style={styles.instructionItem}>
-          <View style={[styles.stepNumber, { backgroundColor: "#2196F3" }]}>
+          <View style={[styles.stepNumber, { backgroundColor: "#2092EC" }]}>
             <ThemedText style={{ color: "white", fontWeight: "bold" }}>
               1
             </ThemedText>
@@ -165,7 +165,7 @@ export default function IdentityVerificationScreen() {
       {/* Start Button */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[styles.startButton, { backgroundColor: "#2196F3" }]}
+          style={[styles.startButton, { backgroundColor: "#2092EC" }]}
           onPress={handleStartVerification}
         >
           <ThemedText style={styles.buttonText}>Bắt đầu xác thực</ThemedText>

@@ -31,7 +31,7 @@ export default function CertificateInfoScreen() {
             color={isDark ? "#FFFFFF" : "#000000"}
           />
         </TouchableOpacity>
-        <ThemedText type="title" style={{ fontSize: 20 }}>
+        <ThemedText type="title" style={{ fontSize: 20, flex:1 }}>
           Thông tin chứng thư số
         </ThemedText>
         <View style={{ width: 28 }} />
@@ -140,7 +140,7 @@ export default function CertificateInfoScreen() {
         <TouchableOpacity
           style={[
             styles.continueButton,
-            { backgroundColor: isDark ? "#2196F3" : "#2196F3" },
+            { backgroundColor: isDark ? "#2092EC" : "#2092EC" },
           ]}
           onPress={handleContinue}
         >

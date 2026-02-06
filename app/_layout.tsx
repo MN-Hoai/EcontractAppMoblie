@@ -17,9 +17,9 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    
+
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 40 , backgroundColor: "#FFFFFF"} }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 40, backgroundColor: "#FFFFFF" } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="login" />
         <Stack.Screen name="certificate-info" />

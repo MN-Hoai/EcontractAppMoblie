@@ -4,26 +4,26 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function SignOtpScreen() {
   const router = useRouter();
   const isDark = useColorScheme() === "dark";
   const [otp, setOtp] = useState("");
-const [showSuccess, setShowSuccess] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-const handleConfirm = () => {
-  if (otp.length < 6) return;
-  setShowSuccess(true);
-};
+  const handleConfirm = () => {
+    if (otp.length < 6) return;
+    setShowSuccess(true);
+  };
 
 
   return (
@@ -102,33 +102,33 @@ const handleConfirm = () => {
 
 
       <Modal visible={showSuccess} transparent animationType="fade">
-  <View style={styles.modalOverlay}>
-    <View style={styles.successModal}>
-      <MaterialCommunityIcons
-        name="check-circle"
-        size={64}
-        color="#22C55E"
-      />
+        <View style={styles.modalOverlay}>
+          <View style={styles.successModal}>
+            <MaterialCommunityIcons
+              name="check-circle"
+              size={64}
+              color="#22C55E"
+            />
 
-      <ThemedText style={styles.successTitle}>
-        Ký số thành công
-      </ThemedText>
+            <ThemedText style={styles.successTitle}>
+              Ký số thành công
+            </ThemedText>
 
-      <ThemedText style={styles.successText}>
-        Giao dịch đã được xác thực thành công
-      </ThemedText>
+            <ThemedText style={styles.successText}>
+              Giao dịch đã được xác thực thành công
+            </ThemedText>
 
-      <TouchableOpacity
-        style={styles.successBtn}
-        onPress={() => router.replace("/contracts")}
-      >
-        <ThemedText style={{ color: "#FFF", fontWeight: "700" }}>
-          Về danh sách hợp đồng
-        </ThemedText>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
+            <TouchableOpacity
+              style={styles.successBtn}
+              onPress={() => router.replace("/contracts")}
+            >
+              <ThemedText style={{ color: "#FFF", fontWeight: "700" }}>
+                Về danh sách hợp đồng
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
     </KeyboardAvoidingView>
   );
@@ -151,41 +151,41 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
   },
-modalOverlay: {
-  flex: 1,
-  backgroundColor: "rgba(0,0,0,0.4)",
-  justifyContent: "center",
-  alignItems: "center",
-},
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-successModal: {
-  backgroundColor: "#FFF",
-  borderRadius: 16,
-  padding: 24,
-  width: "85%",
-  alignItems: "center",
-},
+  successModal: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    padding: 24,
+    width: "85%",
+    alignItems: "center",
+  },
 
-successTitle: {
-  fontSize: 18,
-  fontWeight: "700",
-  marginTop: 12,
-},
+  successTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 12,
+  },
 
-successText: {
-  fontSize: 14,
-  color: "#666",
-  marginTop: 6,
-  marginBottom: 18,
-  textAlign: "center",
-},
+  successText: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 6,
+    marginBottom: 18,
+    textAlign: "center",
+  },
 
-successBtn: {
-  backgroundColor: "#1976D2",
-  paddingVertical: 12,
-  paddingHorizontal: 20,
-  borderRadius: 10,
-},
+  successBtn: {
+    backgroundColor: "#2092EC",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
 
   card: {
     backgroundColor: "#FFF",
@@ -243,7 +243,7 @@ successBtn: {
   },
 
   btn: {
-    backgroundColor: "#1976D2",
+    backgroundColor: "#2092EC",
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",

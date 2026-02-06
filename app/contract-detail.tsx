@@ -4,10 +4,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface Contract {
@@ -199,7 +199,7 @@ export default function ContractDetailScreen() {
       </View>
 
       <TouchableOpacity
-        style={[styles.signButton, { backgroundColor: agreed ? "#00A8E8" : "#A8D8F0" }]}
+        style={[styles.signButton, { backgroundColor: agreed ? "#2092EC" : "#A8D8F0" }]}
         onPress={handleStartSigning}
         disabled={!agreed}
       >
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   checkboxRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 20 },
   checkboxWrapper: { marginTop: 2 },
   checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, alignItems: "center", justifyContent: "center" },
-  checkboxChecked: { backgroundColor: "#00A8E8", borderColor: "#00A8E8" },
+  checkboxChecked: { backgroundColor: "#2092EC", borderColor: "#2092EC" },
   checkboxLabelWrapper: { flex: 1, flexDirection: "row", flexWrap: "wrap" },
   checkboxLabelStart: { fontSize: 15 },
   checkboxLabelLink: { fontSize: 15, fontWeight: "600", textDecorationLine: "underline" },

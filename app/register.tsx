@@ -4,16 +4,16 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
-    Alert,
-    Image,
-    ImageBackground,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -216,8 +216,8 @@ export default function RegisterScreen() {
       </ImageBackground>
 
       <View style={[styles.footerContainer, { bottom: 10 + insets.bottom }]} pointerEvents="none">
-              <ThemedText style={styles.econTractsText}>ECONTRACTS</ThemedText>
-            </View>
+        <ThemedText style={styles.econTractsText}>ECONTRACTS</ThemedText>
+      </View>
     </View>
   );
 }
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   passwordInput: { paddingRight: 45 },
   eyeIcon: { position: "absolute", right: 12, top: 12 },
   loginButton: {
-    backgroundColor: "#00A8E8",
+    backgroundColor: "#2092EC",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   signUpContainer: { flexDirection: "row", justifyContent: "center", marginTop: 16 },
   signUpText: { fontSize: 14 },
   signUpLink: { color: "#FF6B6B", fontWeight: "600" },
-footerContainer: {
+  footerContainer: {
     position: "absolute",
     left: 0,
     right: 0,

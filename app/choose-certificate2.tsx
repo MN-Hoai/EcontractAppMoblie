@@ -71,180 +71,180 @@ export default function ChooseCertificate2Screen() {
         contentContainerStyle={{ paddingBottom: 220 }}
         showsVerticalScrollIndicator={false}
       >
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={28}
-            color={isDark ? "#FFFFFF" : "#000000"}
-          />
-        </TouchableOpacity>
-        <ThemedText type="title" style={{ fontSize: 20 }}>
-          Chọn chứng thư số
-        </ThemedText>
-        <View style={{ width: 28 }} />
-      </View>
-      {/* Provider Section */}
-      <View style={styles.section}>
-        <ThemedText style={styles.sectionTitle}>Nhà cung cấp</ThemedText>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={28}
+              color={isDark ? "#FFFFFF" : "#000000"}
+            />
+          </TouchableOpacity>
+          <ThemedText type="title" style={{ fontSize: 20, flex: 1 }}>
+            Chọn chứng thư số
+          </ThemedText>
+          <View style={{ width: 28 }} />
+        </View>
+        {/* Provider Section */}
+        <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>Nhà cung cấp</ThemedText>
 
-        {providers.map((provider) => (
-          <View
-            key={provider.id}
+          {providers.map((provider) => (
+            <View
+              key={provider.id}
+              style={[
+                styles.providerCard,
+                {
+                  backgroundColor: isDark ? "#1D3D47" : "#F9F9F9",
+                  borderColor: provider.selected
+                    ? "#2196F3"
+                    : isDark
+                      ? "#38434D"
+                      : "#E0E0E0",
+                },
+              ]}
+            >
+              <View style={styles.providerContent}>
+                <ViettelLogo />
+                <View style={{ flex: 1 }}>
+                  <ThemedText style={styles.providerName}>
+                    {provider.displayName}
+                  </ThemedText>
+                </View>
+              </View>
+              {provider.selected && (
+                <View style={styles.checkmark}>
+                  <MaterialCommunityIcons
+                    name="check-circle"
+                    size={24}
+                    color="#2196F3"
+                  />
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
+
+        {/* Certificate List */}
+        <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>
+            Danh sách chứng thư số
+          </ThemedText>
+
+          <TouchableOpacity
             style={[
-              styles.providerCard,
+              styles.certRow,
               {
-                backgroundColor: isDark ? "#1D3D47" : "#F9F9F9",
-                borderColor: provider.selected
-                  ? "#2196F3"
-                  : isDark
-                    ? "#38434D"
-                    : "#E0E0E0",
+                borderColor: isDark ? "#38434D" : "#E0E0E0",
+                backgroundColor: isDark ? "#122B31" : "#FFFFFF",
               },
             ]}
+            onPress={() => setShowDetail(true)}
           >
-            <View style={styles.providerContent}>
-              <ViettelLogo />
-              <View style={{ flex: 1 }}>
-                <ThemedText style={styles.providerName}>
-                  {provider.displayName}
-                </ThemedText>
+            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+              <View style={styles.certIcon} />
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <ThemedText style={styles.certTitle}>...446</ThemedText>
+                <TouchableOpacity onPress={() => setShowDetail(true)}>
+                  <ThemedText style={styles.viewDetailText}>
+                    Xem chi tiết
+                  </ThemedText>
+                </TouchableOpacity>
               </View>
             </View>
-            {provider.selected && (
-              <View style={styles.checkmark}>
-                <MaterialCommunityIcons
-                  name="check-circle"
-                  size={24}
-                  color="#2196F3"
-                />
-              </View>
+            {selectedCert === "446" && (
+              <MaterialCommunityIcons
+                name="check-circle"
+                size={22}
+                color="#2196F3"
+              />
             )}
-          </View>
-        ))}
-      </View>
-
-      {/* Certificate List */}
-      <View style={styles.section}>
-        <ThemedText style={styles.sectionTitle}>
-          Danh sách chứng thư số
-        </ThemedText>
-
-        <TouchableOpacity
-          style={[
-            styles.certRow,
-            {
-              borderColor: isDark ? "#38434D" : "#E0E0E0",
-              backgroundColor: isDark ? "#122B31" : "#FFFFFF",
-            },
-          ]}
-          onPress={() => setShowDetail(true)}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <View style={styles.certIcon} />
-            <View style={{ marginLeft: 12, flex: 1 }}>
-              <ThemedText style={styles.certTitle}>...446</ThemedText>
-              <TouchableOpacity onPress={() => setShowDetail(true)}>
-                <ThemedText style={styles.viewDetailText}>
-                  Xem chi tiết
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
-          {selectedCert === "446" && (
-            <MaterialCommunityIcons
-              name="check-circle"
-              size={22}
-              color="#2196F3"
-            />
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Spacer */}
-      <View style={{ height: 40 }} />
-
-      {/* Certificate Detail Modal */}
-      <Modal
-        visible={showDetail}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowDetail(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalSheet,
-              { backgroundColor: isDark ? "#071217" : "#FFFFFF" },
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <ThemedText style={styles.modalTitle}>
-                Chi tiết chứng thư số
-              </ThemedText>
-              <TouchableOpacity onPress={() => setShowDetail(false)}>
-                <MaterialCommunityIcons
-                  name="close"
-                  size={22}
-                  color={isDark ? "#FFFFFF" : "#333333"}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalContent}>
-              <View style={styles.modalRow}>
-                <ThemedText style={styles.modalLabel}>
-                  Mã chứng thư số
-                </ThemedText>
-                <ThemedText style={styles.modalValue}>
-                  {certDetails.code}
-                </ThemedText>
-              </View>
-              <View style={styles.modalRow}>
-                <ThemedText style={styles.modalLabel}>Số Serial</ThemedText>
-                <ThemedText style={styles.modalValue}>
-                  {certDetails.serial}
-                </ThemedText>
-              </View>
-              <View style={styles.modalRow}>
-                <ThemedText style={styles.modalLabel}>
-                  Tổ chức phát hành
-                </ThemedText>
-                <ThemedText style={styles.modalValue}>
-                  {certDetails.issuer}
-                </ThemedText>
-              </View>
-              <View style={styles.modalRowFull}>
-                <ThemedText style={styles.modalLabel}>
-                  Thông tin thuê bao
-                </ThemedText>
-                <ThemedText style={styles.modalValueSmall}>
-                  {certDetails.subscriber}
-                </ThemedText>
-              </View>
-              <View style={styles.modalRow}>
-                <ThemedText style={styles.modalLabel}>Trạng thái</ThemedText>
-                <ThemedText style={styles.modalValue}>
-                  {certDetails.status}
-                </ThemedText>
-              </View>
-              <View style={styles.modalRow}>
-                <ThemedText style={styles.modalLabel}>Ngày bắt đầu</ThemedText>
-                <ThemedText style={styles.modalValue}>
-                  {certDetails.start}
-                </ThemedText>
-              </View>
-              <View style={styles.modalRow}>
-                <ThemedText style={styles.modalLabel}>Ngày kết thúc</ThemedText>
-                <ThemedText style={styles.modalValue}>
-                  {certDetails.end}
-                </ThemedText>
-              </View>
-            </View>
-          </View>
+          </TouchableOpacity>
         </View>
-      </Modal>
+
+        {/* Spacer */}
+        <View style={{ height: 40 }} />
+
+        {/* Certificate Detail Modal */}
+        <Modal
+          visible={showDetail}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowDetail(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.modalSheet,
+                { backgroundColor: isDark ? "#071217" : "#FFFFFF" },
+              ]}
+            >
+              <View style={styles.modalHeader}>
+                <ThemedText style={styles.modalTitle}>
+                  Chi tiết chứng thư số
+                </ThemedText>
+                <TouchableOpacity onPress={() => setShowDetail(false)}>
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={22}
+                    color={isDark ? "#FFFFFF" : "#333333"}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalContent}>
+                <View style={styles.modalRow}>
+                  <ThemedText style={styles.modalLabel}>
+                    Mã chứng thư số
+                  </ThemedText>
+                  <ThemedText style={styles.modalValue}>
+                    {certDetails.code}
+                  </ThemedText>
+                </View>
+                <View style={styles.modalRow}>
+                  <ThemedText style={styles.modalLabel}>Số Serial</ThemedText>
+                  <ThemedText style={styles.modalValue}>
+                    {certDetails.serial}
+                  </ThemedText>
+                </View>
+                <View style={styles.modalRow}>
+                  <ThemedText style={styles.modalLabel}>
+                    Tổ chức phát hành
+                  </ThemedText>
+                  <ThemedText style={styles.modalValue}>
+                    {certDetails.issuer}
+                  </ThemedText>
+                </View>
+                <View style={styles.modalRowFull}>
+                  <ThemedText style={styles.modalLabel}>
+                    Thông tin thuê bao
+                  </ThemedText>
+                  <ThemedText style={styles.modalValueSmall}>
+                    {certDetails.subscriber}
+                  </ThemedText>
+                </View>
+                <View style={styles.modalRow}>
+                  <ThemedText style={styles.modalLabel}>Trạng thái</ThemedText>
+                  <ThemedText style={styles.modalValue}>
+                    {certDetails.status}
+                  </ThemedText>
+                </View>
+                <View style={styles.modalRow}>
+                  <ThemedText style={styles.modalLabel}>Ngày bắt đầu</ThemedText>
+                  <ThemedText style={styles.modalValue}>
+                    {certDetails.start}
+                  </ThemedText>
+                </View>
+                <View style={styles.modalRow}>
+                  <ThemedText style={styles.modalLabel}>Ngày kết thúc</ThemedText>
+                  <ThemedText style={styles.modalValue}>
+                    {certDetails.end}
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
       </ScrollView>
 
@@ -257,10 +257,10 @@ export default function ChooseCertificate2Screen() {
 
         <View style={styles.footerButtonWrap}>
           <TouchableOpacity
-            style={[styles.continueButton, { backgroundColor: "#0D6EFD" }]}
+            style={[styles.continueButton, { backgroundColor: "#2092EC" }]}
             onPress={() => router.push("/sign")}
           >
-            <ThemedText style={styles.buttonText}>Gửi yêu cầu ký số</ThemedText>
+            <ThemedText style={styles.buttonText}>Gửi yêu cầu ký số </ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -355,6 +355,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   buttonText: { color: "white", fontSize: 16, fontWeight: "700" },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
@@ -389,7 +390,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     lineHeight: 18,
-    textAlign:"justify"
+    textAlign: "justify"
   },
   screen: { flex: 1 },
   scroll: { flex: 1, paddingHorizontal: 16 },

@@ -317,14 +317,14 @@ export default function ContractContentScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { contractId } = useLocalSearchParams();
-const contract = MOCK_CONTRACTS.find(c => c.id === contractId);
-if (!contract) {
-  return (
-    <View style={{ padding: 20 }}>
-      <ThemedText>Không tìm thấy hợp đồng</ThemedText>
-    </View>
-  );
-}
+  const contract = MOCK_CONTRACTS.find(c => c.id === contractId);
+  if (!contract) {
+    return (
+      <View style={{ padding: 20 }}>
+        <ThemedText>Không tìm thấy hợp đồng</ThemedText>
+      </View>
+    );
+  }
 
   const COMMON_TERMS = `ĐIỀU KHOẢN CHUNG CỦA HỢP ĐỒNG
 
@@ -462,7 +462,7 @@ PHẦN VII: ĐIỀU KHOẢN CUỐI
 
       <View style={styles.content}>
         <ThemedText style={styles.contentText}>
-  {contract.fullContent}
+          {contract.fullContent}
         </ThemedText>
       </View>
 
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: "#00A8E8",
+    backgroundColor: "#2092EC",
     alignItems: "center",
   },
   closeButtonText: {
