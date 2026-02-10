@@ -188,14 +188,35 @@ export default function ContractDetailScreen() {
             {agreed && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
           </View>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => router.push({ pathname: "/contract-content", params: { contractId } })}
-          style={styles.checkboxLabelWrapper}
-        >
-          <ThemedText style={styles.checkboxLabelStart}>Tôi đã đọc và đồng ý với các </ThemedText>
-          <ThemedText style={[styles.checkboxLabelLink, { color: isDark ? "#00AAFF" : "#007AFF" }]}>điều khoản</ThemedText>
-          <ThemedText style={styles.checkboxLabelEnd}> của hợp đồng</ThemedText>
-        </TouchableOpacity>
+        <View style={styles.checkboxLabelWrapper}>
+  <ThemedText style={styles.checkboxLabelStart}>
+    Tôi đã đọc và đồng ý với các{" "}
+  </ThemedText>
+
+  <TouchableOpacity
+    onPress={() =>
+      router.push({
+        pathname: "/contract-content",
+        params: { contractId },
+      })
+    }
+    activeOpacity={0.7}
+  >
+    <ThemedText
+      style={[
+        styles.checkboxLabelLink,
+        { color: isDark ? "#00AAFF" : "#007AFF" },
+      ]}
+    >
+      điều khoản
+    </ThemedText>
+  </TouchableOpacity>
+
+  <ThemedText style={styles.checkboxLabelEnd}>
+    {" "}của hợp đồng
+  </ThemedText>
+</View>
+
       </View>
 
       <TouchableOpacity

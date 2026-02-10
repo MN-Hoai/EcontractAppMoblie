@@ -186,9 +186,8 @@ export default function IDInformationScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      keyboardVerticalOffset={0}
     >
-
       <ScrollView
         style={[
           styles.container,
@@ -202,8 +201,6 @@ export default function IDInformationScreen() {
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
-
-
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
@@ -255,18 +252,106 @@ export default function IDInformationScreen() {
 
             <View style={styles.divider} />
 
-            <EditableInfoRow label="Họ và tên" field="fullName" />
-            <EditableInfoRow label="Ngày sinh" field="dateOfBirth" />
-            <EditableInfoRow label="Giới tính" field="gender" />
-            <EditableInfoRow label="Số CCCD" field="idNumber" />
-            <EditableInfoRow label="Ngày cấp" field="issueDate" />
-            <EditableInfoRow label="Nơi cấp" field="placeOfIssue" />
-            <EditableInfoRow label="Địa chỉ thường trú" field="address" />
-            <EditableInfoRow label="Số điện thoại" field="phoneNumber" />
-            <EditableInfoRow label="Email" field="email" />
+            <EditableInfoRow
+              label="Họ và tên"
+              field="fullName"
+              isEditing={editingField === "fullName"}
+              value={idInfo.fullName}
+              isDark={isDark}
+              onEdit={() => setEditingField("fullName")}
+              onChange={(t) => setIdInfo(p => ({ ...p, fullName: t }))}
+              onBlur={() => setEditingField(null)}
+            />
+
+            <EditableInfoRow
+              label="Ngày sinh"
+              field="dateOfBirth"
+              isEditing={editingField === "dateOfBirth"}
+              value={idInfo.dateOfBirth}
+              isDark={isDark}
+              onEdit={() => setEditingField("dateOfBirth")}
+              onChange={(t) => setIdInfo(p => ({ ...p, dateOfBirth: t }))}
+              onBlur={() => setEditingField(null)}
+            />
+
+            <EditableInfoRow
+              label="Giới tính"
+              field="gender"
+              isEditing={editingField === "gender"}
+              value={idInfo.gender}
+              isDark={isDark}
+              onEdit={() => setEditingField("gender")}
+              onChange={(t) => setIdInfo(p => ({ ...p, gender: t }))}
+              onBlur={() => setEditingField(null)}
+            />
+
+            <EditableInfoRow
+              label="Số CCCD"
+              field="idNumber"
+              isEditing={editingField === "idNumber"}
+              value={idInfo.idNumber}
+              isDark={isDark}
+              onEdit={() => setEditingField("idNumber")}
+              onChange={(t) => setIdInfo(p => ({ ...p, idNumber: t }))}
+              onBlur={() => setEditingField(null)}
+            />
+
+            <EditableInfoRow
+              label="Ngày cấp"
+              field="issueDate"
+              isEditing={editingField === "issueDate"}
+              value={idInfo.issueDate}
+              isDark={isDark}
+              onEdit={() => setEditingField("issueDate")}
+              onChange={(t) => setIdInfo(p => ({ ...p, issueDate: t }))}
+              onBlur={() => setEditingField(null)}
+            />
+
+            <EditableInfoRow
+              label="Nơi cấp"
+              field="placeOfIssue"
+              isEditing={editingField === "placeOfIssue"}
+              value={idInfo.placeOfIssue}
+              isDark={isDark}
+              onEdit={() => setEditingField("placeOfIssue")}
+              onChange={(t) => setIdInfo(p => ({ ...p, placeOfIssue: t }))}
+              onBlur={() => setEditingField(null)}
+            />
+
+            <EditableInfoRow
+              label="Địa chỉ thường trú"
+              field="address"
+              isEditing={editingField === "address"}
+              value={idInfo.address}
+              isDark={isDark}
+              onEdit={() => setEditingField("address")}
+              onChange={(t) => setIdInfo(p => ({ ...p, address: t }))}
+              onBlur={() => setEditingField(null)}
+            />
+
+            <EditableInfoRow
+              label="Số điện thoại"
+              field="phoneNumber"
+              isEditing={editingField === "phoneNumber"}
+              value={idInfo.phoneNumber}
+              isDark={isDark}
+              onEdit={() => setEditingField("phoneNumber")}
+              onChange={(t) => setIdInfo(p => ({ ...p, phoneNumber: t }))}
+              onBlur={() => setEditingField(null)}
+            />
+
+            <EditableInfoRow
+              label="Email"
+              field="email"
+              isEditing={editingField === "email"}
+              value={idInfo.email}
+              isDark={isDark}
+              onEdit={() => setEditingField("email")}
+              onChange={(t) => setIdInfo(p => ({ ...p, email: t }))}
+              onBlur={() => setEditingField(null)}
+            />
           </View>
 
-          {/* Note */}
           <View
             style={[
               styles.noteCard,
@@ -332,8 +417,11 @@ export default function IDInformationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+/* =========================
+   STYLES — GIỮ NGUYÊN
+========================= */
 
+const styles = StyleSheet.create({
   container: { paddingHorizontal: 16 },
 
   header: {
@@ -343,7 +431,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingTop: 24,
     marginBottom: 16,
-  }, infoRow: {
+  },
+
+  infoRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
@@ -361,10 +451,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
 
-  label: {
-    fontSize: 13,
-    opacity: 0.6,
-  },
+  label: { fontSize: 13, opacity: 0.6 },
 
   value: {
     fontSize: 13,
@@ -379,11 +466,11 @@ const styles = StyleSheet.create({
     width: "100%",
     padding: 0,
   },
+
   valueWrap: {
     flexDirection: "row",
     alignItems: "center",
   },
-
 
   topProgressWrap: { paddingHorizontal: 16, marginBottom: 12 },
 
@@ -411,7 +498,6 @@ const styles = StyleSheet.create({
 
   divider: { height: 1, backgroundColor: "rgba(0,0,0,0.1)", marginBottom: 16 },
   required: { color: "red", fontSize: 13, fontWeight: "700" },
-
 
   rowDivider: { height: 1, backgroundColor: "rgba(0,0,0,0.05)" },
 
