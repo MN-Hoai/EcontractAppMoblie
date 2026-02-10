@@ -1,12 +1,13 @@
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-
+import { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -27,6 +28,18 @@ interface IDInfo {
   email: string;
 }
 
+// Helper to parse dd/MM/yyyy to ISO Date (yyyy-MM-dd)
+const parseDate = (dateStr: string): string | null => {
+  if (!dateStr) return null;
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    // parts[0]=dd, parts[1]=MM, parts[2]=yyyy
+    // Return yyyy-MM-dd
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return null; // or return original if already valid? assuming input is strictly dd/MM/yyyy
+};
+
 export default function IDInformationScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -46,28 +59,68 @@ export default function IDInformationScreen() {
   });
 
   const [editingField, setEditingField] = useState<keyof IDInfo | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [showCountdown, setShowCountdown] = useState(false);
-  const [countdown, setCountdown] = useState(80);
+  // Hardcoded accountId as requested
+  const HARDCODED_ACCOUNT_ID = '3f2a9c4e-8d7b-4c91-a2f1-6e5b8a0d9c21';
 
-  useEffect(() => {
-    if (!showCountdown) return;
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
 
-    if (countdown === 0) {
-      goNext();
-      return;
+      // Map to CitizenIdentityModel
+      const model = {
+        IdNumber: idInfo.idNumber,
+        FullName: idInfo.fullName,
+        DateOfBirth: parseDate(idInfo.dateOfBirth),
+        Gender: idInfo.gender,
+        IssueDate: parseDate(idInfo.issueDate),
+        IssuePlace: idInfo.placeOfIssue,
+        PermanentAddress: idInfo.address,
+        PhoneNumber: idInfo.phoneNumber,
+        Email: idInfo.email
+      };
+
+      console.log("Submitting model:", model);
+
+      // Call API
+      // Note: Assuming accountId is passed as query param based on [HttpPost("/api/infoid?accountId=...")] pattern usually implied 
+      // or if it's a route param. User prompt said: public IActionResult InfoIdPost(string accountId, [FromBody] CitizenIdentityModel model)
+      // This signature usually implies query string or route data for the non-body parameter.
+      const url = `http://192.168.1.147:5000/api/infoid?accountId=${HARDCODED_ACCOUNT_ID}`;
+
+      const response = await axios.post(url, model);
+
+      if (response.status === 200) {
+        Alert.alert("Thành công", response.data.message || "Upload thông tin thành công 1", [
+          {
+            text: "OK",
+            onPress: () => {
+              router.push({
+                pathname: "/sign-contract",
+                params: { photoFront, photoBack, idInfo: JSON.stringify(idInfo) },
+              });
+            }
+          }
+        ]);
+      } else {
+        throw new Error("API returned status " + response.status);
+      }
+
+    } catch (error: any) {
+      console.error("Submission error:", error);
+      let errorMessage = "Không thể gửi thông tin. Vui lòng thử lại.";
+      if (error.message === "Network Error") {
+        errorMessage = "Lỗi kết nối mạng (Network Error). Vui lòng kiểm tra IP/Port và Firewall server.";
+      } else if (error.response) {
+        errorMessage = `Lỗi Server: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`;
+      }
+      Alert.alert("Lỗi", errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [showCountdown, countdown]);
-
-  const goNext = () => {
-    router.push({
-      pathname: "/sign-contract",
-      params: { photoFront, photoBack, idInfo: JSON.stringify(idInfo) },
-    });
   };
+
 
   const EditableInfoRow = ({
     label,
@@ -253,52 +306,28 @@ export default function IDInformationScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: "#2092EC" }]}
-            onPress={() => setShowCountdown(true)}
+            style={[styles.primaryButton, { backgroundColor: "#2092EC", opacity: isSubmitting ? 0.7 : 1 }]}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
           >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} />
+            ) : null}
             <ThemedText style={styles.primaryButtonText}>
-              Xác thực
+              {isSubmitting ? "Đang xử lý..." : "Xác thực"}
             </ThemedText>
-            <MaterialCommunityIcons
-              name="arrow-right"
-              size={20}
-              color="white"
-              style={{ marginLeft: 8 }}
-            />
+            {!isSubmitting && (
+              <MaterialCommunityIcons
+                name="arrow-right"
+                size={20}
+                color="white"
+                style={{ marginLeft: 8 }}
+              />
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
-      {/* Countdown modal */}
-      <Modal visible={showCountdown} transparent animationType="fade">
-        <View style={styles.countdownOverlay}>
-          <View style={styles.countdownBox}>
-            <MaterialCommunityIcons
-              name="timer-sand"
-              size={20}
-              color="#FF6B6B"
-              style={{ marginBottom: 6 }}
-            />
-            <ThemedText style={styles.countdownTime}>
-              {countdown} giây
-            </ThemedText>
-            <ThemedText style={styles.countdownMessage}>
-              Vui lòng đợi hệ thống xử lý thông tin
-            </ThemedText>
 
-            <TouchableOpacity
-              style={styles.countdownButton}
-              onPress={() => {
-                setShowCountdown(false);
-                goNext();
-              }}
-            >
-              <ThemedText style={styles.countdownButtonText}>
-                Tiếp tục
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </KeyboardAvoidingView>
   );
 }

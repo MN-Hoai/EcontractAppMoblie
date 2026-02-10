@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import axios from "axios";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -53,20 +54,85 @@ export default function IDCameraBackScreen() {
         base64: false,
       });
 
-      // Store the photos and proceed to information screen
-      // show verification spinner, simulate verification, then navigate
+      // Prepare form data
+      const formData = new FormData();
+
+      // Append front image handling from params
+      if (photoFront) {
+        const frontUri = Array.isArray(photoFront) ? photoFront[0] : photoFront;
+        const frontFileName = frontUri.split('/').pop() || 'front.jpg';
+        const frontMatch = /\.(\w+)$/.exec(frontFileName);
+        const frontType = frontMatch ? `image/${frontMatch[1]}` : `image/jpeg`;
+
+        formData.append('frontImage', {
+          uri: frontUri,
+          name: frontFileName,
+          type: frontType,
+        } as any);
+      }
+
+      // Append back image handling from current capture
+      const backUri = photo.uri;
+      const backFileName = backUri.split('/').pop() || 'back.jpg';
+      const backMatch = /\.(\w+)$/.exec(backFileName);
+      const backType = backMatch ? `image/${backMatch[1]}` : `image/jpeg`;
+
+      formData.append('backImage', {
+        uri: backUri,
+        name: backFileName,
+        type: backType,
+      } as any);
+
+      // Hardcoded accountId as requested
+      // Replace this GUID with the actual account ID you want to use
+      const HARDCODED_ACCOUNT_ID = '3f2a9c4e-8d7b-4c91-a2f1-6e5b8a0d9c21';
+      formData.append('accountId', HARDCODED_ACCOUNT_ID);
+
+      setVerifying(true); // Show verifying overlay
+
+      // Upload to API
+      // Note: switched to http for port 5000 (standard for .NET Core non-SSL dev)
+      // If you MUST use https, ensure the certificate is trusted or proper exclusions are set.
+      const response = await axios.post('http://192.168.1.147:5000/api/imageid', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.status === 200) {
+        Alert.alert("Thành công", response.data.message || "Upload CCCD thành công", [
+          {
+            text: "OK",
+            onPress: () => {
+              setVerifying(false);
+              setIsCapturing(false);
+              router.push({
+                pathname: "/id-information",
+                params: { photoFront, photoBack: photo.uri },
+              });
+            }
+          }
+        ]);
+      } else {
+        throw new Error('Upload failed');
+      }
+
+    } catch (error: any) {
+      console.error("Upload error details:", error);
       setIsCapturing(false);
-      setVerifying(true);
-      setTimeout(() => {
-        setVerifying(false);
-        router.push({
-          pathname: "/id-information",
-          params: { photoFront, photoBack: photo.uri },
-        });
-      }, 1800);
-    } catch {
+      setVerifying(false);
+
+      let errorMessage = "Không thể gửi ảnh. Vui lòng kiểm tra kết nối mạng và thử lại.";
+      if (error.message === "Network Error") {
+        errorMessage = "Lỗi kết nối mạng (Network Error).\n\n1. Kiểm tra IP Server/Port.\n2. Đảm bảo Server đang chạy (Binding 0.0.0.0).\n3. Tắt Firewall trên Server.\n4. Đảm bảo điện thoại chung WiFi.";
+      } else if (error.response) {
+        errorMessage = `Lỗi Server: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`;
+      }
+
+      Alert.alert("Lỗi Upload", errorMessage);
       setIsCapturing(false);
-      Alert.alert("Lỗi", "Không thể chụp ảnh. Vui lòng thử lại.");
+      setVerifying(false);
+      Alert.alert("Lỗi", "Không thể gửi ảnh. Vui lòng kiểm tra kết nối mạng và thử lại.");
     }
   };
 
