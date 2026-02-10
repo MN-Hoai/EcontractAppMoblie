@@ -13,7 +13,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 interface IDInfo {
@@ -31,7 +31,7 @@ interface IDInfo {
 // Helper to parse dd/MM/yyyy to ISO Date (yyyy-MM-dd)
 const parseDate = (dateStr: string): string | null => {
   if (!dateStr) return null;
-  const parts = dateStr.split('/');
+  const parts = dateStr.split("/");
   if (parts.length === 3) {
     // parts[0]=dd, parts[1]=MM, parts[2]=yyyy
     // Return yyyy-MM-dd
@@ -62,7 +62,7 @@ export default function IDInformationScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Hardcoded accountId as requested
-  const HARDCODED_ACCOUNT_ID = '3f2a9c4e-8d7b-4c91-a2f1-6e5b8a0d9c21';
+  const HARDCODED_ACCOUNT_ID = "3f2a9c4e-8d7b-4c91-a2f1-6e5b8a0d9c21";
 
   const handleSubmit = async () => {
     try {
@@ -78,49 +78,56 @@ export default function IDInformationScreen() {
         IssuePlace: idInfo.placeOfIssue,
         PermanentAddress: idInfo.address,
         PhoneNumber: idInfo.phoneNumber,
-        Email: idInfo.email
+        Email: idInfo.email,
       };
 
       console.log("Submitting model:", model);
 
       // Call API
-      // Note: Assuming accountId is passed as query param based on [HttpPost("/api/infoid?accountId=...")] pattern usually implied 
+      // Note: Assuming accountId is passed as query param based on [HttpPost("/api/infoid?accountId=...")] pattern usually implied
       // or if it's a route param. User prompt said: public IActionResult InfoIdPost(string accountId, [FromBody] CitizenIdentityModel model)
       // This signature usually implies query string or route data for the non-body parameter.
-      const url = `http://192.168.1.147:5000/api/infoid?accountId=${HARDCODED_ACCOUNT_ID}`;
+      const url = `http://192.168.1.82:5000/api/infoid?accountId=${HARDCODED_ACCOUNT_ID}`;
 
       const response = await axios.post(url, model);
 
       if (response.status === 200) {
-        Alert.alert("Thành công", response.data.message || "Upload thông tin thành công 1", [
-          {
-            text: "OK",
-            onPress: () => {
-              router.push({
-                pathname: "/sign-contract",
-                params: { photoFront, photoBack, idInfo: JSON.stringify(idInfo) },
-              });
-            }
-          }
-        ]);
+        Alert.alert(
+          "Thành công",
+          response.data.message || "Upload thông tin thành công",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                router.push({
+                  pathname: "/sign-contract",
+                  params: {
+                    photoFront,
+                    photoBack,
+                    idInfo: JSON.stringify(idInfo),
+                  },
+                });
+              },
+            },
+          ],
+        );
       } else {
         throw new Error("API returned status " + response.status);
       }
-
     } catch (error: any) {
       console.error("Submission error:", error);
       let errorMessage = "Không thể gửi thông tin. Vui lòng thử lại.";
       if (error.message === "Network Error") {
-        errorMessage = "Lỗi kết nối mạng (Network Error). Vui lòng kiểm tra IP/Port và Firewall server.";
+        errorMessage =
+          "Lỗi kết nối mạng (Network Error). Vui lòng kiểm tra IP/Port và Firewall server.";
       } else if (error.response) {
-        errorMessage = `Lỗi Server: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`;
+        errorMessage = `Lỗi Server: ${error.response.status} - ${error.response.data?.message || "Unknown error"}`;
       }
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
-
 
   const EditableInfoRow = ({
     label,
@@ -160,9 +167,7 @@ export default function IDInformationScreen() {
                 style={styles.valueWrap}
                 onPress={() => setEditingField(field)}
               >
-                <ThemedText style={styles.value}>
-                  {idInfo[field]}
-                </ThemedText>
+                <ThemedText style={styles.value}>{idInfo[field]}</ThemedText>
 
                 <MaterialCommunityIcons
                   name="account-edit-outline"
@@ -173,14 +178,12 @@ export default function IDInformationScreen() {
               </TouchableOpacity>
             )}
           </View>
-
         </View>
 
         <View style={styles.rowDivider} />
       </View>
     );
   };
-
 
   return (
     <KeyboardAvoidingView
@@ -259,7 +262,7 @@ export default function IDInformationScreen() {
               value={idInfo.fullName}
               isDark={isDark}
               onEdit={() => setEditingField("fullName")}
-              onChange={(t) => setIdInfo(p => ({ ...p, fullName: t }))}
+              onChange={(t) => setIdInfo((p) => ({ ...p, fullName: t }))}
               onBlur={() => setEditingField(null)}
             />
 
@@ -270,7 +273,7 @@ export default function IDInformationScreen() {
               value={idInfo.dateOfBirth}
               isDark={isDark}
               onEdit={() => setEditingField("dateOfBirth")}
-              onChange={(t) => setIdInfo(p => ({ ...p, dateOfBirth: t }))}
+              onChange={(t) => setIdInfo((p) => ({ ...p, dateOfBirth: t }))}
               onBlur={() => setEditingField(null)}
             />
 
@@ -281,7 +284,7 @@ export default function IDInformationScreen() {
               value={idInfo.gender}
               isDark={isDark}
               onEdit={() => setEditingField("gender")}
-              onChange={(t) => setIdInfo(p => ({ ...p, gender: t }))}
+              onChange={(t) => setIdInfo((p) => ({ ...p, gender: t }))}
               onBlur={() => setEditingField(null)}
             />
 
@@ -292,7 +295,7 @@ export default function IDInformationScreen() {
               value={idInfo.idNumber}
               isDark={isDark}
               onEdit={() => setEditingField("idNumber")}
-              onChange={(t) => setIdInfo(p => ({ ...p, idNumber: t }))}
+              onChange={(t) => setIdInfo((p) => ({ ...p, idNumber: t }))}
               onBlur={() => setEditingField(null)}
             />
 
@@ -303,7 +306,7 @@ export default function IDInformationScreen() {
               value={idInfo.issueDate}
               isDark={isDark}
               onEdit={() => setEditingField("issueDate")}
-              onChange={(t) => setIdInfo(p => ({ ...p, issueDate: t }))}
+              onChange={(t) => setIdInfo((p) => ({ ...p, issueDate: t }))}
               onBlur={() => setEditingField(null)}
             />
 
@@ -314,7 +317,7 @@ export default function IDInformationScreen() {
               value={idInfo.placeOfIssue}
               isDark={isDark}
               onEdit={() => setEditingField("placeOfIssue")}
-              onChange={(t) => setIdInfo(p => ({ ...p, placeOfIssue: t }))}
+              onChange={(t) => setIdInfo((p) => ({ ...p, placeOfIssue: t }))}
               onBlur={() => setEditingField(null)}
             />
 
@@ -325,7 +328,7 @@ export default function IDInformationScreen() {
               value={idInfo.address}
               isDark={isDark}
               onEdit={() => setEditingField("address")}
-              onChange={(t) => setIdInfo(p => ({ ...p, address: t }))}
+              onChange={(t) => setIdInfo((p) => ({ ...p, address: t }))}
               onBlur={() => setEditingField(null)}
             />
 
@@ -336,7 +339,7 @@ export default function IDInformationScreen() {
               value={idInfo.phoneNumber}
               isDark={isDark}
               onEdit={() => setEditingField("phoneNumber")}
-              onChange={(t) => setIdInfo(p => ({ ...p, phoneNumber: t }))}
+              onChange={(t) => setIdInfo((p) => ({ ...p, phoneNumber: t }))}
               onBlur={() => setEditingField(null)}
             />
 
@@ -347,7 +350,7 @@ export default function IDInformationScreen() {
               value={idInfo.email}
               isDark={isDark}
               onEdit={() => setEditingField("email")}
-              onChange={(t) => setIdInfo(p => ({ ...p, email: t }))}
+              onChange={(t) => setIdInfo((p) => ({ ...p, email: t }))}
               onBlur={() => setEditingField(null)}
             />
           </View>
@@ -385,18 +388,23 @@ export default function IDInformationScreen() {
               color={isDark ? "#FFFFFF" : "#000000"}
               style={{ marginRight: 8 }}
             />
-            <ThemedText style={styles.secondaryButtonText}>
-              Chụp lại
-            </ThemedText>
+            <ThemedText style={styles.secondaryButtonText}>Chụp lại</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: "#2092EC", opacity: isSubmitting ? 0.7 : 1 }]}
+            style={[
+              styles.primaryButton,
+              { backgroundColor: "#2092EC", opacity: isSubmitting ? 0.7 : 1 },
+            ]}
             onPress={handleSubmit}
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} />
+              <ActivityIndicator
+                size="small"
+                color="white"
+                style={{ marginRight: 8 }}
+              />
             ) : null}
             <ThemedText style={styles.primaryButtonText}>
               {isSubmitting ? "Đang xử lý..." : "Xác thực"}
@@ -412,7 +420,6 @@ export default function IDInformationScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
     </KeyboardAvoidingView>
   );
 }
@@ -494,7 +501,12 @@ const styles = StyleSheet.create({
   content: { marginBottom: 24 },
 
   infoCard: { borderRadius: 12, padding: 16, marginBottom: 16 },
-  sectionTitle: { fontSize: 12, fontWeight: "700", opacity: 0.5, marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    opacity: 0.5,
+    marginBottom: 12,
+  },
 
   divider: { height: 1, backgroundColor: "rgba(0,0,0,0.1)", marginBottom: 16 },
   required: { color: "red", fontSize: 13, fontWeight: "700" },
