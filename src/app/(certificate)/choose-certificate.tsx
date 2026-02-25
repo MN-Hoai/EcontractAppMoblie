@@ -1,431 +1,381 @@
-import { ThemedText } from "@/components/ui/themed-text";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
+/* ─── Types ─────────────────────────────────────────────────── */
 interface CertificateProvider {
   id: string;
   name: string;
   displayName: string;
   logo: string;
   selected: boolean;
+  color: string;
 }
 
+/* ─── Provider Card Component ───────────────────────────────── */
+function ProviderCard({
+  provider,
+  onSelect,
+}: {
+  provider: CertificateProvider;
+  onSelect: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.providerCard,
+        provider.selected && styles.providerCardSelected,
+      ]}
+      onPress={onSelect}
+      activeOpacity={0.8}
+    >
+      <View style={[styles.logoBox, { backgroundColor: provider.color }]}>
+        <Text style={styles.logoText}>{provider.logo}</Text>
+      </View>
+      <View style={styles.providerInfo}>
+        <Text style={styles.providerName}>{provider.displayName}</Text>
+        <Text style={styles.providerType}>Cloud-based Remote Signing</Text>
+      </View>
+      <View style={[styles.radio, provider.selected && styles.radioSelected]}>
+        {provider.selected && (
+          <View style={styles.radioInner} />
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+/* ─── Main Screen ───────────────────────────────────────────── */
 export default function ChooseCertificateScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
   const router = useRouter();
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [providers, setProviders] = useState<CertificateProvider[]>([
     {
       id: "1",
       name: "viettel",
       displayName: "Viettel - MySign",
-      logo: "🔴",
-      selected: false,
+      logo: "V",
+      color: "#EE0033",
+      selected: true,
     },
   ]);
 
-  const [termsAccepted, setTermsAccepted] = useState(false);
-
-  const handleProviderSelect = (providerId: string) => {
-    setProviders(
-      providers.map((p) =>
-        p.id === providerId ? { ...p, selected: !p.selected } : p,
-      ),
-    );
+  const handleProviderSelect = (id: string) => {
+    setProviders(providers.map(p => ({ ...p, selected: p.id === id })));
   };
 
   const handleContinue = () => {
-    const selectedProvider = providers.find((p) => p.selected);
-    if (selectedProvider && termsAccepted) {
-      // Navigate to identity verification
+    if (termsAccepted) {
       router.push("/identity-verification");
-    } else {
-      alert("Vui lòng chọn nhà cung cấp chứng thư và chấp nhận điều khoản");
     }
   };
 
-  const ViettelLogo = () => (
-    <View
-      style={[
-        styles.logoContainer,
-        { backgroundColor: isDark ? "#2D2D2D" : "#F5F5F5" },
-      ]}
-    >
-      <View style={styles.viettelLogo}>
-        <ThemedText
-          style={{ color: "white", fontWeight: "bold", fontSize: 12 }}
-        >
-          Viettel
-        </ThemedText>
-      </View>
-    </View>
-  );
-
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: isDark ? "#0D1B23" : "#FFFFFF" },
-      ]}
-    >
-
+    <View style={styles.container}>
+      {/* ── Gradient Header ── */}
+      <LinearGradient
+        colors={["#1565C0", "#2092EC"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Chọn nhà cung cấp</Text>
+          <Text style={styles.headerSub}>Đăng ký chứng thư số từ xa</Text>
+        </View>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
 
       <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 160 }}
       >
-
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={28}
-              color={isDark ? "#FFFFFF" : "#000000"}
-            />
-          </TouchableOpacity>
-          <ThemedText type="title" style={{ fontSize: 20, flex: 1 }}>
-            Chọn chứng thư số
-          </ThemedText>
-          <View style={{ width: 28 }} />
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>CÁC ĐƠN VỊ CẤP PHÉP (CA)</Text>
+          <Text style={styles.sectionDesc}>Vui lòng chọn một nhà cung cấp dịch vụ để tiếp tục</Text>
         </View>
 
-        {/* Provider Section */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Nhà cung cấp</ThemedText>
+        {providers.map((p) => (
+          <ProviderCard
+            key={p.id}
+            provider={p}
+            onSelect={() => handleProviderSelect(p.id)}
+          />
+        ))}
 
-          {providers.map((provider) => (
-            <TouchableOpacity
-              key={provider.id}
-              style={[
-                styles.providerCard,
-                {
-                  backgroundColor: isDark ? "#1D3D47" : "#F9F9F9",
-                  borderColor: provider.selected
-                    ? "#2196F3"
-                    : isDark
-                      ? "#38434D"
-                      : "#E0E0E0",
-                },
-              ]}
-              onPress={() => handleProviderSelect(provider.id)}
-            >
-              <View style={styles.providerContent}>
-                <ViettelLogo />
-                <View style={{ flex: 1 }}>
-                  <ThemedText style={styles.providerName}>
-                    {provider.displayName}
-                  </ThemedText>
-                </View>
-              </View>
-              {provider.selected && (
-                <View style={styles.checkmark}>
-                  <MaterialCommunityIcons
-                    name="check-circle"
-                    size={24}
-                    color="#2092EC"
-                  />
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Information Section */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Thông tin định kèm</ThemedText>
-
-          <View
-            style={[
-              styles.infoCard,
-              { backgroundColor: isDark ? "#1D3D47" : "#F9F9F9" },
-            ]}
+        {/* ── Terms Section ── */}
+        <View style={styles.termsCard}>
+          <TouchableOpacity
+            style={styles.termsCheckboxRow}
+            onPress={() => setTermsAccepted(!termsAccepted)}
           >
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setTermsAccepted(!termsAccepted)}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  {
-                    backgroundColor: termsAccepted ? "#2196F3" : "transparent",
-                    borderColor: termsAccepted ? "#2196F3" : "#CCCCCC",
-                  },
-                ]}
-              >
-                {termsAccepted && (
-                  <MaterialCommunityIcons name="check" size={16} color="white" />
-                )}
-              </View>
-              <ThemedText style={styles.infoText}>
-                Tôi xác nhân rằng tôi đã đọc hiểu và đồng ý nội dung khoảng, điều
-                kiện cấp chứng thư số của Viettel
-              </ThemedText>
-            </TouchableOpacity>
+            <View style={[styles.checkbox, termsAccepted && styles.checkboxSelected]}>
+              {termsAccepted && <MaterialCommunityIcons name="check" size={14} color="#FFF" />}
+            </View>
+            <Text style={styles.termsText}>
+              Tôi xác nhận rằng tôi đã đọc, hiểu và đồng ý với nội dung điều khoản, điều kiện cấp chứng thư số.
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.viewDocLink}
-              onPress={() => setShowTermsModal(true)}
-            >
-              <ThemedText style={styles.viewDocText}>Xem văn bản</ThemedText>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color="#2196F3"
-              />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.viewTermsBtn}
+            onPress={() => setShowTermsModal(true)}
+          >
+            <Text style={styles.viewTermsText}>Xem chi tiết điều khoản</Text>
+            <MaterialCommunityIcons name="chevron-right" size={18} color="#2092EC" />
+          </TouchableOpacity>
         </View>
 
-
+        <View style={styles.noticeBox}>
+          <MaterialCommunityIcons name="information-outline" size={18} color="#1565C0" />
+          <Text style={styles.noticeText}>
+            Dữ liệu cá nhân của bạn sẽ được gửi cho đơn vị cung cấp bạn đã chọn để phục vụ việc xác thực và cấp chứng thư.
+          </Text>
+        </View>
       </ScrollView>
-      {/* Terms Notice */}
-      <View style={styles.termsNoticeContainer}>
-        <ThemedText style={styles.termsNoticeText}>
-          Bằng cách chọn vào &quot;Tiếp tục&quot; tôi đồng ý để itc gửi
-          các thông tin cá nhân của tôi cho nhà cung cấp để phục vụ việc đăng ký
-          chứng thư số
-        </ThemedText>
-      </View>
 
-      {/* Continue Button */}
-      <View style={styles.buttonContainer}>
+      {/* ── Bottom Action ── */}
+      <View style={styles.footer}>
         <TouchableOpacity
-          style={[
-            styles.continueButton,
-            {
-              backgroundColor:
-                providers.some((p) => p.selected) && termsAccepted
-                  ? "#2092EC"
-                  : "#CCCCCC",
-            },
-          ]}
+          style={[styles.startBtn, !termsAccepted && styles.startBtnDisabled]}
           onPress={handleContinue}
-          disabled={!providers.some((p) => p.selected) || !termsAccepted}
+          disabled={!termsAccepted}
+          activeOpacity={0.85}
         >
-          <ThemedText style={styles.buttonText}>Tiếp tục</ThemedText>
+          <Text style={styles.startBtnText}>Tiếp tục xác thực</Text>
+          <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
         </TouchableOpacity>
       </View>
 
-      <Modal
-        visible={showTermsModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowTermsModal(false)}
-      >
+      {/* ── Terms Modal ── */}
+      <Modal visible={showTermsModal} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: isDark ? "#1D3D47" : "#FFFFFF" },
-            ]}
-          >
-            {/* Header */}
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <ThemedText style={styles.modalTitle}>
-                Điều khoản chứng thư số
-              </ThemedText>
+              <Text style={styles.modalTitle}>Điều khoản dịch vụ</Text>
+              <TouchableOpacity onPress={() => setShowTermsModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
             </View>
-
-            {/* Nội dung */}
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <ThemedText style={{ lineHeight: 22 }}>
-                1. Viettel cung cấp dịch vụ chứng thư số cho khách hàng...
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <Text style={styles.modalText}>
+                1. Quyền và nghĩa vụ của khách hàng...
                 {"\n\n"}
-                2. Người dùng cam kết thông tin là chính xác...
+                2. Cam kết bảo mật thông tin...
                 {"\n\n"}
-                3. Chứng thư số chỉ được sử dụng đúng mục đích...
+                3. Quy trình cấp và thu hồi chứng thư số...
                 {"\n\n"}
-                4. Không chia sẻ khóa bí mật cho bên thứ ba...
-                {"\n\n"}
-                ( có thể load từ API hoặc file)
-              </ThemedText>
+                4. Trách nhiệm pháp lý của các bên...
+              </Text>
             </ScrollView>
-
-            {/* Nút đóng */}
             <TouchableOpacity
-              style={styles.modalButton}
+              style={styles.modalCloseBtn}
               onPress={() => setShowTermsModal(false)}
             >
-              <ThemedText style={{ color: "white", fontWeight: "600" }}>
-                Đã hiểu
-              </ThemedText>
+              <Text style={styles.modalCloseText}>Đã hiểu</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  fixedFooter: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 20,
-  },
+  container: { flex: 1, backgroundColor: "#F0F4F8" },
+  scrollView: { flex: 1 },
 
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
+  /* Header */
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingTop: 24,
-    marginBottom: 24,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 12,
-    opacity: 0.7,
-  },
-  providerCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  providerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  logoContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  viettelLogo: {
-    backgroundColor: "#FF3D3D",
-    width: "100%",
-    height: "100%",
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  providerName: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  checkmark: {
-    marginLeft: 12,
-  },
-  infoCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-    marginTop: 2,
-    flexShrink: 0,
-  },
-  infoText: {
-    fontSize: 14,
-    lineHeight: 20,
-    flex: 1,
-  },
-  viewDocLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 8,
-  },
-  viewDocText: {
-    fontSize: 14,
-    color: "#2196F3",
-    fontWeight: "600",
-  },
-  termsNoticeContainer: {
-    backgroundColor: "rgba(33, 150, 243, 0.08)",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-  },
-  termsNoticeText: {
-    fontSize: 12,
-    lineHeight: 18,
-    opacity: 0.7,
-  },
-  buttonContainer: {
+    paddingTop: 56,
     paddingBottom: 24,
+    paddingHorizontal: 16,
+    gap: 12,
   },
-  continueButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 10,
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+  headerCenter: { flex: 1 },
+  headerTitle: { color: "#FFF", fontSize: 17, fontWeight: "700" },
+  headerSub: { color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 2 },
+
+  scrollContent: { padding: 20 },
+
+  sectionHeader: { marginBottom: 20 },
+  sectionTitle: { fontSize: 11, fontWeight: "800", color: "#64748B", letterSpacing: 1 },
+  sectionDesc: { fontSize: 13, color: "#94A3B8", marginTop: 4 },
+
+  /* Provider Card */
+  providerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: "transparent",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
+  providerCardSelected: {
+    borderColor: "#2092EC",
+    backgroundColor: "#F0F7FF",
+  },
+  logoBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoText: { color: "#FFF", fontSize: 24, fontWeight: "900" },
+  providerInfo: { flex: 1, marginLeft: 16 },
+  providerName: { fontSize: 16, fontWeight: "700", color: "#1E293B" },
+  providerType: { fontSize: 12, color: "#94A3B8", marginTop: 2 },
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioSelected: {
+    borderColor: "#2092EC",
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#2092EC",
+  },
+
+  /* Terms Card */
+  termsCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    padding: 20,
+    marginTop: 12,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  termsCheckboxRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  checkboxSelected: {
+    backgroundColor: "#2092EC",
+    borderColor: "#2092EC",
+  },
+  termsText: { flex: 1, fontSize: 13, color: "#64748B", lineHeight: 20 },
+  viewTermsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+    gap: 4,
+  },
+  viewTermsText: { fontSize: 13, color: "#2092EC", fontWeight: "700" },
+
+  noticeBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EAF2FE",
+    padding: 14,
+    borderRadius: 14,
+    gap: 10,
+  },
+  noticeText: { flex: 1, fontSize: 12, color: "#3E6B9A", lineHeight: 18 },
+
+  /* Footer */
+  footer: {
+    backgroundColor: "#FFF",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === "ios" ? 34 : 20,
+    borderTopWidth: 1,
+    borderTopColor: "#EDF2F7",
+  },
+  startBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1565C0",
+    borderRadius: 16,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  startBtnDisabled: { backgroundColor: "#CBD5E1" },
+  startBtnText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
+
+  /* Modal */
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
     justifyContent: "center",
-    padding: 16,
+    padding: 24,
   },
-
   modalContent: {
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: "#FFF",
+    borderRadius: 24,
+    padding: 24,
     maxHeight: "80%",
   },
-
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 20,
   },
-
-  modalTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  modalButton: {
-    backgroundColor: "#2092EC",
-    paddingVertical: 12,
-    borderRadius: 10,
+  modalTitle: { fontSize: 18, fontWeight: "800", color: "#1E293B" },
+  modalBody: { marginBottom: 24 },
+  modalText: { fontSize: 14, color: "#64748B", lineHeight: 22 },
+  modalCloseBtn: {
+    backgroundColor: "#1565C0",
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: "center",
-    marginTop: 16,
   },
-
+  modalCloseText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
 });

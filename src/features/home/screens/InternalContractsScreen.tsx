@@ -90,24 +90,7 @@ export default function InternalContractsScreen() {
                     </View>
                 </View>
 
-                {isWaiting && (
-                    <View style={styles.cardActionRow}>
-                        <View style={styles.actionDivider} />
-                        <View style={styles.actionButtons}>
-                            <TouchableOpacity
-                                style={styles.viewBtn}
-                                onPress={() => router.push("/contract-content")}
-                            >
-                                <MaterialCommunityIcons name="file-eye-outline" size={16} color="#2092EC" />
-                                <ThemedText style={styles.viewBtnText}>Xem</ThemedText>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.quickSignBtn} onPress={() => router.push("/sign-contract")}>
-                                <MaterialCommunityIcons name="pen" size={16} color="#FFF" />
-                                <ThemedText style={styles.quickSignText}>Ký duyệt</ThemedText>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                )}
+
             </TouchableOpacity>
         );
     };

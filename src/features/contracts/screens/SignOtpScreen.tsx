@@ -1,257 +1,288 @@
-import { ThemedText } from "@/components/ui/themed-text";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
+const VALID_OTP = "000000";
+
+/* ─── OTP Digit Boxes Component ─────────────────────────────── */
+function OtpDigitBoxes({
+  value,
+  isFocused,
+  onPress,
+  isValid = true,
+}: {
+  value: string;
+  isFocused: boolean;
+  onPress: () => void;
+  isValid?: boolean;
+}) {
+  const digits = value.padEnd(6, " ").split("");
+  const isComplete = value.length === 6;
+  const activeColor = isComplete ? (isValid ? "#4CAF50" : "#E53935") : "#2092EC";
+
+  return (
+    <Pressable style={styles.otpRow} onPress={onPress}>
+      {digits.map((ch, i) => {
+        const isCurrent = i === value.length && isFocused;
+        const filled = i < value.length;
+        const boxColor = filled ? activeColor : "#2092EC";
+
+        return (
+          <View
+            key={i}
+            style={[
+              styles.otpBox,
+              filled && { borderColor: boxColor, backgroundColor: boxColor + "15" },
+              isCurrent && styles.otpBoxActive,
+            ]}
+          >
+            {isCurrent ? (
+              <View style={styles.cursor} />
+            ) : (
+              <Text style={[styles.otpText, { color: filled ? activeColor : "#CCC" }]}>
+                {ch.trim()}
+              </Text>
+            )}
+          </View>
+        );
+      })}
+    </Pressable>
+  );
+}
+
+/* ─── Main Screen ───────────────────────────────────────────── */
 export default function SignOtpScreen() {
   const router = useRouter();
-  const isDark = useColorScheme() === "dark";
+  const inputRef = useRef<TextInput>(null);
   const [otp, setOtp] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const handleConfirm = () => {
-    if (otp.length < 6) return;
-    setShowSuccess(true);
-  };
+  const isOtpComplete = otp.length === 6;
+  const isOtpValid = otp === VALID_OTP;
 
+  const focusInput = () => inputRef.current?.focus();
+
+  const handleConfirm = () => {
+    if (otp === VALID_OTP) {
+      setShowSuccess(true);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: isDark ? "#0D1B23" : "#F5F7FA" },
-        ]}
-      >
+      <View style={styles.container}>
+        {/* ── Gradient Header ── */}
+        <LinearGradient
+          colors={["#1565C0", "#2092EC"]}
+          style={styles.header}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Xác thực giao dịch</Text>
+            <Text style={styles.headerSub}>Ký số tài liệu điện tử</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </LinearGradient>
+
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* HEADER */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <MaterialCommunityIcons name="arrow-left" size={26} />
-            </TouchableOpacity>
-            <ThemedText style={styles.headerTitle}>
-              Xác thực giao dịch
-            </ThemedText>
-            <View style={{ width: 26 }} />
-          </View>
-
-          {/* CARD */}
+          {/* ── Info Card ── */}
           <View style={styles.card}>
-            <ThemedText style={styles.label}>Tài khoản ký số</ThemedText>
-            <ThemedText style={styles.value}>040093016268</ThemedText>
-
-            <ThemedText style={[styles.label, { marginTop: 12 }]}>
-              Phương thức xác thực
-            </ThemedText>
-            <ThemedText style={styles.value}>SMS OTP</ThemedText>
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="account-key-outline" size={20} color="#2092EC" />
+              <View>
+                <Text style={styles.label}>Tài khoản ký số</Text>
+                <Text style={styles.value}>040093016268</Text>
+              </View>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="shield-lock-outline" size={20} color="#2092EC" />
+              <View>
+                <Text style={styles.label}>Phương thức xác thực</Text>
+                <Text style={styles.value}>SMS OTP (MySign)</Text>
+              </View>
+            </View>
           </View>
 
-          {/* WARNING */}
-          <View style={styles.warning}>
-            <MaterialCommunityIcons
-              name="alert-outline"
-              size={18}
-              color="#B08900"
+          {/* ── Warning ── */}
+          <View style={styles.warningBox}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={18} color="#FFD600" />
+            <Text style={styles.warningText}>
+              Bằng việc nhập OTP, bạn xác nhận đồng ý ký số vào tài liệu đã chọn.
+            </Text>
+          </View>
+
+          {/* ── OTP Section ── */}
+          <View style={styles.otpSection}>
+            <Text style={styles.sentText}>
+              Mã xác thực đã được gửi đến số{" "}
+              <Text style={{ fontWeight: "700", color: "#1565C0" }}>03*****193</Text>
+            </Text>
+
+            <OtpDigitBoxes
+              value={otp}
+              isFocused={isFocused}
+              onPress={focusInput}
+              isValid={!isOtpComplete || isOtpValid}
             />
-            <ThemedText style={styles.warningText}>
-              Vui lòng kiểm tra kỹ thông tin trước khi xác nhận
-            </ThemedText>
-          </View>
 
-          <ThemedText style={styles.sentText}>
-            Chúng tôi đã gửi mã OTP đến số điện thoại 03*****193
-          </ThemedText>
+            <TextInput
+              ref={inputRef}
+              style={styles.hiddenInput}
+              value={otp}
+              onChangeText={(t) => setOtp(t.replace(/[^0-9]/g, ""))}
+              keyboardType="number-pad"
+              maxLength={6}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+            />
 
-          {/* OTP INPUT */}
-          <TextInput
-            value={otp}
-            onChangeText={setOtp}
-            keyboardType="number-pad"
-            maxLength={6}
-            style={styles.otpInput}
-            placeholder="Nhập OTP"
-          />
+            {isOtpComplete && !isOtpValid && (
+              <View style={styles.errorRow}>
+                <MaterialCommunityIcons name="close-circle" size={14} color="#E53935" />
+                <Text style={styles.errorText}>Mã OTP không chính xác. Vui lòng thử lại.</Text>
+              </View>
+            )}
 
-          {/* PUSH BUTTON TO BOTTOM */}
-          <View style={styles.fixedBottom}>
-            <TouchableOpacity style={styles.btn} onPress={handleConfirm}>
-              <ThemedText style={styles.btnText}>
-                Xác nhận & Hoàn tất
-              </ThemedText>
+            <TouchableOpacity style={styles.resendBtn} onPress={() => setOtp("")}>
+              <MaterialCommunityIcons name="refresh" size={14} color="#2092EC" />
+              <Text style={styles.resendText}>Gửi lại mã OTP</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </View>
 
-
-      <Modal visible={showSuccess} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.successModal}>
-            <MaterialCommunityIcons
-              name="check-circle"
-              size={64}
-              color="#22C55E"
-            />
-
-            <ThemedText style={styles.successTitle}>
-              Ký số thành công
-            </ThemedText>
-
-            <ThemedText style={styles.successText}>
-              Giao dịch đã được xác thực thành công
-            </ThemedText>
-
-            <TouchableOpacity
-              style={styles.successBtn}
-              onPress={() => router.replace("/contracts")}
-            >
-              <ThemedText style={{ color: "#FFF", fontWeight: "700" }}>
-                Về danh sách hợp đồng
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
+        {/* ── Bottom Bar ── */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.primaryBtn, !isOtpValid && styles.btnDisabled]}
+            disabled={!isOtpValid}
+            onPress={handleConfirm}
+          >
+            <MaterialCommunityIcons name="check-decagram" size={20} color="#FFF" />
+            <Text style={styles.primaryBtnText}>Xác nhận & Hoàn tất</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
 
+        {/* ── Success Modal ── */}
+        <Modal visible={showSuccess} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.successModal}>
+              <LinearGradient
+                colors={["#4CAF50", "#66BB6A"]}
+                style={styles.successIconCircle}
+              >
+                <MaterialCommunityIcons name="check-all" size={40} color="#FFF" />
+              </LinearGradient>
+              <Text style={styles.successTitle}>Ký số thành công!</Text>
+              <Text style={styles.successMsg}>
+                Tài liệu của Quý khách đã được ký số an toàn và lưu trữ vào hệ thống.
+              </Text>
+              <TouchableOpacity
+                style={styles.finishBtn}
+                onPress={() => router.replace("/(tabs)" as any)}
+              >
+                <Text style={styles.finishBtnText}>Về trang chủ</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-
+  container: { flex: 1, backgroundColor: "#F0F4F8" },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
+    flexDirection: "row", alignItems: "center",
+    paddingTop: 56, paddingBottom: 18, paddingHorizontal: 16, gap: 12,
   },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerCenter: { flex: 1 },
+  headerTitle: { color: "#FFF", fontSize: 17, fontWeight: "700" },
+  headerSub: { color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 2 },
 
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  successModal: {
-    backgroundColor: "#FFF",
-    borderRadius: 16,
-    padding: 24,
-    width: "85%",
-    alignItems: "center",
-  },
-
-  successTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginTop: 12,
-  },
-
-  successText: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 6,
-    marginBottom: 18,
-    textAlign: "center",
-  },
-
-  successBtn: {
-    backgroundColor: "#2092EC",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
+  scrollContent: { padding: 16 },
 
   card: {
-    backgroundColor: "#FFF",
-    borderRadius: 14,
-    padding: 16,
-    elevation: 3,
+    backgroundColor: "#FFF", borderRadius: 18, padding: 16,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05, shadowRadius: 10, elevation: 2,
   },
+  infoRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 4 },
+  label: { fontSize: 11, color: "#9E9E9E", fontWeight: "600", marginBottom: 2 },
+  value: { fontSize: 15, color: "#1A1A1A", fontWeight: "700" },
+  divider: { height: 1, backgroundColor: "#F1F5F9", marginVertical: 12 },
 
-  label: {
-    fontSize: 13,
-    color: "#7A7A7A",
+  warningBox: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#263238", borderRadius: 12, padding: 12, marginTop: 16,
   },
+  warningText: { flex: 1, fontSize: 12, color: "#CFD8DC", lineHeight: 18 },
 
-  value: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
+  otpSection: { alignItems: "center", marginTop: 32 },
+  sentText: { fontSize: 14, color: "#546E7A", marginBottom: 24, textAlign: "center" },
 
-  warning: {
-    flexDirection: "row",
-    backgroundColor: "#FFF8E1",
-    borderRadius: 10,
-    padding: 12,
-    marginTop: 18,
-    gap: 8,
-    alignItems: "center",
+  otpRow: { flexDirection: "row", gap: 10, justifyContent: "center" },
+  otpBox: {
+    width: 44, height: 56, borderRadius: 12, borderWidth: 2,
+    borderColor: "#CFD8DC", backgroundColor: "#FFF",
+    alignItems: "center", justifyContent: "center",
   },
+  otpBoxActive: { borderColor: "#2092EC", backgroundColor: "#F4Faff" },
+  otpText: { fontSize: 24, fontWeight: "800", color: "#2092EC" },
+  cursor: { width: 2, height: 24, backgroundColor: "#2092EC", borderRadius: 1 },
 
-  warningText: {
-    fontSize: 13,
-    color: "#7A7A7A",
-    flex: 1,
-  },
+  hiddenInput: { position: "absolute", opacity: 0, width: 0, height: 0 },
 
-  sentText: {
-    marginTop: 16,
-    fontSize: 14,
-  },
+  errorRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12 },
+  errorText: { fontSize: 12, color: "#E53935", fontWeight: "600" },
 
-  otpInput: {
-    borderWidth: 1,
-    borderColor: "#CDE6F5",
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 22,
-    textAlign: "center",
-    letterSpacing: 8,
-    marginTop: 14,
-    backgroundColor: "#FFF",
-  },
+  resendBtn: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 24, padding: 8 },
+  resendText: { fontSize: 14, color: "#2092EC", fontWeight: "700" },
 
-  fixedBottom: {
-    marginTop: "auto",
-    paddingBottom: 12,
+  footer: { padding: 16, paddingBottom: 24, backgroundColor: "#FFF", borderTopWidth: 1, borderTopColor: "#ECEFF1" },
+  primaryBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
+    backgroundColor: "#1565C0", paddingVertical: 16, borderRadius: 16,
   },
+  primaryBtnText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
+  btnDisabled: { opacity: 0.5 },
 
-  btn: {
-    backgroundColor: "#2092EC",
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-
-  btnText: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 32 },
+  successModal: { backgroundColor: "#FFF", borderRadius: 24, padding: 32, alignItems: "center", width: "100%" },
+  successIconCircle: { width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center", marginBottom: 20 },
+  successTitle: { fontSize: 20, fontWeight: "800", color: "#1A1A1A", marginBottom: 12 },
+  successMsg: { fontSize: 14, color: "#666", textAlign: "center", lineHeight: 22, marginBottom: 24 },
+  finishBtn: { backgroundColor: "#1565C0", width: "100%", paddingVertical: 14, borderRadius: 14, alignItems: "center" },
+  finishBtnText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
 });

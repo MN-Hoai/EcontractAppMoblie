@@ -39,7 +39,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="digital"
                 options={{
-                    title: "Hợp đồng số",
+                    title: "Ký số điện tử",
                     tabBarIcon: ({ color, size }) => (
                         <MaterialCommunityIcons name="signature" color={color} size={size} />
                     ),

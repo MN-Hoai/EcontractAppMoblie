@@ -14,12 +14,13 @@ import {
 } from "react-native";
 
 const ALL_CONTRACTS = [
-    { id: "1", title: "Hợp đồng cung cấp thiết bị", status: "Chờ duyệt", sender: "Nguyễn Lâm", date: "09/01/2025 14:30", type: "waiting" },
-    { id: "2", title: "Biên bản họp HĐQT", status: "Hoàn thành", sender: "Mai Anh", date: "08/01/2025 10:15", type: "completed" },
-    { id: "3", title: "Thỏa thuận hợp tác 2025", status: "Chờ duyệt", sender: "Khánh Duy", date: "07/01/2025 09:00", type: "waiting" },
-    { id: "4", title: "Hợp đồng bảo trì trung tâm dữ liệu", status: "Đang xử lý", sender: "Hữu Tín", date: "06/01/2025 16:45", type: "processing" },
-    { id: "5", title: "Hợp đồng ký kết dịch vụ số", status: "Chờ duyệt", sender: "Thu Hà", date: "05/01/2025 08:00", type: "waiting" },
-    { id: "6", title: "Phụ lục hợp đồng số 03/2025", status: "Hoàn thành", sender: "Minh Tuấn", date: "04/01/2025 11:30", type: "completed" },
+    { id: "1", title: "Hợp đồng cung cấp thiết bị", status: "Chờ duyệt", sender: "Nguyễn Lâm", date: "09/01/2025 14:30", type: "waiting", overdueDays: 0 },
+    { id: "2", title: "Biên bản họp HĐQT", status: "Hoàn thành", sender: "Mai Anh", date: "08/01/2025 10:15", type: "completed", overdueDays: 0 },
+    { id: "3", title: "Thỏa thuận hợp tác 2025", status: "Chờ duyệt", sender: "Khánh Duy", date: "07/01/2025 09:00", type: "waiting", overdueDays: 0 },
+    { id: "4", title: "Hợp đồng bảo trì trung tâm dữ liệu", status: "Đang xử lý", sender: "Hữu Tín", date: "06/01/2025 16:45", type: "processing", overdueDays: 0 },
+    { id: "5", title: "Hợp đồng ký kết dịch vụ số", status: "Chờ duyệt", sender: "Thu Hà", date: "05/01/2025 08:00", type: "waiting", overdueDays: 0 },
+    { id: "6", title: "Phụ lục hợp đồng số 03/2025", status: "Hoàn thành", sender: "Minh Tuấn", date: "04/01/2025 11:30", type: "completed", overdueDays: 0 },
+    { id: "7", title: "Hợp đồng dịch vụ công nghệ thông tin", status: "Quá hạn", sender: "Trần Bảo Long", date: "15/12/2024 09:00", type: "overdue", overdueDays: 12 },
 ];
 
 const STATUS_FILTERS = [
@@ -27,6 +28,7 @@ const STATUS_FILTERS = [
     { key: "waiting", label: "Chờ duyệt", color: "#FBC02D" },
     { key: "processing", label: "Đang xử lý", color: "#2196F3" },
     { key: "completed", label: "Hoàn thành", color: "#4CAF50" },
+    { key: "overdue", label: "Quá hạn", color: "#E53935" },
 ];
 
 export default function DigitalContractsScreen() {
@@ -44,6 +46,7 @@ export default function DigitalContractsScreen() {
             case "waiting": return { bg: isDark ? "#3E2723" : "#FFF9E6", text: "#FBC02D" };
             case "completed": return { bg: isDark ? "#1B5E20" : "#E8F5E9", text: "#4CAF50" };
             case "processing": return { bg: isDark ? "#0D47A1" : "#E3F2FD", text: "#2196F3" };
+            case "overdue": return { bg: isDark ? "#4A1010" : "#FFEBEE", text: "#E53935" };
             default: return { bg: "#F5F5F5", text: "#9E9E9E" };
         }
     };
@@ -59,6 +62,7 @@ export default function DigitalContractsScreen() {
     const renderItem = ({ item }: { item: typeof ALL_CONTRACTS[0] }) => {
         const statusStyle = getStatusStyle(item.type);
         const isWaiting = item.type === "waiting";
+        const isOverdue = item.type === "overdue";
 
         return (
             <TouchableOpacity
@@ -67,21 +71,39 @@ export default function DigitalContractsScreen() {
                     {
                         backgroundColor: isWaiting
                             ? (isDark ? "#2D2418" : "#FFFBEB")
-                            : (isDark ? "#1D3D47" : "#FFF"),
-                        borderWidth: isWaiting ? 1 : 0,
-                        borderColor: isWaiting ? "#FBC02D" : "transparent",
+                            : isOverdue
+                                ? (isDark ? "#2C0A0A" : "#FFF5F5")
+                                : (isDark ? "#1D3D47" : "#FFF"),
+                        borderWidth: isWaiting || isOverdue ? 1 : 0,
+                        borderColor: isWaiting ? "#FBC02D" : isOverdue ? "#E53935" : "transparent",
                     }
                 ]}
                 onPress={() => router.push("/contract-detail")}
             >
                 <View style={styles.cardMainRow}>
-                    <View style={[styles.iconContainer, { backgroundColor: isDark ? "#2C5364" : "#E3F2FD" }]}>
-                        <MaterialCommunityIcons name="file-document-outline" size={24} color="#2196F3" />
+                    <View style={[styles.iconContainer, {
+                        backgroundColor: isOverdue
+                            ? (isDark ? "#4A0E0E" : "#FFEBEE")
+                            : (isDark ? "#2C5364" : "#E3F2FD")
+                    }]}>
+                        <MaterialCommunityIcons
+                            name={isOverdue ? "file-alert-outline" : "file-document-outline"}
+                            size={24}
+                            color={isOverdue ? "#E53935" : "#2196F3"}
+                        />
                     </View>
                     <View style={styles.contentContainer}>
                         <ThemedText style={styles.contractTitle}>{item.title}</ThemedText>
-                        <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-                            <ThemedText style={[styles.statusText, { color: statusStyle.text }]}>{item.status}</ThemedText>
+                        <View style={styles.statusBadgeRow}>
+                            <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+                                <ThemedText style={[styles.statusText, { color: statusStyle.text }]}>{item.status}</ThemedText>
+                            </View>
+                            {isOverdue && item.overdueDays > 0 && (
+                                <View style={styles.overduePill}>
+                                    <MaterialCommunityIcons name="alert-circle" size={11} color="#E53935" />
+                                    <ThemedText style={styles.overdueText}>Trễ {item.overdueDays} ngày</ThemedText>
+                                </View>
+                            )}
                         </View>
                         <ThemedText style={styles.senderText}>Gửi bởi <ThemedText style={{ fontWeight: "700" }}>{item.sender}</ThemedText></ThemedText>
                         <View style={styles.dateRow}>
@@ -91,24 +113,7 @@ export default function DigitalContractsScreen() {
                     </View>
                 </View>
 
-                {isWaiting && (
-                    <View style={styles.cardActionRow}>
-                        <View style={styles.actionDivider} />
-                        <View style={styles.actionButtons}>
-                            <TouchableOpacity
-                                style={styles.viewBtn}
-                                onPress={() => router.push("/contract-content")}
-                            >
-                                <MaterialCommunityIcons name="file-eye-outline" size={16} color="#00897B" />
-                                <ThemedText style={styles.viewBtnText}>Xem</ThemedText>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.quickSignBtn} onPress={() => router.push("/sign-contract")}>
-                                <MaterialCommunityIcons name="pen" size={16} color="#FFF" />
-                                <ThemedText style={styles.quickSignText}>Ký duyệt</ThemedText>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                )}
+
             </TouchableOpacity>
         );
     };
@@ -360,6 +365,32 @@ const styles = StyleSheet.create({
         paddingVertical: 10, borderRadius: 12, gap: 8,
     },
     quickSignText: { color: "#FFF", fontWeight: "700", fontSize: 14 },
+    renewBtn: {
+        flex: 2,
+        backgroundColor: "#E53935",
+        flexDirection: "row", alignItems: "center", justifyContent: "center",
+        paddingVertical: 10, borderRadius: 12, gap: 8,
+    },
+    statusBadgeRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 8,
+    },
+    overduePill: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 3,
+        backgroundColor: "#FFEBEE",
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    overdueText: {
+        fontSize: 10,
+        fontWeight: "700",
+        color: "#E53935",
+    },
     iconContainer: {
         width: 48, height: 48, borderRadius: 12,
         alignItems: "center", justifyContent: "center", marginRight: 14,
@@ -369,8 +400,9 @@ const styles = StyleSheet.create({
     statusBadge: {
         alignSelf: "flex-start",
         paddingHorizontal: 10, paddingVertical: 4,
-        borderRadius: 8, marginBottom: 8,
+        borderRadius: 8,
     },
+
     statusText: { fontSize: 11, fontWeight: "700" },
     senderText: { fontSize: 13, opacity: 0.55, marginBottom: 6 },
     dateRow: { flexDirection: "row", alignItems: "center", gap: 4 },

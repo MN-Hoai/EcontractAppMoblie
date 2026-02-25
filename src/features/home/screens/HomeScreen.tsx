@@ -150,6 +150,128 @@ export default function HomeScreen() {
                 </View>
             </View>
 
+            {/* Tài liệu chờ tôi ký */}
+            <View style={[styles.section, { paddingHorizontal: 0 }]}>
+                <View style={[styles.cardBox, { backgroundColor: isDark ? "#1A2E38" : "#FFF" }]}>
+                    <View style={styles.cardBoxHeader}>
+                        <View>
+                            <ThemedText style={styles.cardBoxTitle}>Tài liệu chờ tôi ký</ThemedText>
+                            <ThemedText style={[styles.cardBoxSub, { color: isDark ? "rgba(255,255,255,0.4)" : "#999" }]}>5 tài liệu gần nhất</ThemedText>
+                        </View>
+                        <TouchableOpacity style={[styles.seeAllBtn, { backgroundColor: isDark ? "rgba(32,146,236,0.15)" : "#EAF4FE" }]}>
+                            <ThemedText style={styles.seeAllBtnText}>Xem tất cả</ThemedText>
+                        </TouchableOpacity>
+                    </View>
+
+                    {[
+                        { title: "Hợp đồng cung cấp thiết bị", sender: "Gửi bởi Nguyễn Lâm", date: "09/01" },
+                        { title: "Biên bản họp HĐQT", sender: "Gửi bởi Mai Anh", date: "08/01" },
+                        { title: "Thỏa thuận hợp tác 2025", sender: "Gửi bởi Khánh Duy", date: "07/01" },
+                        { title: "Hợp đồng bảo trì trung tâm dữ liệu", sender: "Gửi bởi Hữu Tín", date: "06/01" },
+                        { title: "Nghị quyết duyệt chi quý I", sender: "Gửi bởi Minh Châu", date: "05/01" },
+                    ].map((doc, idx, arr) => (
+                        <TouchableOpacity key={idx} activeOpacity={0.7} style={[
+                            styles.docRow,
+                            idx < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? "rgba(255,255,255,0.06)" : "#F0F2F5" }
+                        ]}>
+                            <View style={[styles.docIconWrap, { backgroundColor: isDark ? "rgba(32,146,236,0.15)" : "#EAF4FE" }]}>
+                                <MaterialCommunityIcons name="file-sign" size={18} color="#2092EC" />
+                            </View>
+                            <View style={styles.docInfo}>
+                                <ThemedText style={styles.docTitle} numberOfLines={1}>{doc.title}</ThemedText>
+                                <ThemedText style={[styles.docSender, { color: isDark ? "rgba(255,255,255,0.4)" : "#999" }]}>{doc.sender}</ThemedText>
+                            </View>
+                            <ThemedText style={[styles.docDate, { color: isDark ? "rgba(255,255,255,0.35)" : "#BBBEC7" }]}>{doc.date}</ThemedText>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+
+            {/* Tổng quan 6 tháng */}
+            <View style={[styles.section, { paddingHorizontal: 0 }]}>
+                <View style={[styles.cardBox, { backgroundColor: isDark ? "#1A2E38" : "#FFF" }]}>
+                    <View style={styles.cardBoxHeader}>
+                        <View>
+                            <ThemedText style={styles.cardBoxTitle}>Tổng quan 6 tháng</ThemedText>
+                            <ThemedText style={[styles.cardBoxSub, { color: isDark ? "rgba(255,255,255,0.4)" : "#999" }]}>Biểu đồ minh hoạ số lượt ký (demo data)</ThemedText>
+                        </View>
+                    </View>
+
+                    {/* Chart legend */}
+                    <View style={styles.chartLegend}>
+                        <View style={styles.legendItem}>
+                            <View style={[styles.legendDot, { backgroundColor: "#F4A742" }]} />
+                            <ThemedText style={[styles.legendLabel, { color: isDark ? "rgba(255,255,255,0.6)" : "#555" }]}>Trình ký nội bộ</ThemedText>
+                        </View>
+                        <View style={styles.legendItem}>
+                            <View style={[styles.legendDot, { backgroundColor: "#4FC3F7" }]} />
+                            <ThemedText style={[styles.legendLabel, { color: isDark ? "rgba(255,255,255,0.6)" : "#555" }]}>Ký số điện tử</ThemedText>
+                        </View>
+                    </View>
+
+                    {/* SVG Line Chart */}
+                    <View style={styles.chartWrapper}>
+                        {/* Y-axis labels */}
+                        <View style={styles.yAxisLabels}>
+                            {["250", "200", "150", "100", "50"].map((v) => (
+                                <ThemedText key={v} style={[styles.axisLabel, { color: isDark ? "rgba(255,255,255,0.3)" : "#BBB" }]}>{v}</ThemedText>
+                            ))}
+                        </View>
+                        {/* Chart area */}
+                        <View style={styles.chartArea}>
+                            {/* Grid lines */}
+                            {[0, 1, 2, 3, 4].map((i) => (
+                                <View key={i} style={[styles.gridLine, { top: `${i * 25}%` as any, borderColor: isDark ? "rgba(255,255,255,0.05)" : "#F0F2F5" }]} />
+                            ))}
+                            {/* Orange area fill (Trình ký nội bộ) */}
+                            <View style={[styles.areaFillOrange, { backgroundColor: isDark ? "rgba(244,167,66,0.12)" : "rgba(244,167,66,0.08)" }]} />
+                            {/* Blue area fill (Ký số) */}
+                            <View style={[styles.areaFillBlue, { backgroundColor: isDark ? "rgba(79,195,247,0.12)" : "rgba(79,195,247,0.08)" }]} />
+                            {/* Orange line */}
+                            <View style={styles.lineOrange} />
+                            {/* Blue line */}
+                            <View style={styles.lineBlue} />
+                        </View>
+                    </View>
+                    {/* X-axis labels */}
+                    <View style={styles.xAxisLabels}>
+                        {["08/24", "09/24", "10/24", "11/24", "12/24", "01/25"].map((v) => (
+                            <ThemedText key={v} style={[styles.axisLabel, { color: isDark ? "rgba(255,255,255,0.3)" : "#BBB" }]}>{v}</ThemedText>
+                        ))}
+                    </View>
+
+                    {/* Progress bars */}
+                    <View style={styles.progressSection}>
+                        {/* Trình ký nội bộ */}
+                        <View style={styles.progressItem}>
+                            <View style={styles.progressMeta}>
+                                <View>
+                                    <ThemedText style={styles.progressName}>Trình ký nội bộ</ThemedText>
+                                    <ThemedText style={[styles.progressCount, { color: isDark ? "rgba(255,255,255,0.4)" : "#AAA" }]}>850 lượt</ThemedText>
+                                </View>
+                                <ThemedText style={[styles.progressPct, { color: isDark ? "#FFF" : "#111" }]}>60%</ThemedText>
+                            </View>
+                            <View style={[styles.progressTrack, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#F0F2F5" }]}>
+                                <View style={[styles.progressFill, { width: "60%", backgroundColor: "#F4A742" }]} />
+                            </View>
+                        </View>
+                        {/* Ký số điện tử */}
+                        <View style={[styles.progressItem, { marginTop: 16 }]}>
+                            <View style={styles.progressMeta}>
+                                <View>
+                                    <ThemedText style={styles.progressName}>Ký số điện tử</ThemedText>
+                                    <ThemedText style={[styles.progressCount, { color: isDark ? "rgba(255,255,255,0.4)" : "#AAA" }]}>560 lượt</ThemedText>
+                                </View>
+                                <ThemedText style={[styles.progressPct, { color: isDark ? "#FFF" : "#111" }]}>40%</ThemedText>
+                            </View>
+                            <View style={[styles.progressTrack, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#F0F2F5" }]}>
+                                <View style={[styles.progressFill, { width: "40%", backgroundColor: "#4FC3F7" }]} />
+                            </View>
+                        </View>
+                    </View>
+                </View>
+            </View>
+
             {/* Quick Actions */}
             <View style={styles.section}>
                 <ThemedText type="subtitle" style={styles.sectionTitle}>Tiện ích nhanh</ThemedText>
@@ -481,5 +603,211 @@ const styles = StyleSheet.create({
         width: 1,
         height: 15,
         backgroundColor: "rgba(0,0,0,0.05)",
+    },
+
+    // ─── Card Box (shared container) ───────────────────────────────────────
+    cardBox: {
+        marginHorizontal: 20,
+        borderRadius: 20,
+        paddingTop: 20,
+        paddingBottom: 8,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        overflow: "hidden",
+    },
+    cardBoxHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        paddingHorizontal: 16,
+        marginBottom: 12,
+    },
+    cardBoxTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+    },
+    cardBoxSub: {
+        fontSize: 12,
+        marginTop: 2,
+    },
+
+    // ─── "Xem tất cả" button ───────────────────────────────────────────────
+    seeAllBtn: {
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        borderRadius: 20,
+    },
+    seeAllBtnText: {
+        color: "#2092EC",
+        fontSize: 13,
+        fontWeight: "600",
+    },
+
+    // ─── Document row ──────────────────────────────────────────────────────
+    docRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 11,
+    },
+    docIconWrap: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 12,
+    },
+    docInfo: {
+        flex: 1,
+        marginRight: 8,
+    },
+    docTitle: {
+        fontSize: 14,
+        fontWeight: "600",
+    },
+    docSender: {
+        fontSize: 12,
+        marginTop: 2,
+    },
+    docDate: {
+        fontSize: 12,
+        fontWeight: "500",
+    },
+
+    // ─── Chart legend ──────────────────────────────────────────────────────
+    chartLegend: {
+        flexDirection: "row",
+        gap: 16,
+        paddingHorizontal: 16,
+        marginBottom: 12,
+    },
+    legendItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    legendDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+    },
+    legendLabel: {
+        fontSize: 12,
+        fontWeight: "500",
+    },
+
+    // ─── Chart area ────────────────────────────────────────────────────────
+    chartWrapper: {
+        flexDirection: "row",
+        height: 160,
+        paddingHorizontal: 16,
+        marginBottom: 4,
+    },
+    yAxisLabels: {
+        width: 34,
+        justifyContent: "space-between",
+        alignItems: "flex-end",
+        paddingRight: 6,
+        paddingBottom: 2,
+    },
+    axisLabel: {
+        fontSize: 10,
+    },
+    chartArea: {
+        flex: 1,
+        position: "relative",
+    },
+    gridLine: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        borderTopWidth: 1,
+        borderStyle: "dashed",
+    },
+    // Simplified "area" + "line" decorations (purely visual placeholders)
+    areaFillOrange: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: "70%",
+        borderRadius: 6,
+    },
+    areaFillBlue: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: "50%",
+        borderRadius: 6,
+    },
+    lineOrange: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: "70%",
+        height: 2.5,
+        backgroundColor: "#F4A742",
+        borderRadius: 2,
+        opacity: 0.9,
+    },
+    lineBlue: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: "50%",
+        height: 2.5,
+        backgroundColor: "#4FC3F7",
+        borderRadius: 2,
+        opacity: 0.9,
+    },
+
+    // ─── X-axis labels ─────────────────────────────────────────────────────
+    xAxisLabels: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingHorizontal: 50,
+        marginBottom: 16,
+    },
+
+    // ─── Progress section (inside Tổng quan card) ──────────────────────────
+    progressSection: {
+        paddingHorizontal: 16,
+        paddingBottom: 16,
+        paddingTop: 4,
+        borderTopWidth: 1,
+        borderTopColor: "rgba(0,0,0,0.04)",
+    },
+    progressItem: {},
+    progressMeta: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-end",
+        marginBottom: 8,
+    },
+    progressName: {
+        fontSize: 14,
+        fontWeight: "700",
+    },
+    progressCount: {
+        fontSize: 12,
+        marginTop: 2,
+    },
+    progressPct: {
+        fontSize: 16,
+        fontWeight: "800",
+    },
+    progressTrack: {
+        height: 8,
+        borderRadius: 4,
+        overflow: "hidden",
+    },
+    progressFill: {
+        height: "100%",
+        borderRadius: 4,
     },
 });

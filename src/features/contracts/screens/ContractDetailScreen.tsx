@@ -51,22 +51,33 @@ export default function ContractDetailScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-                {/* Name & Status Banner */}
                 <LinearGradient
                     colors={["#2092EC", "#054D8C"]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.bannerCard}
                 >
-                    <View style={styles.bannerIcon}>
-                        <MaterialCommunityIcons name="file-document-outline" size={32} color="#FFF" />
+                    <View style={styles.bannerMainRow}>
+                        <View style={styles.bannerIcon}>
+                            <MaterialCommunityIcons name="file-document-outline" size={28} color="#FFF" />
+                        </View>
+                        <ThemedText style={styles.bannerTitle} numberOfLines={2}>
+                            {params.name as string || "Hợp đồng cung cấp thiết bị số 12345678901234567890"}
+                        </ThemedText>
                     </View>
-                    <ThemedText style={styles.bannerTitle} numberOfLines={2}>
-                        {params.name as string || "Hợp đồng cung cấp thiết bị"}
-                    </ThemedText>
-                    <View style={styles.bannerBadge}>
-                        <View style={styles.statusDot} />
-                        <ThemedText style={styles.bannerStatus}>Chờ duyệt</ThemedText>
+
+                    <View style={styles.bannerActionRow}>
+                        <View style={styles.statusBadge}>
+                            <View style={styles.statusDot} />
+                            <ThemedText style={styles.statusText}>Chờ duyệt</ThemedText>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.bannerViewBtn}
+                            onPress={() => router.push("/contract-content")}
+                        >
+                            <MaterialCommunityIcons name="file-eye-outline" size={18} color="#FFF" />
+                            <ThemedText style={styles.bannerViewBtnText}>Xem chi tiết</ThemedText>
+                        </TouchableOpacity>
                     </View>
                 </LinearGradient>
 
@@ -112,29 +123,23 @@ export default function ContractDetailScreen() {
                 </View>
 
                 {/* Action Buttons */}
-                <TouchableOpacity
-                    style={[styles.outlineBtn, { borderColor: "#2092EC" }]}
-                    onPress={() => router.push("/contract-content")}
-                >
-                    <MaterialCommunityIcons name="file-eye-outline" size={22} color="#2092EC" />
-                    <ThemedText style={[styles.outlineBtnText, { color: "#2092EC" }]}>Xem nội dung hợp đồng</ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.primaryBtn}
-                    onPress={() => router.push("/sign-contract")}
-                >
-
-                    <LinearGradient
-                        colors={["#2092EC", "#2092EC"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.primaryBtnGradient}
+                <View style={styles.actionRow}>
+                    <TouchableOpacity
+                        style={styles.rejectBtn}
+                        onPress={() => router.back()}
                     >
-                        <MaterialCommunityIcons name="pen" size={22} color="#FFF" />
-                        <ThemedText style={styles.primaryBtnText}>Ký duyệt</ThemedText>
-                    </LinearGradient>
-                </TouchableOpacity>
+                        <MaterialCommunityIcons name="close-circle-outline" size={20} color="#64748B" />
+                        <ThemedText style={styles.rejectBtnText}>Từ chối</ThemedText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.signBtn}
+                        onPress={() => router.push("/sign-contract")}
+                    >
+                        <MaterialCommunityIcons name="pen" size={20} color="#FFF" />
+                        <ThemedText style={styles.signBtnText}>Ký duyệt</ThemedText>
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
         </SafeAreaView>
     );
@@ -171,25 +176,34 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     bannerIcon: {
-        width: 52, height: 52,
+        width: 48, height: 48,
         borderRadius: 14,
         backgroundColor: "rgba(255,255,255,0.2)",
         alignItems: "center", justifyContent: "center",
-        marginBottom: 16,
+    },
+    bannerMainRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 15,
+        marginBottom: 20,
     },
     bannerTitle: {
         color: "#FFF",
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: "700",
-        marginBottom: 12,
-        lineHeight: 26,
+        flex: 1,
+        lineHeight: 24,
     },
-    bannerBadge: {
+    bannerActionRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    statusBadge: {
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
         backgroundColor: "rgba(255,255,255,0.15)",
-        alignSelf: "flex-start",
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
@@ -199,9 +213,23 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         backgroundColor: "#FBC02D",
     },
-    bannerStatus: {
+    statusText: {
         color: "#FFF",
         fontSize: 12,
+        fontWeight: "700",
+    },
+    bannerViewBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: "rgba(255,255,255,0.18)",
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 12,
+    },
+    bannerViewBtnText: {
+        color: "#FFF",
+        fontSize: 13,
         fontWeight: "700",
     },
     card: {
@@ -289,18 +317,39 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "700",
     },
-    primaryBtn: {
-        borderRadius: 14,
-        overflow: "hidden",
+    actionRow: {
+        flexDirection: "row",
+        gap: 12,
+        marginTop: 8,
     },
-    primaryBtnGradient: {
+    rejectBtn: {
+        flex: 1,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        paddingVertical: 16,
+        gap: 8,
+        backgroundColor: "#F1F5F9",
+        borderRadius: 14,
+        borderWidth: 1.5,
+        borderColor: "#E2E8F0",
+        paddingVertical: 14,
     },
-    primaryBtnText: {
+    rejectBtnText: {
+        color: "#64748B",
+        fontSize: 15,
+        fontWeight: "700",
+    },
+    signBtn: {
+        flex: 2,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        backgroundColor: "#1565C0",
+        borderRadius: 14,
+        paddingVertical: 14,
+    },
+    signBtnText: {
         color: "#FFF",
         fontSize: 16,
         fontWeight: "700",
