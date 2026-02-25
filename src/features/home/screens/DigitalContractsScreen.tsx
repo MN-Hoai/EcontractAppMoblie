@@ -1,34 +1,28 @@
+
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Contract, getContracts } from "@/services/contractService";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
     FlatList,
     SafeAreaView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 
-const ALL_CONTRACTS = [
-    { id: "1", title: "Hợp đồng cung cấp thiết bị", status: "Chờ duyệt", sender: "Nguyễn Lâm", date: "09/01/2025 14:30", type: "waiting", overdueDays: 0 },
-    { id: "2", title: "Biên bản họp HĐQT", status: "Hoàn thành", sender: "Mai Anh", date: "08/01/2025 10:15", type: "completed", overdueDays: 0 },
-    { id: "3", title: "Thỏa thuận hợp tác 2025", status: "Chờ duyệt", sender: "Khánh Duy", date: "07/01/2025 09:00", type: "waiting", overdueDays: 0 },
-    { id: "4", title: "Hợp đồng bảo trì trung tâm dữ liệu", status: "Đang xử lý", sender: "Hữu Tín", date: "06/01/2025 16:45", type: "processing", overdueDays: 0 },
-    { id: "5", title: "Hợp đồng ký kết dịch vụ số", status: "Chờ duyệt", sender: "Thu Hà", date: "05/01/2025 08:00", type: "waiting", overdueDays: 0 },
-    { id: "6", title: "Phụ lục hợp đồng số 03/2025", status: "Hoàn thành", sender: "Minh Tuấn", date: "04/01/2025 11:30", type: "completed", overdueDays: 0 },
-    { id: "7", title: "Hợp đồng dịch vụ công nghệ thông tin", status: "Quá hạn", sender: "Trần Bảo Long", date: "15/12/2024 09:00", type: "overdue", overdueDays: 12 },
-];
+const HARDCODED_ACCOUNT_ID = "efc01a41-4666-4314-bd06-2ffe231281ad";
 
 const STATUS_FILTERS = [
     { key: "all", label: "Tất cả", color: "#607D8B" },
-    { key: "waiting", label: "Chờ duyệt", color: "#FBC02D" },
-    { key: "processing", label: "Đang xử lý", color: "#2196F3" },
-    { key: "completed", label: "Hoàn thành", color: "#4CAF50" },
-    { key: "overdue", label: "Quá hạn", color: "#E53935" },
+    { key: "0", label: "Chờ duyệt", color: "#FBC02D" },
+    { key: "1", label: "Hoàn thành", color: "#4CAF50" },
+    { key: "2", label: "Từ chối", color: "#E53935" },
 ];
 
 export default function DigitalContractsScreen() {
@@ -36,33 +30,59 @@ export default function DigitalContractsScreen() {
     const isDark = colorScheme === "dark";
     const router = useRouter();
 
+    const [contracts, setContracts] = useState<Contract[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [showSearch, setShowSearch] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [searchText, setSearchText] = useState("");
     const [activeFilter, setActiveFilter] = useState("all");
 
-    const getStatusStyle = (type: string) => {
-        switch (type) {
-            case "waiting": return { bg: isDark ? "#3E2723" : "#FFF9E6", text: "#FBC02D" };
-            case "completed": return { bg: isDark ? "#1B5E20" : "#E8F5E9", text: "#4CAF50" };
-            case "processing": return { bg: isDark ? "#0D47A1" : "#E3F2FD", text: "#2196F3" };
-            case "overdue": return { bg: isDark ? "#4A1010" : "#FFEBEE", text: "#E53935" };
-            default: return { bg: "#F5F5F5", text: "#9E9E9E" };
+    useEffect(() => {
+        loadContracts();
+    }, []);
+
+    const loadContracts = async () => {
+        setIsLoading(true);
+        try {
+            const data = await getContracts(HARDCODED_ACCOUNT_ID);
+            setContracts(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const filteredContracts = ALL_CONTRACTS.filter((c) => {
-        const matchFilter = activeFilter === "all" || c.type === activeFilter;
+    const getStatusInfo = (status: number) => {
+        switch (status) {
+            case 0: return { label: "Chờ duyệt", color: "#FBC02D", bg: isDark ? "#3E2723" : "#FFF9E6", type: "waiting" };
+            case 1: return { label: "Hoàn thành", color: "#4CAF50", bg: isDark ? "#1B5E20" : "#E8F5E9", type: "completed" };
+            case 2: return { label: "Từ chối", color: "#E53935", bg: isDark ? "#4A1010" : "#FFEBEE", type: "rejected" };
+            default: return { label: "Không xác định", color: "#9E9E9E", bg: "#F5F5F5", type: "unknown" };
+        }
+    };
+
+    const filteredContracts = contracts.filter((c) => {
+        const matchFilter = activeFilter === "all" || c.Status.toString() === activeFilter;
         const matchSearch =
-            c.title.toLowerCase().includes(searchText.toLowerCase()) ||
-            c.sender.toLowerCase().includes(searchText.toLowerCase());
+            c.ContractName.toLowerCase().includes(searchText.toLowerCase());
         return matchFilter && matchSearch;
     });
 
-    const renderItem = ({ item }: { item: typeof ALL_CONTRACTS[0] }) => {
-        const statusStyle = getStatusStyle(item.type);
-        const isWaiting = item.type === "waiting";
-        const isOverdue = item.type === "overdue";
+    const renderItem = ({ item }: { item: Contract }) => {
+        const statusInfo = getStatusInfo(item.Status);
+        const isWaiting = item.Status === 0;
+        const isRejected = item.Status === 2;
+
+        const displayDate = item.ContractDate
+            ? new Date(item.ContractDate).toLocaleString("vi-VN", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+            })
+            : "N/A";
 
         return (
             <TouchableOpacity
@@ -71,49 +91,45 @@ export default function DigitalContractsScreen() {
                     {
                         backgroundColor: isWaiting
                             ? (isDark ? "#2D2418" : "#FFFBEB")
-                            : isOverdue
+                            : isRejected
                                 ? (isDark ? "#2C0A0A" : "#FFF5F5")
                                 : (isDark ? "#1D3D47" : "#FFF"),
-                        borderWidth: isWaiting || isOverdue ? 1 : 0,
-                        borderColor: isWaiting ? "#FBC02D" : isOverdue ? "#E53935" : "transparent",
+                        borderWidth: isWaiting || isRejected ? 1 : 0,
+                        borderColor: isWaiting ? "#FBC02D" : isRejected ? "#E53935" : "transparent",
                     }
                 ]}
-                onPress={() => router.push("/contract-detail")}
+                onPress={() => router.push({
+                    pathname: "/contract-detail",
+                    params: { id: item.ContractId, name: item.ContractName }
+                })}
             >
                 <View style={styles.cardMainRow}>
                     <View style={[styles.iconContainer, {
-                        backgroundColor: isOverdue
+                        backgroundColor: isRejected
                             ? (isDark ? "#4A0E0E" : "#FFEBEE")
                             : (isDark ? "#2C5364" : "#E3F2FD")
                     }]}>
                         <MaterialCommunityIcons
-                            name={isOverdue ? "file-alert-outline" : "file-document-outline"}
+                            name={isRejected ? "file-alert-outline" : "file-document-outline"}
                             size={24}
-                            color={isOverdue ? "#E53935" : "#2196F3"}
+                            color={isRejected ? "#E53935" : "#2196F3"}
                         />
                     </View>
                     <View style={styles.contentContainer}>
-                        <ThemedText style={styles.contractTitle}>{item.title}</ThemedText>
+                        <ThemedText style={styles.contractTitle}>{item.ContractName}</ThemedText>
                         <View style={styles.statusBadgeRow}>
-                            <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-                                <ThemedText style={[styles.statusText, { color: statusStyle.text }]}>{item.status}</ThemedText>
+                            <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
+                                <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>
+                                    {statusInfo.label}
+                                </ThemedText>
                             </View>
-                            {isOverdue && item.overdueDays > 0 && (
-                                <View style={styles.overduePill}>
-                                    <MaterialCommunityIcons name="alert-circle" size={11} color="#E53935" />
-                                    <ThemedText style={styles.overdueText}>Trễ {item.overdueDays} ngày</ThemedText>
-                                </View>
-                            )}
                         </View>
-                        <ThemedText style={styles.senderText}>Gửi bởi <ThemedText style={{ fontWeight: "700" }}>{item.sender}</ThemedText></ThemedText>
                         <View style={styles.dateRow}>
                             <MaterialCommunityIcons name="clock-outline" size={13} color="#9E9E9E" />
-                            <ThemedText style={styles.dateText}>{item.date}</ThemedText>
+                            <ThemedText style={styles.dateText}>{displayDate}</ThemedText>
                         </View>
                     </View>
                 </View>
-
-
             </TouchableOpacity>
         );
     };
@@ -199,19 +215,26 @@ export default function DigitalContractsScreen() {
                 </View>
             )}
 
-            <FlatList
-                data={filteredContracts}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    <View style={styles.empty}>
-                        <MaterialCommunityIcons name="file-search-outline" size={60} color={isDark ? "#1D3D47" : "#DDD"} />
-                        <ThemedText style={styles.emptyText}>Không tìm thấy hợp đồng</ThemedText>
-                    </View>
-                }
-            />
+            {isLoading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#00ACC1" />
+                    <ThemedText style={styles.loadingText}>Đang tải hợp đồng...</ThemedText>
+                </View>
+            ) : (
+                <FlatList
+                    data={filteredContracts}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.ContractId}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <View style={styles.empty}>
+                            <MaterialCommunityIcons name="file-search-outline" size={60} color={isDark ? "#1D3D47" : "#DDD"} />
+                            <ThemedText style={styles.emptyText}>Không tìm thấy hợp đồng</ThemedText>
+                        </View>
+                    }
+                />
+            )}
         </SafeAreaView>
     );
 }
@@ -412,4 +435,14 @@ const styles = StyleSheet.create({
         paddingVertical: 60, gap: 14,
     },
     emptyText: { fontSize: 14, opacity: 0.4 },
+    loadingContainer: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+    },
+    loadingText: {
+        fontSize: 14,
+        color: "#999",
+    },
 });

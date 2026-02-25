@@ -1,6 +1,32 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://192.168.1.82:5000";
+const API_BASE_URL = "http://192.168.1.41:5000";
+
+export interface Contract {
+  ContractId: string;
+  ContractName: string;
+  ContractPath: string;
+  ContractDate: string;
+  Status: number;
+}
+
+export interface ContractApiResponse {
+  message: string;
+  data: Contract[];
+  totalCount: number;
+}
+
+export const getContracts = async (accountId: string): Promise<Contract[]> => {
+  try {
+    const url = `${API_BASE_URL}/api/contracts?accountId=${accountId}`;
+    const response = await axios.get(url);
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching contracts:", error);
+    throw error;
+  }
+};
+
 
 export interface FdfData {
   [key: string]: string | number | boolean;

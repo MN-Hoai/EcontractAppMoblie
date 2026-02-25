@@ -1,6 +1,5 @@
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import axios from "axios";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -14,11 +13,9 @@ import {
     View,
 } from "react-native";
 
-const HARDCODED_ACCOUNT_ID = "3f2a9c4e-8d7b-4c91-a2f1-6e5b8a0d9c21";
-
-export default function IDCameraBackScreen() {
+export default function FaceCaptureScreen() {
     const router = useRouter();
-    const setBackUri = useKycStore((s) => s.setBackUri);
+    const setFaceUri = useKycStore((s) => s.setFaceUri);
 
     const [permission, requestPermission] = useCameraPermissions();
     const [capturedUri, setCapturedUri] = useState<string | null>(null);
@@ -40,7 +37,8 @@ export default function IDCameraBackScreen() {
                 setCapturedUri(photo.uri);
             }
         } catch (e) {
-            console.error("Chụp ảnh thất bại:", e);
+            console.error("Chụp ảnh khuôn mặt thất bại:", e);
+            Alert.alert("Lỗi", "Không thể chụp ảnh. Vui lòng thử lại.");
         } finally {
             setIsCapturing(false);
         }
@@ -48,55 +46,11 @@ export default function IDCameraBackScreen() {
 
     const handleRetake = () => setCapturedUri(null);
 
-    const handleNext = async () => {
+    const handleNext = () => {
         if (!capturedUri) return;
-
-        const frontUri = useKycStore.getState().frontUri;
-        if (!frontUri) {
-            Alert.alert("Lỗi", "Không tìm thấy ảnh mặt trước. Vui lòng chụp lại.");
-            router.replace("/id-camera-front");
-            return;
-        }
-
-        setIsCapturing(true);
-        try {
-            const formData = new FormData();
-
-            // Chuyển đổi URI ảnh mặt trước
-            const frontFileName = frontUri.split("/").pop() || "front.jpg";
-            formData.append("frontImage", {
-                uri: frontUri,
-                name: frontFileName,
-                type: "image/jpeg",
-            } as any);
-
-            // Chuyển đổi URI ảnh mặt sau
-            const backFileName = capturedUri.split("/").pop() || "back.jpg";
-            formData.append("backImage", {
-                uri: capturedUri,
-                name: backFileName,
-                type: "image/jpeg",
-            } as any);
-
-            // Thêm accountId
-            formData.append("accountId", HARDCODED_ACCOUNT_ID);
-
-            const url = `http://192.168.1.41:5000/api/imageid`;
-            const response = await axios.post(url, formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
-
-            if (response.status === 200) {
-                setBackUri(capturedUri);
-                Alert.alert("Thành công", "Upload CCCD thành công");
-                router.push("/face-capture");
-            }
-        } catch (error: any) {
-            console.error("Upload thất bại:", error);
-            Alert.alert("Lỗi", "Không thể upload ảnh CCCD. Vui lòng thử lại.");
-        } finally {
-            setIsCapturing(false);
-        }
+        setFaceUri(capturedUri);
+        // Sau khi chụp khuôn mặt, chuyển sang trang kiểm tra thông tin
+        router.push("/id-information");
     };
 
     if (!permission) {
@@ -111,7 +65,7 @@ export default function IDCameraBackScreen() {
         return (
             <View style={styles.center}>
                 <MaterialCommunityIcons name="camera-off" size={48} color="#999" />
-                <Text style={styles.permText}>Cần quyền truy cập camera</Text>
+                <Text style={styles.permText}>Cần quyền truy cập camera để xác thực khuôn mặt</Text>
                 <TouchableOpacity style={styles.permBtn} onPress={requestPermission}>
                     <Text style={styles.permBtnText}>Cấp quyền</Text>
                 </TouchableOpacity>
@@ -128,25 +82,28 @@ export default function IDCameraBackScreen() {
                 </TouchableOpacity>
                 <View style={styles.stepRow}>
                     <View style={[styles.stepDot, { backgroundColor: "#4CAF50" }]} />
-                    <View style={[styles.stepLine, { backgroundColor: "#2092EC" }]} />
+                    <View style={[styles.stepDot, { backgroundColor: "#4CAF50", marginLeft: 4 }]} />
+                    <View style={[styles.stepLine, { backgroundColor: "#2092EC", marginHorizontal: 6 }]} />
                     <View style={[styles.stepDot, { backgroundColor: "#2092EC" }]} />
                 </View>
                 <View style={{ width: 40 }} />
             </View>
 
-            <Text style={styles.title}>Chụp mặt sau CCCD</Text>
-            <Text style={styles.subtitle}>Đặt mặt sau thẻ vào khung hình, đảm bảo rõ nét</Text>
+            <Text style={styles.title}>Xác thực khuôn mặt</Text>
+            <Text style={styles.subtitle}>Đặt khuôn mặt vào trong vòng tròn, giữ máy ổn định</Text>
 
             {/* Camera / Preview */}
-            <View style={styles.frameWrapper}>
+            <View style={styles.cameraWrapper}>
                 {capturedUri ? (
-                    <Image source={{ uri: capturedUri }} style={styles.preview} resizeMode="cover" />
+                    <View style={styles.previewContainer}>
+                        <Image source={{ uri: capturedUri }} style={styles.preview} resizeMode="cover" />
+                        <View style={styles.circularOverlay} />
+                    </View>
                 ) : (
-                    <CameraView ref={cameraRef} style={styles.camera} facing="back">
-                        <View style={styles.cornerTL} />
-                        <View style={styles.cornerTR} />
-                        <View style={styles.cornerBL} />
-                        <View style={styles.cornerBR} />
+                    <CameraView ref={cameraRef} style={styles.camera} facing="front">
+                        <View style={styles.overlay}>
+                            <View style={styles.circularHole} />
+                        </View>
                     </CameraView>
                 )}
             </View>
@@ -182,15 +139,10 @@ export default function IDCameraBackScreen() {
     );
 }
 
-const CORNER_SIZE = 24;
-const CORNER_THICK = 3;
-const CORNER_RADIUS = 6;
-const CORNER_COLOR = "#2092EC";
-
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#0A0A0A" },
     center: { flex: 1, backgroundColor: "#0A0A0A", alignItems: "center", justifyContent: "center", gap: 16 },
-    permText: { color: "#FFF", fontSize: 15, opacity: 0.7 },
+    permText: { color: "#FFF", fontSize: 15, opacity: 0.7, textAlign: 'center', paddingHorizontal: 40 },
     permBtn: { backgroundColor: "#2092EC", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
     permBtnText: { color: "#FFF", fontWeight: "700" },
 
@@ -208,38 +160,64 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255,255,255,0.12)",
         alignItems: "center", justifyContent: "center",
     },
-    stepRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+    stepRow: { flexDirection: "row", alignItems: "center" },
     stepDot: { width: 10, height: 10, borderRadius: 5 },
-    stepLine: { width: 32, height: 2, borderRadius: 1 },
+    stepLine: { width: 40, height: 2, borderRadius: 1 },
 
     title: { color: "#FFF", fontSize: 20, fontWeight: "700", textAlign: "center", marginTop: 12 },
     subtitle: { color: "rgba(255,255,255,0.5)", fontSize: 13, textAlign: "center", marginTop: 6, paddingHorizontal: 32 },
 
-    frameWrapper: {
+    cameraWrapper: {
         flex: 1,
-        marginHorizontal: 20,
-        marginTop: 24,
-        marginBottom: 12,
-        borderRadius: 20,
-        overflow: "hidden",
-        backgroundColor: "#111",
+        marginTop: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    camera: { flex: 1 },
-    preview: { flex: 1 },
+    camera: {
+        width: 320,
+        height: 320,
+        borderRadius: 160,
+        overflow: 'hidden',
+    },
+    previewContainer: {
+        width: 320,
+        height: 320,
+        borderRadius: 160,
+        overflow: 'hidden',
+    },
+    preview: {
+        width: '100%',
+        height: '100%',
+    },
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    circularHole: {
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        borderWidth: 3,
+        borderColor: '#2092EC',
+        borderStyle: 'dashed',
+    },
+    circularOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: 160,
+        borderWidth: 4,
+        borderColor: '#4CAF50',
+    },
 
-    cornerTL: { position: "absolute", top: 16, left: 16, width: CORNER_SIZE, height: CORNER_SIZE, borderTopWidth: CORNER_THICK, borderLeftWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderTopLeftRadius: CORNER_RADIUS },
-    cornerTR: { position: "absolute", top: 16, right: 16, width: CORNER_SIZE, height: CORNER_SIZE, borderTopWidth: CORNER_THICK, borderRightWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderTopRightRadius: CORNER_RADIUS },
-    cornerBL: { position: "absolute", bottom: 16, left: 16, width: CORNER_SIZE, height: CORNER_SIZE, borderBottomWidth: CORNER_THICK, borderLeftWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderBottomLeftRadius: CORNER_RADIUS },
-    cornerBR: { position: "absolute", bottom: 16, right: 16, width: CORNER_SIZE, height: CORNER_SIZE, borderBottomWidth: CORNER_THICK, borderRightWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderBottomRightRadius: CORNER_RADIUS },
-
-    controls: { height: 130, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+    controls: { height: 150, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
     shutter: {
-        width: 72, height: 72, borderRadius: 36,
+        width: 76, height: 76, borderRadius: 38,
         backgroundColor: "#FFF",
-        borderWidth: 5, borderColor: "rgba(255,255,255,0.25)",
+        borderWidth: 6, borderColor: "rgba(255,255,255,0.25)",
         alignItems: "center", justifyContent: "center",
     },
-    shutterInner: { width: 54, height: 54, borderRadius: 27, backgroundColor: "#FFF" },
+    shutterInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: "#FFF" },
 
     reviewRow: { flexDirection: "row", gap: 16, width: "100%" },
     retakeBtn: {

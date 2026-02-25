@@ -7,6 +7,7 @@ export default function KycLayout() {
             <Stack.Screen name="id-camera-front" />
             <Stack.Screen name="id-camera-back" />
             <Stack.Screen name="id-information" />
+            <Stack.Screen name="face-capture" />
         </Stack>
     );
 }

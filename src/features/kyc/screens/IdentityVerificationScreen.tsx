@@ -106,6 +106,12 @@ export default function IdentityVerificationScreen() {
                     />
                     <StepItem
                         number="2"
+                        icon="face-recognition"
+                        title="Xác thực khuôn mặt"
+                        desc="Chụp ảnh chân dung để xác thực sinh trắc học với giấy tờ."
+                    />
+                    <StepItem
+                        number="3"
                         icon="check-decagram-outline"
                         title="Kiểm tra & Hoàn tất"
                         desc="Rà soát toàn bộ thông tin đã trích xuất trước khi gửi đi."
