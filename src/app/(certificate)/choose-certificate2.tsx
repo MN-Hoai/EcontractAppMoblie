@@ -102,7 +102,7 @@ export default function ChooseCertificate2Screen() {
       >
         {/* ── Banner ── */}
         <View style={styles.banner}>
-          <MaterialCommunityIcons name="security" size={20} color="#1565C0" />
+          <MaterialCommunityIcons name="security" size={20} color="#FFB300" />
           <Text style={styles.bannerText}>
             Vui lòng chọn chứng thư số phù hợp để tiến hành ký kết tài liệu điện tử.
           </Text>
@@ -163,12 +163,12 @@ export default function ChooseCertificate2Screen() {
 
       {/* ── Bottom Bar ── */}
       <View style={styles.footer}>
-        <View style={styles.disclaimerBox}>
+        {/* <View style={styles.disclaimerBox}>
           <MaterialCommunityIcons name="information-outline" size={14} color="#666" />
           <Text style={styles.disclaimerText}>
             Tôi đã đọc hiểu và đồng ý với Điều kiện & điều khoản sử dụng Chứng thư số của Viettel/VietinBank.
           </Text>
-        </View>
+        </View> */}
         <TouchableOpacity
           style={[styles.primaryBtn, !selectedCert && styles.btnDisabled]}
           disabled={!selectedCert}
@@ -210,12 +210,12 @@ export default function ChooseCertificate2Screen() {
               </View>
             </ScrollView>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.modalCloseBtnAction}
               onPress={() => setShowDetail(false)}
             >
               <Text style={styles.modalCloseBtnText}>Đóng</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
       </Modal>
@@ -252,13 +252,13 @@ const styles = StyleSheet.create({
   banner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EAF2FE",
+    backgroundColor: "#FFF8E1",
     padding: 14,
     borderRadius: 14,
     gap: 10,
     marginBottom: 20,
     borderLeftWidth: 3,
-    borderLeftColor: "#2092EC",
+    borderLeftColor: "#FFB300",
   },
   bannerText: { flex: 1, fontSize: 13, color: "#3E6B9A", lineHeight: 18 },
 

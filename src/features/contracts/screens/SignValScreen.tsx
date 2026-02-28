@@ -52,7 +52,7 @@ export default function SignValScreen() {
       </LinearGradient>
 
       {/* ── Progress stepper ── */}
-     
+
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -63,7 +63,7 @@ export default function SignValScreen() {
           <MaterialCommunityIcons
             name="certificate-outline"
             size={22}
-            color="#1565C0"
+            color="#FFB300"
           />
           <View style={{ flex: 1 }}>
             <Text style={styles.bannerTitle}>Xác nhận chứng thư</Text>
@@ -141,17 +141,17 @@ export default function SignValScreen() {
           <MaterialCommunityIcons name="chevron-right" size={20} color="#BBBEC7" />
         </TouchableOpacity>
 
-        {/* ── Info Note ── */}
-        <View style={styles.noteBox}>
+        {/* ── Warning Note ── */}
+        {/* <View style={styles.warningBox}>
           <MaterialCommunityIcons
             name="information-outline"
-            size={16}
-            color="#1565C0"
+            size={18}
+            color="#FFB300"
           />
-          <Text style={styles.noteText}>
+          <Text style={styles.warningText}>
             Chứng thư số đã sẵn sàng để sử dụng cho các giao dịch điện tử của Quý khách.
           </Text>
-        </View>
+        </View> */}
       </ScrollView>
 
       {/* ── Bottom bar ── */}
@@ -248,12 +248,12 @@ export default function SignValScreen() {
               </View>
             </ScrollView>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.modalBottomBtn}
               onPress={() => setShowCertModal(false)}
             >
               <Text style={styles.modalBottomBtnText}>Đóng</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
       </Modal>
@@ -344,15 +344,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 10,
-    backgroundColor: "#EAF2FE",
+    backgroundColor: "#FFF8E1",
     borderRadius: 14,
     padding: 14,
     marginBottom: 16,
     borderLeftWidth: 3,
-    borderLeftColor: "#2092EC",
+    borderLeftColor: "#FFB300",
   },
-  bannerTitle: { fontSize: 13, fontWeight: "700", color: "#1565C0" },
-  bannerSub: { fontSize: 12, color: "#3E6B9A", marginTop: 2, lineHeight: 18 },
+  bannerTitle: { fontSize: 13, fontWeight: "700", color: "#FFB300" },
+  bannerSub: { fontSize: 12, color: "#FFB300", marginTop: 2, lineHeight: 18 },
 
   /* Card */
   card: {
@@ -444,16 +444,19 @@ const styles = StyleSheet.create({
   contractRowLabel: { fontSize: 14, fontWeight: "700", color: "#1A1A1A" },
   contractRowDesc: { fontSize: 12, color: "#9E9E9E", marginTop: 2 },
 
-  /* Note Box */
-  noteBox: {
+  /* Warning Box */
+  warningBox: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 8,
-    backgroundColor: "#EAF2FE",
-    borderRadius: 12,
-    padding: 12,
+    gap: 10,
+    backgroundColor: "#FFF8E1",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: "#FFB300",
   },
-  noteText: { flex: 1, fontSize: 12, color: "#3E6B9A", lineHeight: 18 },
+  warningText: { flex: 1, fontSize: 13, color: "#7A5F00", lineHeight: 20 },
 
   /* Bottom Actions */
   bottomBar: {

@@ -121,7 +121,7 @@ export default function IdentityVerificationScreen() {
 
                 {/* ── Security Note ── */}
                 <View style={styles.securityNote}>
-                    <MaterialCommunityIcons name="lock-check" size={18} color="#1565C0" />
+                    <MaterialCommunityIcons name="lock-check" size={18} color="#FFB300" />
                     <Text style={styles.securityNoteText}>
                         Mọi dữ liệu cá nhân của bạn đều được mã hóa và bảo vệ theo tiêu chuẩn bảo mật quốc tế.
                     </Text>
@@ -288,12 +288,12 @@ const styles = StyleSheet.create({
     securityNote: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#EAF2FE",
+        backgroundColor: "#FFF8E1",
         padding: 14,
         borderRadius: 14,
         gap: 10,
     },
-    securityNoteText: { flex: 1, fontSize: 12, color: "#3E6B9A", lineHeight: 18 },
+    securityNoteText: { flex: 1, fontSize: 12, color: "#FFB300", lineHeight: 18 },
 
     /* Footer */
     footer: {

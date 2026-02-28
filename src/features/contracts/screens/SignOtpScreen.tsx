@@ -99,7 +99,7 @@ export default function SignOtpScreen() {
             <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Xác thực giao dịch</Text>
+            <Text style={styles.headerTitle}>Xác thực ký số</Text>
             <Text style={styles.headerSub}>Ký số tài liệu điện tử</Text>
           </View>
           <View style={{ width: 40 }} />
@@ -202,12 +202,27 @@ export default function SignOtpScreen() {
               <Text style={styles.successMsg}>
                 Tài liệu của Quý khách đã được ký số an toàn và lưu trữ vào hệ thống.
               </Text>
-              <TouchableOpacity
-                style={styles.finishBtn}
-                onPress={() => router.replace("/(tabs)" as any)}
-              >
-                <Text style={styles.finishBtnText}>Về trang chủ</Text>
-              </TouchableOpacity>
+
+              <View style={styles.successActionRow}>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.btnOutline]}
+                  onPress={() => {
+                    setShowSuccess(false);
+                    // TODO: Replace with your view document logic
+                    // router.push("/document-detail" as any);
+                  }}
+                >
+                  <Text style={[styles.actionBtnText, styles.textOutline]}>Xem lại tài liệu</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.btnPrimary]}
+                  onPress={() => router.replace("/(tabs)" as any)}
+                >
+                  <Text style={[styles.actionBtnText, styles.textPrimary]}>Về trang chủ</Text>
+                </TouchableOpacity>
+              </View>
+
             </View>
           </View>
         </Modal>
@@ -220,7 +235,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F0F4F8" },
   header: {
     flexDirection: "row", alignItems: "center",
-    paddingTop: 56, paddingBottom: 18, paddingHorizontal: 16, gap: 12,
+    paddingTop: 15, paddingBottom: 15, paddingHorizontal: 16, gap: 12,
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 12,
@@ -245,9 +260,9 @@ const styles = StyleSheet.create({
 
   warningBox: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: "#263238", borderRadius: 12, padding: 12, marginTop: 16,
+    backgroundColor: "#FFF8E1", borderRadius: 12, padding: 12, marginTop: 16,
   },
-  warningText: { flex: 1, fontSize: 12, color: "#CFD8DC", lineHeight: 18 },
+  warningText: { flex: 1, fontSize: 12, color: "#FFB300", lineHeight: 18 },
 
   otpSection: { alignItems: "center", marginTop: 32 },
   sentText: { fontSize: 14, color: "#546E7A", marginBottom: 24, textAlign: "center" },
@@ -282,7 +297,13 @@ const styles = StyleSheet.create({
   successModal: { backgroundColor: "#FFF", borderRadius: 24, padding: 32, alignItems: "center", width: "100%" },
   successIconCircle: { width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center", marginBottom: 20 },
   successTitle: { fontSize: 20, fontWeight: "800", color: "#1A1A1A", marginBottom: 12 },
-  successMsg: { fontSize: 14, color: "#666", textAlign: "center", lineHeight: 22, marginBottom: 24 },
-  finishBtn: { backgroundColor: "#1565C0", width: "100%", paddingVertical: 14, borderRadius: 14, alignItems: "center" },
-  finishBtnText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
+  successMsg: { fontSize: 14, color: "#666", textAlign: "center", lineHeight: 22, borderBottomWidth: 1, borderBottomColor: "#F0F2F5", paddingBottom: 24, marginBottom: 24 },
+
+  successActionRow: { flexDirection: "row", gap: 12, width: "100%" },
+  actionBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  btnOutline: { backgroundColor: "#FFF", borderWidth: 1, borderColor: "#1565C0" },
+  btnPrimary: { backgroundColor: "#1565C0" },
+  actionBtnText: { fontWeight: "700", fontSize: 14 },
+  textOutline: { color: "#1565C0" },
+  textPrimary: { color: "#FFF" },
 });

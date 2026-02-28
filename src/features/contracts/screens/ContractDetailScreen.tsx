@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+    Platform,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -98,7 +99,7 @@ export default function ContractDetailScreen() {
                 </View>
 
                 {/* Sign Flow */}
-                <View style={[styles.card, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
+                {/* <View style={[styles.card, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
                     <ThemedText style={styles.cardTitle}>Luồng ký duyệt</ThemedText>
                     {SIGN_STEPS.map((step, idx) => {
                         const s = getStepStyle(step.status);
@@ -120,27 +121,30 @@ export default function ContractDetailScreen() {
                             </View>
                         );
                     })}
-                </View>
+                </View> */}
 
-                {/* Action Buttons */}
-                <View style={styles.actionRow}>
-                    <TouchableOpacity
-                        style={styles.rejectBtn}
-                        onPress={() => router.back()}
-                    >
-                        <MaterialCommunityIcons name="close-circle-outline" size={20} color="#64748B" />
-                        <ThemedText style={styles.rejectBtnText}>Quay lại</ThemedText>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.signBtn}
-                        onPress={() => router.push("/sign-contract")}
-                    >
-                        <MaterialCommunityIcons name="pen" size={20} color="#FFF" />
-                        <ThemedText style={styles.signBtnText}>Ký duyệt</ThemedText>
-                    </TouchableOpacity>
-                </View>
+                {/* Sign Flow (Commented out) */}
+                {/* ... */}
             </ScrollView>
+
+            {/* ── Bottom Action Buttons ── */}
+            <View style={styles.bottomBar}>
+                <TouchableOpacity
+                    style={styles.rejectBtn}
+                    onPress={() => router.back()}
+                >
+                    <MaterialCommunityIcons name="arrow-left" size={20} color="#1565C0" />
+                    <ThemedText style={styles.rejectBtnText}>Quay lại</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.signBtn}
+                    onPress={() => router.push("/(certificate)/choose-certificate2")}
+                >
+                    <MaterialCommunityIcons name="signature-freehand" size={20} color="#FFF" />
+                    <ThemedText style={styles.signBtnText}>Ký duyệt</ThemedText>
+                </TouchableOpacity>
+            </View>
         </SafeAreaView>
     );
 }
@@ -170,7 +174,7 @@ const styles = StyleSheet.create({
     },
     content: {
         paddingHorizontal: 20,
-        paddingBottom: 40,
+        paddingBottom: 24,
     },
     bannerCard: {
         padding: 24,
@@ -319,10 +323,14 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "700",
     },
-    actionRow: {
+    bottomBar: {
         flexDirection: "row",
         gap: 12,
-        marginTop: 8,
+        paddingHorizontal: 16,
+        paddingTop: 6,
+        paddingBottom: Platform.OS === "ios" ? 0 : 16,
+        borderTopWidth: 1,
+        borderTopColor: "#EEF0F4",
     },
     rejectBtn: {
         flex: 1,
@@ -330,19 +338,17 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
-        backgroundColor: "#F1F5F9",
+        backgroundColor: "#EAF2FE",
         borderRadius: 14,
-        borderWidth: 1.5,
-        borderColor: "#E2E8F0",
         paddingVertical: 14,
     },
     rejectBtnText: {
-        color: "#64748B",
+        color: "#1565C0",
         fontSize: 15,
         fontWeight: "700",
     },
     signBtn: {
-        flex: 2,
+        flex: 1,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
@@ -353,7 +359,7 @@ const styles = StyleSheet.create({
     },
     signBtnText: {
         color: "#FFF",
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "700",
     },
 });

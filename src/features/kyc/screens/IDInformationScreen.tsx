@@ -251,7 +251,7 @@ export default function IDInformationScreen() {
                         <MaterialCommunityIcons
                             name="alert-circle-outline"
                             size={22}
-                            color="#B47B00"
+                            color="#FFB300"
                         />
                         <View style={{ flex: 1 }}>
                             <Text style={styles.bannerTitle}>Kiểm tra dữ liệu</Text>
@@ -410,9 +410,9 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: "row",
         alignItems: "center",
-        paddingTop: 56,
+        paddingTop: 15,
         paddingBottom: 24,
-        paddingHorizontal: 16,
+        paddingHorizontal: 15,
         gap: 12,
     },
     backBtn: {
@@ -490,8 +490,8 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         gap: 12,
     },
-    bannerTitle: { fontSize: 13, fontWeight: "800", color: "#A2711C" },
-    bannerSub: { fontSize: 12, color: "#7D5512", marginTop: 2, lineHeight: 18 },
+    bannerTitle: { fontSize: 13, fontWeight: "800", color: "#FFB300" },
+    bannerSub: { fontSize: 12, color: "#FFB300", marginTop: 2, lineHeight: 18 },
 
     /* Card */
     card: {
@@ -570,12 +570,12 @@ const styles = StyleSheet.create({
     noteBox: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#F1F5F9",
+        backgroundColor: "#cce4fc",
         padding: 14,
         borderRadius: 14,
         gap: 10,
     },
-    noteText: { flex: 1, fontSize: 12, color: "#64748B", lineHeight: 18 },
+    noteText: { flex: 1, fontSize: 12, color: "#4b85d7", lineHeight: 18 },
 
     /* Bottom Actions */
     bottomBar: {

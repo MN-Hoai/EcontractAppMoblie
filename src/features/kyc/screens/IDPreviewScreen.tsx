@@ -142,7 +142,7 @@ export default function IDPreviewScreen() {
 
                 {/* Info box */}
                 <View style={styles.infoBox}>
-                    <MaterialCommunityIcons name="information-outline" size={18} color="#1565C0" />
+                    <MaterialCommunityIcons name="information-outline" size={18} color="#FFB300" />
                     <Text style={styles.infoText}>
                         Đảm bảo ảnh rõ nét, không mờ, không bị che khuất. Thông tin trên thẻ phải đọc được đầy đủ.
                     </Text>
@@ -177,9 +177,9 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: "row",
         alignItems: "center",
-        paddingTop: 56,
+        paddingTop: 15,
         paddingBottom: 20,
-        paddingHorizontal: 16,
+        paddingHorizontal: 15,
         gap: 12,
     },
     iconBtn: {
@@ -274,12 +274,12 @@ const styles = StyleSheet.create({
     infoBox: {
         flexDirection: "row",
         gap: 10,
-        backgroundColor: "#E8F0FE",
+        backgroundColor: "#FFF8E1",
         borderRadius: 14,
         padding: 14,
         alignItems: "flex-start",
     },
-    infoText: { flex: 1, fontSize: 13, color: "#1565C0", lineHeight: 20 },
+    infoText: { flex: 1, fontSize: 13, color: "#FFB300", lineHeight: 20 },
 
     // Bottom bar
     bottomBar: {

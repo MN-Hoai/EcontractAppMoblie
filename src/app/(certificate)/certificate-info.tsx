@@ -1,7 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import React, { useState } from "react";
 import {
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -36,6 +38,7 @@ function QuestionCard({
 /* ─── Main Screen ───────────────────────────────────────────── */
 export default function CertificateInfoScreen() {
   const router = useRouter();
+  const [showPopup, setShowPopup] = useState(true);
 
   const handleContinue = () => {
     router.push("/choose-certificate");
@@ -43,6 +46,39 @@ export default function CertificateInfoScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ── Popup Modal ── */}
+      <Modal
+        visible={showPopup}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => router.back()}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconWrap}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={40} color="#FF9800" />
+            </View>
+            <Text style={styles.modalTitle}>Bạn chưa có chứng thư số</Text>
+            <Text style={styles.modalMessage}>
+              Vui lòng đăng ký chứng thư số để có thể tiếp tục thao tác ký điện tử.
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnCancel]}
+                onPress={() => router.back()}
+              >
+                <Text style={styles.modalBtnCancelText}>Quay lại</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnConfirm]}
+                onPress={() => setShowPopup(false)}
+              >
+                <Text style={styles.modalBtnConfirmText}>Đăng ký ngay</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       {/* ── Gradient Header ── */}
       <LinearGradient
         colors={["#1565C0", "#2092EC"]}
@@ -121,9 +157,9 @@ export default function CertificateInfoScreen() {
           ))}
         </View>
 
-        <View style={styles.safetyBox}>
-          <MaterialCommunityIcons name="information-outline" size={18} color="#1565C0" />
-          <Text style={styles.safetyText}>
+        <View style={styles.warningBox}>
+          <MaterialCommunityIcons name="information-outline" size={18} color="#FFB300" />
+          <Text style={styles.warningText}>
             Sử dụng chứng thư số của các nhà cung cấp uy tín (CA) để được bảo hộ pháp lý tốt nhất.
           </Text>
         </View>
@@ -281,6 +317,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   benefitText: { fontSize: 14, color: "#1E293B", fontWeight: "600" },
+warningBox: {
+    flexDirection: "row", alignItems: "flex-start", gap: 10,
+    backgroundColor: "#FFF8E1", borderRadius: 14, padding: 14,
+    marginBottom: 14, borderLeftWidth: 3, borderLeftColor: "#FFB300",
+  },  warningText: { flex: 1, fontSize: 13, color: "#7A5F00", lineHeight: 20 },
 
   safetyBox: {
     flexDirection: "row",
@@ -311,4 +352,77 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   startBtnText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
+
+  /* Modal */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "#929292", // Xám đục (opaque gray)
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 340,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255, 152, 0, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalBtnCancel: {
+    backgroundColor: "#F1F5F9",
+  },
+  modalBtnCancelText: {
+    color: "#64748B",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  modalBtnConfirm: {
+    backgroundColor: "#1565C0",
+  },
+  modalBtnConfirmText: {
+    color: "#FFF",
+    fontSize: 15,
+    fontWeight: "600",
+  },
 });

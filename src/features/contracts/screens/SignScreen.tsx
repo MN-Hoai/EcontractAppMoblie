@@ -96,7 +96,7 @@ export default function SignScreen() {
 
         {/* ── Security Note ── */}
         <View style={styles.securityBox}>
-          <MaterialCommunityIcons name="shield-lock-outline" size={20} color="#1565C0" />
+          <MaterialCommunityIcons name="shield-lock-outline" size={20} color="#FFB300" />
           <Text style={styles.securityText}>
             Giao dịch được bảo mật bởi công nghệ ký số đám mây thế hệ mới của Viettel-CA.
           </Text>
@@ -105,10 +105,22 @@ export default function SignScreen() {
 
       {/* ── Bottom Bar ── */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.signButton} onPress={handleSign} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.rejectBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.85}
+        >
+          <MaterialCommunityIcons name="close-circle-outline" size={20} color="#b44545" />
+          <Text style={styles.rejectBtnText}>Từ chối</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.signButton}
+          onPress={handleSign}
+          activeOpacity={0.85}
+        >
           <MaterialCommunityIcons name="draw" size={20} color="#FFF" />
-          <Text style={styles.signButtonText}>Tiến hành ký số</Text>
-          <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
+          <Text style={styles.signButtonText}>Ký số</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -121,7 +133,7 @@ const styles = StyleSheet.create({
   /* Header */
   header: {
     flexDirection: "row", alignItems: "center",
-    paddingTop: 56, paddingBottom: 18, paddingHorizontal: 16, gap: 12,
+    paddingTop: 15, paddingBottom: 18, paddingHorizontal: 15, gap: 12,
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 12,
@@ -162,19 +174,26 @@ const styles = StyleSheet.create({
   /* Security Box */
   securityBox: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: "#EAF2FE", borderRadius: 14, padding: 14,
-    marginTop: 8, borderLeftWidth: 3, borderLeftColor: "#2092EC",
+    backgroundColor: "#FFF8E1", borderRadius: 14, padding: 14,
+    marginTop: 8, borderLeftWidth: 3, borderLeftColor: "#FFB300",
   },
   securityText: { flex: 1, fontSize: 12, color: "#3E6B9A", lineHeight: 18 },
 
   /* Bottom Bar */
   bottomBar: {
-    padding: 16, paddingBottom: 24,
+    flexDirection: "row", gap: 12,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24,
     backgroundColor: "#FFF", borderTopWidth: 1, borderTopColor: "#EEF0F4",
   },
-  signButton: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
-    backgroundColor: "#1565C0", borderRadius: 16, paddingVertical: 16,
+  rejectBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#feeaea", borderRadius: 14, paddingVertical: 14,
   },
-  signButtonText: { color: "#FFF", fontWeight: "700", fontSize: 16 },
+  rejectBtnText: { color: "#8b3131", fontSize: 15, fontWeight: "700" },
+
+  signButton: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#1565C0", borderRadius: 14, paddingVertical: 14,
+  },
+  signButtonText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
 });

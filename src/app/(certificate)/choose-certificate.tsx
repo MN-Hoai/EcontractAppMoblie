@@ -143,7 +143,7 @@ export default function ChooseCertificateScreen() {
         </View>
 
         <View style={styles.noticeBox}>
-          <MaterialCommunityIcons name="information-outline" size={18} color="#1565C0" />
+          <MaterialCommunityIcons name="information-outline" size={18} color="#FFB300" />
           <Text style={styles.noticeText}>
             Dữ liệu cá nhân của bạn sẽ được gửi cho đơn vị cung cấp bạn đã chọn để phục vụ việc xác thực và cấp chứng thư.
           </Text>
@@ -321,12 +321,12 @@ const styles = StyleSheet.create({
   noticeBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EAF2FE",
+    backgroundColor: "#FFF8E1",
     padding: 14,
     borderRadius: 14,
     gap: 10,
   },
-  noticeText: { flex: 1, fontSize: 12, color: "#3E6B9A", lineHeight: 18 },
+  noticeText: { flex: 1, fontSize: 12, color: "#FFB300", lineHeight: 18 },
 
   /* Footer */
   footer: {
