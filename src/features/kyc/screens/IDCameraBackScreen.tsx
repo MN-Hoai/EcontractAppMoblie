@@ -81,7 +81,7 @@ export default function IDCameraBackScreen() {
             // Thêm accountId
             formData.append("accountId", HARDCODED_ACCOUNT_ID);
 
-            const url = `http://192.168.1.41:5000/api/imageid`;
+            const url = `http:// 192.168.1.72:5000/api/imageid`;
             const response = await axios.post(url, formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });

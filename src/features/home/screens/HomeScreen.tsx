@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
         fontWeight: "700",
     },
     subCount: {
-        fontSize: 32,
+        fontSize: 25,
         fontWeight: "800",
         marginBottom: 20,
     },
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     primaryValue: {
-        fontSize: 28,
+        fontSize: 22,
         fontWeight: "800",
         color: "#2092EC",
     },

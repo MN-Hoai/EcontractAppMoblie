@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: "row",
         alignItems: "center",
-        paddingTop: 56,
-        paddingBottom: 24,
+        paddingTop: 15,
+        paddingBottom: 15,
         paddingHorizontal: 16,
         gap: 12,
     },
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     headerCenter: { flex: 1 },
-    headerTitle: { color: "#FFF", fontSize: 17, fontWeight: "700" },
+    headerTitle: { color: "#FFF", fontSize: 17, fontWeight: "700"  },
     headerSub: { color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 2 },
 
     scrollContent: { padding: 20 },

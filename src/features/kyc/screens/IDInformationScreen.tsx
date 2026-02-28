@@ -186,7 +186,7 @@ export default function IDInformationScreen() {
                 Email: idInfo.email,
             };
 
-            const url = `http://192.168.1.41:5000/api/infoid?accountId=${HARDCODED_ACCOUNT_ID}`;
+            const url = `http://192.168.1.72:5000/api/infoid?accountId=${HARDCODED_ACCOUNT_ID}`;
             const response = await axios.post(url, model);
 
             if (response.status === 200) {

@@ -196,9 +196,9 @@ export default function InternalContractsScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     header: {
-        paddingTop: 12,
+        paddingTop: 15,
         paddingHorizontal: 16,
-        paddingBottom: 16,
+        paddingBottom: 15,
     },
     headerTop: {
         flexDirection: "row",
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
         paddingTop: 12,
     },
     contractCard: {
-        padding: 16,
+        padding: 15,
         borderRadius: 16,
         marginBottom: 14,
         elevation: 2,
