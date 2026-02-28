@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 56,
+    paddingTop: 15,
     paddingBottom: 18,
     paddingHorizontal: 16,
     gap: 12,

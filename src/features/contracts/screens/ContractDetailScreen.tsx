@@ -129,7 +129,7 @@ export default function ContractDetailScreen() {
                         onPress={() => router.back()}
                     >
                         <MaterialCommunityIcons name="close-circle-outline" size={20} color="#64748B" />
-                        <ThemedText style={styles.rejectBtnText}>Từ chối</ThemedText>
+                        <ThemedText style={styles.rejectBtnText}>Quay lại</ThemedText>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -153,6 +153,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         paddingHorizontal: 20,
         paddingVertical: 14,
+        paddingTop: 12,
+        paddingBottom: 16,
     },
     iconBtn: {
         width: 40, height: 40,

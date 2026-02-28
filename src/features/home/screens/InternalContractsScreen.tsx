@@ -6,7 +6,6 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
     FlatList,
-    SafeAreaView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
@@ -96,8 +95,7 @@ export default function InternalContractsScreen() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: isDark ? "#0D1B23" : "#F0F4F8" }]}>
-            {/* Gradient Header */}
+  <View style={[styles.container, { backgroundColor: isDark ? "#0D1B23" : "#F0F4F8" }]}>            {/* Gradient Header */}
             <LinearGradient
                 colors={["#1565C0", "#2092EC"]}
                 start={{ x: 0, y: 0 }}
@@ -189,16 +187,16 @@ export default function InternalContractsScreen() {
                     </View>
                 }
             />
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
     header: {
-        paddingTop: 15,
+        paddingTop: 12,
         paddingHorizontal: 16,
-        paddingBottom: 15,
+        paddingBottom: 16,
     },
     headerTop: {
         flexDirection: "row",
@@ -303,7 +301,7 @@ const styles = StyleSheet.create({
         paddingTop: 12,
     },
     contractCard: {
-        padding: 15,
+        padding: 16,
         borderRadius: 16,
         marginBottom: 14,
         elevation: 2,

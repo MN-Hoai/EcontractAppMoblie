@@ -19,7 +19,7 @@ export default function RootLayout() {
   return (
 
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 40, backgroundColor: "#FFFFFF" } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 45, backgroundColor: "#FFFFFF" } }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(kyc)" />
