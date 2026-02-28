@@ -1,6 +1,5 @@
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import axios from "axios";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -13,8 +12,6 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-
-const HARDCODED_ACCOUNT_ID = "3f2a9c4e-8d7b-4c91-a2f1-6e5b8a0d9c21";
 
 export default function IDCameraBackScreen() {
     const router = useRouter();
@@ -48,7 +45,7 @@ export default function IDCameraBackScreen() {
 
     const handleRetake = () => setCapturedUri(null);
 
-    const handleNext = async () => {
+    const handleNext = () => {
         if (!capturedUri) return;
 
         const frontUri = useKycStore.getState().frontUri;

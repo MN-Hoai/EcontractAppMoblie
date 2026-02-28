@@ -1,9 +1,10 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { getFileContract } from "@/services/contractService";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,10 +24,11 @@ export default function SignContractViewScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  // localFileUri: URI file đã tải về cache từ API
+  const [localFileUri, setLocalFileUri] = useState<string | null>(null);
 
   const contractId = params.contractId as string;
   const contractName = params.contractName as string;
-  const filePath = params.filePath as string;
   const fdfPath = params.fdfPath as string;
 
   // FilePath is now a full URL passed from sign-contract-preview
@@ -38,32 +40,29 @@ export default function SignContractViewScreen() {
   const getRelativePath = (path: string) => {
     if (path.startsWith("http")) {
       try {
-        const url = new URL(path);
-        // The pathname includes the leading slash, e.g. /media/upload/...
-        return url.pathname;
-      } catch (e) {
-        console.warn("Invalid URL format:", path);
-        return path;
+        setLoading(true);
+        setError(null);
+        const uri = await getFileContract(contractId);
+        if (!cancelled) setLocalFileUri(uri);
+      } catch (err) {
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : "Không thể tải hợp đồng.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    }
-    return path;
-  };
+    };
+    fetchFile();
+    return () => { cancelled = true; };
+  }, [contractId]);
 
-  const relativePath = getRelativePath(filePath);
+  // URL hiển thị: file local trên iOS / Google Docs Viewer trên Android
+  const displayUrl = localFileUri
+    ? Platform.OS === "android"
+      ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(localFileUri)}`
+      : localFileUri
+    : null;
 
-  // Construct the new URL using the server's ViewPdfByPath API
-  // This will call: http://192.168.1.82:5000/api/view-contract?filePath=/media/upload/...
-  const pdfUrl = `${API_BASE_URL}/api/view-contract?filePath=${encodeURIComponent(relativePath)}`;
-
-  // For download, we still use the API endpoint as it returns the file stream
-  const downloadUrl = pdfUrl;
-
-  // On Android, WebView cannot display PDF directly, so we use Google Docs Viewer
-  const displayUrl = Platform.OS === 'android'
-    ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(pdfUrl)}`
-    : pdfUrl;
-
-  console.log("Loading PDF from API:", pdfUrl);
+  console.log("Local file URI:", localFileUri);
   console.log("Display URL:", displayUrl);
 
   const handleContinue = () => {
@@ -72,7 +71,8 @@ export default function SignContractViewScreen() {
       params: {
         contractId,
         contractName,
-        filePath,
+        // Truyền localFileUri (hoặc chuỗi rỗng) thay vì filePath gắn cứng
+        filePath: localFileUri ?? "",
         fdfPath: fdfPath || "",
       },
     });
@@ -82,42 +82,30 @@ export default function SignContractViewScreen() {
     try {
       setDownloading(true);
 
-      const fileName = contractName.replace(/[^a-zA-Z0-9]/g, "_") + ".pdf";
+      if (!localFileUri) {
+        Alert.alert("Thông báo", "File chưa được tải về.");
+        return;
+      }
 
-      const docDir = (FileSystem as any).documentDirectory ||
-        (FileSystem as any).Paths?.document?.uri ||
-        (FileSystem as any).documentDirectory;
+      const fileName = contractName.replace(/[^a-zA-Z0-9]/g, "_") + ".pdf";
+      const docDir = (FileSystem as any).documentDirectory as string | undefined;
 
       if (!docDir) {
         Alert.alert("Thông báo", "Không thể xác định thư mục lưu trữ.");
-        setDownloading(false);
         return;
       }
 
-      const fileUri = `${docDir}${fileName}`;
+      const destUri = `${docDir}${fileName}`;
+      await (FileSystem as any).copyAsync({ from: localFileUri, to: destUri });
 
-      if (typeof (FileSystem as any).downloadAsync !== 'function') {
-        Alert.alert("Thông báo", "Tính năng tải xuống không khả dụng trên thiết bị này.");
-        setDownloading(false);
-        return;
-      }
-
-      const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri);
-
-      if (downloadResult.status === 200) {
-        Alert.alert(
-          "Tải xuống thành công",
-          `Tệp đã được lưu tại thiết bị`,
-          [{ text: "OK" }]
-        );
-      } else {
-        Alert.alert("Lỗi", "Tải xuống thất bại.");
-      }
+      Alert.alert("Tải xuống thành công", "Tệp đã được lưu vào bộ nhớ thiết bị.", [
+        { text: "OK" },
+      ]);
     } catch (err) {
       console.error("Download error:", err);
       Alert.alert(
         "Lỗi tải xuống",
-        err instanceof Error ? err.message : "Không thể tải xuống tệp",
+        err instanceof Error ? err.message : "Không thể lưu tệp",
         [{ text: "OK" }]
       );
     } finally {
@@ -180,7 +168,7 @@ export default function SignContractViewScreen() {
               Không tìm thấy file hợp đồng
             </ThemedText>
           </View>
-        ) : (
+        ) : displayUrl ? (
           <WebView
             source={{ uri: displayUrl }}
             onLoad={() => setLoading(false)}
@@ -193,7 +181,7 @@ export default function SignContractViewScreen() {
             }}
             style={[styles.pdf, { opacity: loading ? 0 : 1 }]}
           />
-        )}
+        ) : null}
       </View>
 
       {/* Footer Actions */}

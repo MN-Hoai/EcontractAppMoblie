@@ -1,4 +1,5 @@
 import axios from "axios";
+import * as FileSystem from "expo-file-system/legacy";
 
 const API_BASE_URL = "http://  192.168.1.72:5000";
 
@@ -115,4 +116,32 @@ export const fetchContractWithFdf = async (
     console.error("Error fetching contract with FDF:", error);
     throw error;
   }
+};
+
+/**
+ * Gọi API GET /api/file-contract?ContractId=<id>
+ * Tải file hợp đồng về thư mục cache, trả về local URI để hiển thị.
+ */
+export const getFileContract = async (contractId: string): Promise<string> => {
+  const url = `${API_BASE_URL}/api/file-contract?ContractId=${contractId}`;
+
+  // Tạo tên file tạm trong cache
+  const cacheDir = (FileSystem as any).cacheDirectory as string;
+  if (!cacheDir) throw new Error("Không thể xác định thư mục cache.");
+
+  const localUri = `${cacheDir}contract_${contractId}.pdf`;
+
+  // Kiểm tra nếu file đã cache thì dùng luôn
+  const fileInfo = await (FileSystem as any).getInfoAsync(localUri);
+  if (fileInfo.exists) {
+    return localUri;
+  }
+
+  // Download file từ server
+  const result = await (FileSystem as any).downloadAsync(url, localUri);
+  if (result.status !== 200) {
+    throw new Error(`Tải file hợp đồng thất bại (HTTP ${result.status})`);
+  }
+
+  return result.uri as string;
 };
