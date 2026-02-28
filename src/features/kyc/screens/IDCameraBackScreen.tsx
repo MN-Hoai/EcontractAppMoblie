@@ -1,5 +1,6 @@
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import axios from "axios";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -45,7 +46,7 @@ export default function IDCameraBackScreen() {
 
     const handleRetake = () => setCapturedUri(null);
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (!capturedUri) return;
 
         const frontUri = useKycStore.getState().frontUri;
@@ -56,6 +57,7 @@ export default function IDCameraBackScreen() {
         }
 
         setIsCapturing(true);
+        const HARDCODED_ACCOUNT_ID = "3f2a9c4e-8d7b-4c91-a2f1-6e5b8a0d9c21";
         try {
             const formData = new FormData();
 
@@ -78,7 +80,7 @@ export default function IDCameraBackScreen() {
             // Thêm accountId
             formData.append("accountId", HARDCODED_ACCOUNT_ID);
 
-            const url = `http:// 192.168.1.72:5000/api/imageid`;
+            const url = `http://192.168.1.72:5000/api/imageid`;
             const response = await axios.post(url, formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
