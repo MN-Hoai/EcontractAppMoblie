@@ -46,11 +46,60 @@ export default function FaceCaptureScreen() {
 
     const handleRetake = () => setCapturedUri(null);
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (!capturedUri) return;
-        setFaceUri(capturedUri);
-        // Sau khi chụp khuôn mặt, chuyển sang trang kiểm tra thông tin
-        router.push("/id-information");
+
+        const { frontUri, backUri } = useKycStore.getState();
+
+        if (!frontUri || !backUri) {
+            Alert.alert("Lỗi", "Thiếu ảnh CCCD. Vui lòng chụp lại từ đầu.");
+            router.replace("/id-camera-front");
+            return;
+        }
+
+        setIsCapturing(true);
+        try {
+            const formData = new FormData();
+
+            // Ảnh mặt trước CCCD
+            formData.append("frontImage", {
+                uri: frontUri,
+                name: frontUri.split("/").pop() || "front.jpg",
+                type: "image/jpeg",
+            } as any);
+
+            // Ảnh mặt sau CCCD
+            formData.append("backImage", {
+                uri: backUri,
+                name: backUri.split("/").pop() || "back.jpg",
+                type: "image/jpeg",
+            } as any);
+
+            // Ảnh khuôn mặt
+            formData.append("faceImage", {
+                uri: capturedUri,
+                name: capturedUri.split("/").pop() || "face.jpg",
+                type: "image/jpeg",
+            } as any);
+
+            const response = await fetch("http://192.168.1.69:5000/api/imageid", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            // Lưu URI khuôn mặt vào store
+            setFaceUri(capturedUri);
+            router.push("/id-information");
+        } catch (error: any) {
+            console.error("Upload KYC thất bại:", error);
+            Alert.alert("Lỗi", "Không thể gửi ảnh lên máy chủ. Vui lòng thử lại.");
+        } finally {
+            setIsCapturing(false);
+        }
     };
 
     if (!permission) {

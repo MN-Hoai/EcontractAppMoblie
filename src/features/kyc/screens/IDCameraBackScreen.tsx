@@ -1,6 +1,5 @@
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import axios from "axios";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -13,8 +12,6 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-
-const HARDCODED_ACCOUNT_ID = "3f2a9c4e-8d7b-4c91-a2f1-6e5b8a0d9c21";
 
 export default function IDCameraBackScreen() {
     const router = useRouter();
@@ -48,7 +45,7 @@ export default function IDCameraBackScreen() {
 
     const handleRetake = () => setCapturedUri(null);
 
-    const handleNext = async () => {
+    const handleNext = () => {
         if (!capturedUri) return;
 
         const frontUri = useKycStore.getState().frontUri;
@@ -58,45 +55,9 @@ export default function IDCameraBackScreen() {
             return;
         }
 
-        setIsCapturing(true);
-        try {
-            const formData = new FormData();
-
-            // Chuyển đổi URI ảnh mặt trước
-            const frontFileName = frontUri.split("/").pop() || "front.jpg";
-            formData.append("frontImage", {
-                uri: frontUri,
-                name: frontFileName,
-                type: "image/jpeg",
-            } as any);
-
-            // Chuyển đổi URI ảnh mặt sau
-            const backFileName = capturedUri.split("/").pop() || "back.jpg";
-            formData.append("backImage", {
-                uri: capturedUri,
-                name: backFileName,
-                type: "image/jpeg",
-            } as any);
-
-            // Thêm accountId
-            formData.append("accountId", HARDCODED_ACCOUNT_ID);
-
-            const url = `http://192.168.1.41:5000/api/imageid`;
-            const response = await axios.post(url, formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
-
-            if (response.status === 200) {
-                setBackUri(capturedUri);
-                Alert.alert("Thành công", "Upload CCCD thành công");
-                router.push("/face-capture");
-            }
-        } catch (error: any) {
-            console.error("Upload thất bại:", error);
-            Alert.alert("Lỗi", "Không thể upload ảnh CCCD. Vui lòng thử lại.");
-        } finally {
-            setIsCapturing(false);
-        }
+        // Lưu URI mặt sau vào store, chuyển sang chụp khuôn mặt
+        setBackUri(capturedUri);
+        router.push("/face-capture");
     };
 
     if (!permission) {
