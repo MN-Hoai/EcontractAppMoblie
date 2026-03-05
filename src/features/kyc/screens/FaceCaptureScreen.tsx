@@ -1,5 +1,6 @@
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import axios from "axios";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -16,6 +17,7 @@ import {
 export default function FaceCaptureScreen() {
     const router = useRouter();
     const setFaceUri = useKycStore((s) => s.setFaceUri);
+    const setRequestId = useKycStore((s) => s.setRequestId);
 
     const [permission, requestPermission] = useCameraPermissions();
     const [capturedUri, setCapturedUri] = useState<string | null>(null);
@@ -45,6 +47,8 @@ export default function FaceCaptureScreen() {
     };
 
     const handleRetake = () => setCapturedUri(null);
+
+    const HARDCODED_ACCOUNT_ID = "17444F49-6907-4662-BB99-57CA5E76BB59";
 
     const handleNext = async () => {
         if (!capturedUri) return;
@@ -82,21 +86,42 @@ export default function FaceCaptureScreen() {
                 type: "image/jpeg",
             } as any);
 
-            const response = await fetch("http://192.168.1.69:5000/api/imageid", {
-                method: "POST",
-                body: formData,
-            });
+            // Không append accountId vào FormData vì ASP.NET mặc định nhận Guid từ QueryString
+            // formData.append("accountId", HARDCODED_ACCOUNT_ID);
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+            console.log("Đang gửi 3 ảnh KYC lên server...");
+            const response = await axios.post(
+                `http://192.168.1.83:5000/api/imageid?accountId=${HARDCODED_ACCOUNT_ID}`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            // { Success: bool, Message: string, Data: { RequestId: string } }
+            const serviceResponse = response.data as any; // Ép về any để dễ truy xuất tuỳ biến
+
+            const isSuccess = serviceResponse.success ?? serviceResponse.Success;
+            const message = serviceResponse.message ?? serviceResponse.Message;
+            const resData = serviceResponse.data ?? serviceResponse.Data;
+            const requestId = resData?.requestId ?? resData?.RequestId;
+
+            if (isSuccess && requestId) {
+                // Lưu vào store
+                setFaceUri(capturedUri);
+                setRequestId(requestId);
+                console.log("KYC thành công, RequestId:", requestId);
+                router.push("/id-information");
+            } else {
+                // Hiển thị thông báo lỗi từ server
+                Alert.alert("Xác minh thất bại", message || "Vui lòng thử lại.");
             }
-
-            // Lưu URI khuôn mặt vào store
-            setFaceUri(capturedUri);
-            router.push("/id-information");
         } catch (error: any) {
             console.error("Upload KYC thất bại:", error);
-            Alert.alert("Lỗi", "Không thể gửi ảnh lên máy chủ. Vui lòng thử lại.");
+            // Lấy message lỗi từ server nếu có
+            const serverMsg = error?.response?.data?.message;
+            Alert.alert(
+                "Lỗi",
+                serverMsg || "Không thể gửi ảnh lên máy chủ. Vui lòng thử lại."
+            );
         } finally {
             setIsCapturing(false);
         }
