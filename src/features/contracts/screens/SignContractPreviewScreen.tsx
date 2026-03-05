@@ -19,7 +19,7 @@ import {
 } from "react-native";
 
 // API Base URL - should match the backend server
-const API_BASE_URL = "http://192.168.1.72:5000";
+const API_BASE_URL = "http://192.168.1.86:5000";
 
 /* ─── Field Row Component ───────────────────────────────────── */
 function FieldRow({ label, value }: { label: string; value: string }) {

@@ -177,3 +177,27 @@ export const checkCaStatus = async (accountId: string): Promise<CheckCaResponse>
     throw error;
   }
 };
+
+export const submitKycInfo = async (accountId: string, model: any) => {
+  try {
+    const url = `${API_BASE_URL}/api/infoid?accountId=${accountId}`;
+    const response = await axios.post(url, model);
+    return response.data;
+  } catch (error) {
+    console.error("Error submitting KYC info:", error);
+    throw error;
+  }
+};
+
+export const submitKycImages = async (accountId: string, formData: FormData) => {
+  try {
+    const url = `${API_BASE_URL}/api/imageid?accountId=${accountId}`;
+    const response = await axios.post(url, formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error submitting KYC images:", error);
+    throw error;
+  }
+};

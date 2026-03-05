@@ -1,6 +1,6 @@
+import { submitKycInfo } from "@/services/contractService";
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -188,14 +188,11 @@ export default function IDInformationScreen() {
                 Email: idInfo.email,
             };
 
-            const url = `http://192.168.1.86:5000/api/infoid?accountId=${HARDCODED_ACCOUNT_ID}`;
-            const response = await axios.post(url, model);
-
-            const serviceResponse = response.data as any;
+            const serviceResponse = await submitKycInfo(HARDCODED_ACCOUNT_ID, model) as any;
             const isSuccess = serviceResponse.success ?? serviceResponse.Success;
             const message = serviceResponse.message ?? serviceResponse.Message;
 
-            if (response.status === 200 && isSuccess) {
+            if (isSuccess) {
                 router.push("/sign-contract");
             } else {
                 throw new Error(message || "Lỗi khi xác thực thông tin");

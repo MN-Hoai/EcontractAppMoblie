@@ -1,6 +1,6 @@
+import { submitKycImages } from "@/services/contractService";
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import axios from "axios";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -90,14 +90,9 @@ export default function FaceCaptureScreen() {
             // formData.append("accountId", HARDCODED_ACCOUNT_ID);
 
             console.log("Đang gửi 3 ảnh KYC lên server...");
-            const response = await axios.post(
-                `http://192.168.1.83:5000/api/imageid?accountId=${HARDCODED_ACCOUNT_ID}`,
-                formData,
-                { headers: { "Content-Type": "multipart/form-data" } }
-            );
+            const serviceResponse = await submitKycImages(HARDCODED_ACCOUNT_ID, formData) as any;
 
             // { Success: bool, Message: string, Data: { RequestId: string } }
-            const serviceResponse = response.data as any; // Ép về any để dễ truy xuất tuỳ biến
 
             const isSuccess = serviceResponse.success ?? serviceResponse.Success;
             const message = serviceResponse.message ?? serviceResponse.Message;
