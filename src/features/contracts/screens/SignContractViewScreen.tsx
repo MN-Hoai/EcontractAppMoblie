@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { getFileContract } from "@/services/contractService";
+import { checkCaStatus, getFileContract } from "@/services/contractService";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   StyleSheet,
   TouchableOpacity,
@@ -24,6 +25,9 @@ export default function SignContractViewScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [loadingCa, setLoadingCa] = useState(false);
+  const [showCaModal, setShowCaModal] = useState(false);
+  const [caMessage, setCaMessage] = useState("");
   // localFileUri: URI file đã tải về cache từ API
   const [localFileUri, setLocalFileUri] = useState<string | null>(null);
 
@@ -71,17 +75,41 @@ export default function SignContractViewScreen() {
   console.log("Local file URI:", localFileUri);
   console.log("Display URL:", displayUrl);
 
-  const handleContinue = () => {
-    router.push({
-      pathname: "/sign-contract-preview",
-      params: {
-        contractId,
-        contractName,
-        // Truyền localFileUri (hoặc chuỗi rỗng) thay vì filePath gắn cứng
-        filePath: localFileUri ?? "",
-        fdfPath: fdfPath || "",
-      },
-    });
+  const HARDCODED_ACCOUNT_ID = "460ed12c-8567-4c1f-a810-0e246b988662";
+
+  const handleContinue = async () => {
+    try {
+      setLoadingCa(true);
+      // Gọi API check CA
+      const res = await checkCaStatus(HARDCODED_ACCOUNT_ID);
+
+      const isSuccess = res.Success ?? res.success;
+      const data = res.Data ?? res.data;
+      const message = res.Message ?? res.message ?? "Bạn chưa tích hợp chứng thư số";
+
+      if (isSuccess && data === true) {
+        // Nếu có chứng thư số, cho tiếp tục sang màn ký
+        router.push({
+          pathname: "/sign-contract-preview",
+          params: {
+            contractId,
+            contractName,
+            // Truyền localFileUri (hoặc chuỗi rỗng) thay vì filePath gắn cứng
+            filePath: localFileUri ?? "",
+            fdfPath: fdfPath || "",
+          },
+        });
+      } else {
+        // Nếu data là false (chưa có CTS), hiển thị Modal
+        setCaMessage(message);
+        setShowCaModal(true);
+      }
+    } catch (err) {
+      console.error("Lỗi kiểm tra chứng thư số:", err);
+      Alert.alert("Lỗi", "Không thể kiểm tra trạng thái chứng thư số. Vui lòng thử lại.");
+    } finally {
+      setLoadingCa(false);
+    }
   };
 
   const handleDownload = async () => {
@@ -214,17 +242,64 @@ export default function SignContractViewScreen() {
         <TouchableOpacity
           style={[styles.button, styles.continueButton]}
           onPress={handleContinue}
-          disabled={loading || !!error}
+          disabled={loading || !!error || loadingCa}
         >
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={20}
-            color="white"
-            style={{ marginRight: 8 }}
-          />
-          <ThemedText style={styles.continueButtonText}>Tiếp tục</ThemedText>
+          {loadingCa ? (
+            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+          ) : (
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={20}
+              color="white"
+              style={{ marginRight: 8 }}
+            />
+          )}
+          <ThemedText style={styles.continueButtonText}>
+            {loadingCa ? "Đang kiểm tra..." : "Tiếp tục"}
+          </ThemedText>
         </TouchableOpacity>
       </View>
+
+      {/* Custom Modal Chứng thư số */}
+      <Modal visible={showCaModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ width: 32 }} />
+              <View style={styles.modalIconWrapper}>
+                <MaterialCommunityIcons name="shield-lock-outline" size={32} color="#F59E0B" />
+              </View>
+              <TouchableOpacity onPress={() => setShowCaModal(false)} style={[styles.modalCloseBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" }]}>
+                <MaterialCommunityIcons name="close" size={20} color={isDark ? "#FFF" : "#666"} />
+              </TouchableOpacity>
+            </View>
+            <ThemedText style={styles.modalTitle}>Chưa có chứng thư số</ThemedText>
+            <ThemedText style={styles.modalMessage}>{caMessage}</ThemedText>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnOutline, { borderColor: isDark ? "rgba(255,255,255,0.2)" : "#1565C0" }]}
+                onPress={() => {
+                  setShowCaModal(false);
+                  router.push("/integrate-ca");
+                }}
+              >
+                <ThemedText style={[styles.modalBtnText, { color: isDark ? "#FFF" : "#1565C0" }]}>Tích hợp sẵn</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnPrimary]}
+                onPress={() => {
+                  setShowCaModal(false);
+                  router.push("/identity-verification");
+                }}
+              >
+                <ThemedText style={[styles.modalBtnText, { color: "#FFF" }]}>Đăng ký mới</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -311,5 +386,79 @@ const styles = StyleSheet.create({
   continueButtonText: {
     color: "white",
     fontWeight: "600",
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalContent: {
+    width: "100%",
+    padding: 24,
+    borderRadius: 24,
+    alignItems: "center",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    alignItems: "flex-start",
+  },
+  modalIconWrapper: {
+    width: 64, height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  modalCloseBtn: {
+    width: 32, height: 32,
+    borderRadius: 16,
+    alignItems: "center", justifyContent: "center",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 14,
+    opacity: 0.7,
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 22,
+    paddingHorizontal: 8,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalBtnOutline: {
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+  },
+  modalBtnPrimary: {
+    backgroundColor: "#1565C0",
+  },
+  modalBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
   },
 });

@@ -55,7 +55,7 @@ const FIELD_ICONS: Record<keyof IDInfo, string> = {
     email: "email-outline",
 };
 
-const HARDCODED_ACCOUNT_ID = "3f2a9c4e-8d7b-4c91-a2f1-6e5b8a0d9c21";
+const HARDCODED_ACCOUNT_ID = "17444F49-6907-4662-BB99-57CA5E76BB59";
 
 const parseDate = (dateStr: string): string | null => {
     if (!dateStr) return null;
@@ -186,21 +186,37 @@ export default function IDInformationScreen() {
                 Email: idInfo.email,
             };
 
-            const url = `http://192.168.1.72:5000/api/infoid?accountId=${HARDCODED_ACCOUNT_ID}`;
+            const url = `http://192.168.1.83:5000/api/infoid?accountId=${HARDCODED_ACCOUNT_ID}`;
             const response = await axios.post(url, model);
 
-            if (response.status === 200) {
+            const serviceResponse = response.data as any;
+            const isSuccess = serviceResponse.success ?? serviceResponse.Success;
+            const message = serviceResponse.message ?? serviceResponse.Message;
+
+            if (response.status === 200 && isSuccess) {
                 router.push("/sign-contract");
             } else {
-                throw new Error("Status " + response.status);
+                throw new Error(message || "Lỗi khi xác thực thông tin");
             }
         } catch (error: any) {
             let msg = "Không thể gửi thông tin. Vui lòng thử lại.";
-            if (error.message === "Network Error") {
+
+            if (error.message && error.message.includes("Lỗi khi xác thực")) {
+                msg = error.message;
+            } else if (error.message === "Network Error") {
                 msg = "Lỗi kết nối mạng. Kiểm tra IP/Port và Firewall server.";
             } else if (error.response) {
-                msg = `Lỗi ${error.response.status}: ${error.response.data?.message ?? "Unknown"
-                    }`;
+                const sData = error.response.data;
+                // Nếu API trả về ServiceResponse lỗi
+                if (sData?.Message || sData?.message) {
+                    msg = sData.Message || sData.message;
+                } else if (sData?.errors) {
+                    // Lỗi validation mặc định của ASP.NET (vd sai kiểu DateTime, thiếu trường)
+                    const firstErrorKey = Object.keys(sData.errors)[0];
+                    msg = sData.errors[firstErrorKey][0];
+                } else {
+                    msg = `Lỗi ${error.response.status}: Dữ liệu k hợp lệ`;
+                }
             }
             Alert.alert("Lỗi", msg);
         } finally {

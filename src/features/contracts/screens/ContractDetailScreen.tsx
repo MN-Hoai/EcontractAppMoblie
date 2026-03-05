@@ -1,15 +1,17 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { checkCaStatus } from "@/services/contractService";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
     Platform,
     SafeAreaView,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
 } from "react-native";
 
 const CONTRACT_INFO = [
@@ -32,10 +34,39 @@ export default function ContractDetailScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
 
+    const [loadingCa, setLoadingCa] = useState(false);
+    const [showCaModal, setShowCaModal] = useState(false);
+    const [caMessage, setCaMessage] = useState("");
+
     const getStepStyle = (status: string) => {
         if (status === "signed") return { dot: "#4CAF50", label: "Đã ký", color: "#4CAF50" };
         if (status === "waiting") return { dot: "#FBC02D", label: "Chờ ký", color: "#FBC02D" };
         return { dot: "#9E9E9E", label: "Chưa đến lượt", color: "#9E9E9E" };
+    };
+
+    const HARDCODED_ACCOUNT_ID = "17444F49-6907-4662-BB99-57CA5E76BB59";
+
+    const handleSign = async () => {
+        try {
+            setLoadingCa(true);
+            const res = await checkCaStatus(HARDCODED_ACCOUNT_ID);
+
+            const isSuccess = res.Success ?? res.success;
+            const data = res.Data ?? res.data;
+            const message = res.Message ?? res.message ?? "Bạn chưa tích hợp chứng thư số";
+
+            if (isSuccess && data === true) {
+                router.push("/sign-contract");
+            } else {
+                setCaMessage(message);
+                setShowCaModal(true);
+            }
+        } catch (err) {
+            console.error("Lỗi kiểm tra chứng thư số:", err);
+            Alert.alert("Lỗi", "Không thể kiểm tra trạng thái chứng thư số. Vui lòng thử lại.");
+        } finally {
+            setLoadingCa(false);
+        }
     };
 
     return (
@@ -359,6 +390,80 @@ const styles = StyleSheet.create({
     },
     signBtnText: {
         color: "#FFF",
+        fontSize: 15,
+        fontWeight: "700",
+    },
+    // Modal styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 24,
+    },
+    modalContent: {
+        width: "100%",
+        padding: 24,
+        borderRadius: 24,
+        alignItems: "center",
+        elevation: 10,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+    },
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        width: "100%",
+        alignItems: "flex-start",
+    },
+    modalIconWrapper: {
+        width: 64, height: 64,
+        borderRadius: 32,
+        backgroundColor: "rgba(245, 158, 11, 0.15)",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 16,
+    },
+    modalCloseBtn: {
+        width: 32, height: 32,
+        borderRadius: 16,
+        alignItems: "center", justifyContent: "center",
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "700",
+        marginBottom: 8,
+    },
+    modalMessage: {
+        fontSize: 14,
+        opacity: 0.7,
+        textAlign: "center",
+        marginBottom: 24,
+        lineHeight: 22,
+        paddingHorizontal: 8,
+    },
+    modalActions: {
+        flexDirection: "row",
+        gap: 12,
+        width: "100%",
+    },
+    modalBtn: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 14,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    modalBtnOutline: {
+        backgroundColor: "transparent",
+        borderWidth: 1.5,
+    },
+    modalBtnPrimary: {
+        backgroundColor: "#1565C0",
+    },
+    modalBtnText: {
         fontSize: 15,
         fontWeight: "700",
     },

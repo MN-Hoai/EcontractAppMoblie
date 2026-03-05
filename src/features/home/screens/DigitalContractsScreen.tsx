@@ -16,7 +16,7 @@ import {
     View
 } from "react-native";
 
-const HARDCODED_ACCOUNT_ID = "efc01a41-4666-4314-bd06-2ffe231281ad";
+const HARDCODED_ACCOUNT_ID = "E064B20B-3312-4454-B412-0EFD2312C1B1";
 
 const STATUS_FILTERS = [
     { key: "all", label: "Tất cả", color: "#607D8B" },
@@ -47,7 +47,8 @@ export default function DigitalContractsScreen() {
             const data = await getContracts(HARDCODED_ACCOUNT_ID);
             setContracts(data);
         } catch (error) {
-            console.error(error);
+            console.error("Lỗi tải danh sách hợp đồng:", error);
+            setContracts([]); // Đảm bảo contracts luôn là array
         } finally {
             setIsLoading(false);
         }

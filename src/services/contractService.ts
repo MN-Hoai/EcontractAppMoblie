@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as FileSystem from "expo-file-system/legacy";
 
-const API_BASE_URL = "http://  192.168.1.72:5000";
+const API_BASE_URL = "http://192.168.1.83:5000";
 
 export interface Contract {
   ContractId: string;
@@ -21,7 +21,18 @@ export const getContracts = async (accountId: string): Promise<Contract[]> => {
   try {
     const url = `${API_BASE_URL}/api/contracts?accountId=${accountId}`;
     const response = await axios.get(url);
-    return response.data.data;
+
+    // Xử lý cả 2 trường hợp: API trả về array trực tiếp hoặc { data: [...] }
+    const result = response.data;
+    if (Array.isArray(result)) {
+      return result;
+    }
+    if (result && Array.isArray(result.data)) {
+      return result.data;
+    }
+
+    console.warn("getContracts: định dạng response không xác định", result);
+    return [];
   } catch (error) {
     console.error("Error fetching contracts:", error);
     throw error;
@@ -144,4 +155,25 @@ export const getFileContract = async (contractId: string): Promise<string> => {
   }
 
   return result.uri as string;
+};
+
+export interface CheckCaResponse {
+  Success?: boolean;
+  Message?: string;
+  Data?: boolean;
+  // Cả trường hợp camelCase
+  success?: boolean;
+  message?: string;
+  data?: boolean;
+}
+
+export const checkCaStatus = async (accountId: string): Promise<CheckCaResponse> => {
+  try {
+    const url = `${API_BASE_URL}/api/check-ca?accountId=${accountId}`;
+    const response = await axios.get(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error checking CA status:", error);
+    throw error;
+  }
 };

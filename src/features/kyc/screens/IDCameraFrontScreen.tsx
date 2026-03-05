@@ -1,6 +1,7 @@
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -28,11 +29,35 @@ export default function IDCameraFrontScreen() {
     const [showTips, setShowTips] = useState(false);
     const cameraRef = useRef<CameraView>(null);
 
+    // Scan line animation
+    const scanAnim = useRef(new Animated.Value(0)).current;
+
     useEffect(() => {
         if (permission && !permission.granted) {
             requestPermission();
         }
     }, [permission]);
+
+    useEffect(() => {
+        if (!capturedUri) {
+            const loop = Animated.loop(
+                Animated.sequence([
+                    Animated.timing(scanAnim, {
+                        toValue: 1,
+                        duration: 2000,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scanAnim, {
+                        toValue: 0,
+                        duration: 2000,
+                        useNativeDriver: true,
+                    }),
+                ])
+            );
+            loop.start();
+            return () => loop.stop();
+        }
+    }, [capturedUri]);
 
     const handleCapture = async () => {
         if (!cameraRef.current || isCapturing) return;
@@ -57,40 +82,73 @@ export default function IDCameraFrontScreen() {
         router.push("/id-camera-back");
     };
 
-    // Chưa có quyền
     if (!permission) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator color="#2092EC" size="large" />
+                <ActivityIndicator color="#1565C0" size="large" />
             </View>
         );
     }
 
     if (!permission.granted) {
         return (
-            <View style={styles.center}>
-                <MaterialCommunityIcons name="camera-off" size={48} color="#999" />
-                <Text style={styles.permText}>Cần quyền truy cập camera</Text>
-                <TouchableOpacity style={styles.permBtn} onPress={requestPermission}>
-                    <Text style={styles.permBtnText}>Cấp quyền</Text>
-                </TouchableOpacity>
-            </View>
+            <SafeAreaView style={styles.center}>
+                <View style={styles.permCard}>
+                    <MaterialCommunityIcons name="camera-off" size={56} color="#1565C0" />
+                    <Text style={styles.permTitle}>Cần quyền camera</Text>
+                    <Text style={styles.permText}>Ứng dụng cần truy cập camera để chụp ảnh CCCD của bạn</Text>
+                    <TouchableOpacity style={styles.permBtn} onPress={requestPermission}>
+                        <Text style={styles.permBtnText}>Cấp quyền</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
         );
     }
 
+    // Scan line translateY interpolation over card height (~380px)
+    const scanTranslateY = scanAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, CARD_HEIGHT - 2],
+    });
+
     return (
         <View style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="#F5F7FA" />
+
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
-                    <MaterialCommunityIcons name="close" size={26} color="#FFF" />
-                </TouchableOpacity>
-                <View style={styles.stepRow}>
-                    <View style={[styles.stepDot, { backgroundColor: "#2092EC" }]} />
-                    <View style={[styles.stepLine]} />
-                    <View style={[styles.stepDot, { backgroundColor: "rgba(255,255,255,0.3)" }]} />
+            <SafeAreaView style={styles.safeHeader}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color="#1A1A2E" />
+                    </TouchableOpacity>
+                    <View style={styles.headerCenter}>
+                        <Text style={styles.headerTitle}>Xác minh danh tính</Text>
+                        <Text style={styles.headerSub}>Bước 1 / 3</Text>
+                    </View>
+                    {/* Step indicators */}
+                    <View style={styles.stepRow}>
+                        <View style={[styles.stepDot, { backgroundColor: "#1565C0" }]} />
+                        <View style={styles.stepLine} />
+                        <View style={[styles.stepDot, { backgroundColor: "#CBD5E1" }]} />
+                        <View style={styles.stepLine} />
+                        <View style={[styles.stepDot, { backgroundColor: "#CBD5E1" }]} />
+                    </View>
                 </View>
-                <View style={{ width: 40 }} />
+            </SafeAreaView>
+
+            {/* Instruction card */}
+            <View style={styles.instructionCard}>
+                <LinearGradient
+                    colors={["#E3F2FD", "#EFF6FF"]}
+                    style={styles.instructionGrad}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                >
+                    <MaterialCommunityIcons name="card-account-details-outline" size={22} color="#1565C0" />
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.instructionTitle}>Chụp mặt trước CCCD</Text>
+                        <Text style={styles.instructionDesc}>Đặt thẻ thẳng đứng, đảm bảo rõ nét & đủ sáng</Text>
+                    </View>
+                </LinearGradient>
             </View>
 
             <View style={styles.content}>
@@ -133,27 +191,31 @@ export default function IDCameraFrontScreen() {
             <View style={styles.controls}>
                 {capturedUri ? (
                     <View style={styles.reviewRow}>
-                        <TouchableOpacity style={styles.retakeBtn} onPress={handleRetake}>
-                            <MaterialCommunityIcons name="camera-retake" size={20} color="#2092EC" />
+                        <TouchableOpacity style={styles.retakeBtn} onPress={handleRetake} activeOpacity={0.8}>
+                            <MaterialCommunityIcons name="camera-retake-outline" size={20} color="#1565C0" />
                             <Text style={styles.retakeText}>Chụp lại</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
+                        <TouchableOpacity style={styles.nextBtn} onPress={handleNext} activeOpacity={0.85}>
                             <Text style={styles.nextText}>Tiếp theo</Text>
                             <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
                         </TouchableOpacity>
                     </View>
                 ) : (
-                    <TouchableOpacity
-                        style={styles.shutter}
-                        onPress={handleCapture}
-                        disabled={isCapturing}
-                        activeOpacity={0.7}
-                    >
-                        {isCapturing
-                            ? <ActivityIndicator color="#111" />
-                            : <View style={styles.shutterInner} />
-                        }
-                    </TouchableOpacity>
+                    <View style={styles.shutterRow}>
+                        <TouchableOpacity
+                            style={[styles.shutter, isCapturing && { opacity: 0.6 }]}
+                            onPress={handleCapture}
+                            disabled={isCapturing}
+                            activeOpacity={0.8}
+                        >
+                            {isCapturing ? (
+                                <ActivityIndicator color="#1565C0" size="small" />
+                            ) : (
+                                <View style={styles.shutterInner} />
+                            )}
+                        </TouchableOpacity>
+                        <Text style={styles.shutterLabel}>Nhấn để chụp</Text>
+                    </View>
                 )}
             </View>
 
@@ -193,25 +255,43 @@ export default function IDCameraFrontScreen() {
     );
 }
 
-const CORNER_SIZE = 24;
+const CARD_WIDTH = 320;
+const CARD_HEIGHT = 202;
+const CORNER_SIZE = 28;
 const CORNER_THICK = 3;
-const CORNER_RADIUS = 6;
-const CORNER_COLOR = "#2092EC";
+const CORNER_RADIUS = 8;
+const CORNER_COLOR = "#1565C0";
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#0A0A0A" },
-    center: { flex: 1, backgroundColor: "#0A0A0A", alignItems: "center", justifyContent: "center", gap: 16 },
-    permText: { color: "#FFF", fontSize: 15, opacity: 0.7 },
-    permBtn: { backgroundColor: "#2092EC", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-    permBtnText: { color: "#FFF", fontWeight: "700" },
+    container: { flex: 1, backgroundColor: "#F5F7FA" },
+    center: { flex: 1, backgroundColor: "#F5F7FA", alignItems: "center", justifyContent: "center" },
 
+    permCard: {
+        backgroundColor: "#FFF",
+        margin: 24,
+        borderRadius: 20,
+        padding: 32,
+        alignItems: "center",
+        gap: 12,
+        elevation: 4,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+    },
+    permTitle: { fontSize: 18, fontWeight: "700", color: "#1A1A2E" },
+    permText: { fontSize: 14, color: "#64748B", textAlign: "center", lineHeight: 20 },
+    permBtn: { backgroundColor: "#1565C0", paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, marginTop: 4 },
+    permBtnText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
+
+    safeHeader: { backgroundColor: "#F5F7FA" },
     header: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 8,
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 12,
+        gap: 12,
     },
     content: {
         flex: 1,
@@ -221,6 +301,11 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: "rgba(255,255,255,0.12)",
         alignItems: "center", justifyContent: "center",
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
     },
     stepRow: { flexDirection: "row", alignItems: "center", gap: 6 },
     stepDot: { width: 10, height: 10, borderRadius: 5 },
@@ -249,11 +334,10 @@ const styles = StyleSheet.create({
     camera: { flex: 1 },
     preview: { flex: 1 },
 
-    // Corner guides
-    cornerTL: { position: "absolute", top: 16, left: 16, width: CORNER_SIZE, height: CORNER_SIZE, borderTopWidth: CORNER_THICK, borderLeftWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderTopLeftRadius: CORNER_RADIUS },
-    cornerTR: { position: "absolute", top: 16, right: 16, width: CORNER_SIZE, height: CORNER_SIZE, borderTopWidth: CORNER_THICK, borderRightWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderTopRightRadius: CORNER_RADIUS },
-    cornerBL: { position: "absolute", bottom: 16, left: 16, width: CORNER_SIZE, height: CORNER_SIZE, borderBottomWidth: CORNER_THICK, borderLeftWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderBottomLeftRadius: CORNER_RADIUS },
-    cornerBR: { position: "absolute", bottom: 16, right: 16, width: CORNER_SIZE, height: CORNER_SIZE, borderBottomWidth: CORNER_THICK, borderRightWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderBottomRightRadius: CORNER_RADIUS },
+    cornerTL: { position: "absolute", top: 12, left: 12, width: CORNER_SIZE, height: CORNER_SIZE, borderTopWidth: CORNER_THICK, borderLeftWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderTopLeftRadius: CORNER_RADIUS },
+    cornerTR: { position: "absolute", top: 12, right: 12, width: CORNER_SIZE, height: CORNER_SIZE, borderTopWidth: CORNER_THICK, borderRightWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderTopRightRadius: CORNER_RADIUS },
+    cornerBL: { position: "absolute", bottom: 12, left: 12, width: CORNER_SIZE, height: CORNER_SIZE, borderBottomWidth: CORNER_THICK, borderLeftWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderBottomLeftRadius: CORNER_RADIUS },
+    cornerBR: { position: "absolute", bottom: 12, right: 12, width: CORNER_SIZE, height: CORNER_SIZE, borderBottomWidth: CORNER_THICK, borderRightWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderBottomRightRadius: CORNER_RADIUS },
 
     controls: {
         paddingBottom: 40,
@@ -270,7 +354,50 @@ const styles = StyleSheet.create({
     },
     shutterInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: "#FFF" },
 
-    reviewRow: { flexDirection: "row", gap: 16, width: "100%" },
+    capturedBadge: {
+        position: "absolute",
+        bottom: 12,
+        alignSelf: "center",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: "#4CAF50",
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    capturedBadgeText: { color: "#FFF", fontWeight: "700", fontSize: 12 },
+
+    hintText: {
+        marginTop: 14,
+        fontSize: 12,
+        color: "#64748B",
+        textAlign: "center",
+        paddingHorizontal: 24,
+    },
+
+    controls: {
+        paddingHorizontal: 24,
+        paddingBottom: 32,
+        paddingTop: 8,
+        backgroundColor: "#F5F7FA",
+    },
+    shutterRow: { alignItems: "center", gap: 10 },
+    shutter: {
+        width: 76, height: 76, borderRadius: 38,
+        backgroundColor: "#FFF",
+        borderWidth: 4, borderColor: "#1565C0",
+        alignItems: "center", justifyContent: "center",
+        elevation: 6,
+        shadowColor: "#1565C0",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+    },
+    shutterInner: { width: 54, height: 54, borderRadius: 27, backgroundColor: "#1565C0" },
+    shutterLabel: { fontSize: 13, color: "#64748B", fontWeight: "500" },
+
+    reviewRow: { flexDirection: "row", gap: 12 },
     retakeBtn: {
         flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
         borderWidth: 1.5, borderColor: "#2092EC", borderRadius: 16, paddingVertical: 16,

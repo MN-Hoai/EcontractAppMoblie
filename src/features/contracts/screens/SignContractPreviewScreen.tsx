@@ -9,6 +9,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -38,6 +39,7 @@ export default function SignContractPreviewScreen() {
   const [fdfData, setFdfData] = useState<FdfData>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCertSetupModal, setShowCertSetupModal] = useState(false);
 
   const contractId = params.contractId as string;
   const contractName = params.contractName as string;
@@ -76,8 +78,26 @@ export default function SignContractPreviewScreen() {
   }, [fdfPath]);
 
   const handleContinueSign = () => {
+    setShowCertSetupModal(true);
+  };
+
+  const handleImportCert = () => {
+    setShowCertSetupModal(false);
     router.push({
       pathname: "/sign",
+      params: {
+        contractId,
+        contractName,
+        filePath: getFullUrl(filePath),
+        fdfData: JSON.stringify(fdfData),
+      },
+    });
+  };
+
+  const handleRegisterCert = () => {
+    setShowCertSetupModal(false);
+    router.push({
+      pathname: "/sign-contract",
       params: {
         contractId,
         contractName,
@@ -179,6 +199,37 @@ export default function SignContractPreviewScreen() {
           <MaterialCommunityIcons name="arrow-right" size={18} color="#FFF" />
         </TouchableOpacity>
       </View>
+
+      {/* ── Certificate Setup Modal ── */}
+      <Modal visible={showCertSetupModal} transparent animationType="fade" onRequestClose={() => setShowCertSetupModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <TouchableOpacity style={styles.modalCloseIconBtn} onPress={() => setShowCertSetupModal(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="#999" />
+            </TouchableOpacity>
+            <LinearGradient
+              colors={["#1565C0", "#2092EC"]}
+              style={styles.modalIconCircle}
+            >
+              <MaterialCommunityIcons name="certificate-outline" size={32} color="#FFF" />
+            </LinearGradient>
+            <Text style={styles.modalTitle}>Thiết lập Chứng thư số</Text>
+            <Text style={styles.modalMsg}>
+              Yêu cầu thiết lập Chứng thư số trước khi ký. Vui lòng chọn phương thức:
+            </Text>
+
+            <TouchableOpacity style={styles.modalPrimaryBtn} onPress={handleImportCert}>
+              <MaterialCommunityIcons name="import" size={20} color="#FFF" />
+              <Text style={styles.modalPrimaryBtnText}>Nhập</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.modalSecondaryBtn} onPress={handleRegisterCert}>
+              <MaterialCommunityIcons name="account-plus-outline" size={20} color="#1565C0" />
+              <Text style={styles.modalSecondaryBtnText}>Đăng ký</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -269,4 +320,38 @@ const styles = StyleSheet.create({
     backgroundColor: "#1565C0", borderRadius: 14, paddingVertical: 14,
   },
   continueBtnText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
+
+  /* Modal */
+  modalOverlay: {
+    flex: 1, backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center", justifyContent: "center", paddingHorizontal: 28,
+  },
+  modalBox: {
+    backgroundColor: "#FFF", borderRadius: 24,
+    paddingTop: 32, paddingBottom: 24, paddingHorizontal: 24,
+    alignItems: "center", width: "100%", position: "relative",
+  },
+  modalCloseIconBtn: {
+    position: "absolute", top: 16, right: 16, padding: 4,
+  },
+  modalIconCircle: {
+    width: 72, height: 72, borderRadius: 36,
+    alignItems: "center", justifyContent: "center", marginBottom: 16,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "800", color: "#1A1A1A", marginBottom: 10, textAlign: "center" },
+  modalMsg: { fontSize: 13, color: "#666", textAlign: "center", lineHeight: 20, marginBottom: 24 },
+
+  modalPrimaryBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#1565C0", borderRadius: 14,
+    paddingVertical: 14, width: "100%", marginBottom: 12,
+  },
+  modalPrimaryBtnText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
+
+  modalSecondaryBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#F0F7FF", borderRadius: 14, borderWidth: 1.5, borderColor: "#1565C0",
+    paddingVertical: 14, width: "100%",
+  },
+  modalSecondaryBtnText: { color: "#1565C0", fontWeight: "700", fontSize: 15 },
 });
