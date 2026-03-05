@@ -38,7 +38,7 @@ export default function SignContractViewScreen() {
   // FilePath is now a full URL passed from sign-contract-preview
   // e.g., "http://192.168.1.82:5000/media/upload/2026/01/27/cd849d7a.pdf"
 
-  const API_BASE_URL = "http://192.168.1.72:5000";
+  const API_BASE_URL = "http://192.168.1.86:5000";
 
   useEffect(() => {
     let cancelled = false;
