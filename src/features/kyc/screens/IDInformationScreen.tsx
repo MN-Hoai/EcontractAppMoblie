@@ -111,6 +111,8 @@ function InfoRow({
                         autoFocus
                         style={styles.rowInput}
                         selectionColor="#2092EC"
+                        placeholder={`Nhập ${label.toLowerCase()}`}
+                        placeholderTextColor="#94A3B8"
                     />
                 ) : (
                     <Text
@@ -137,15 +139,15 @@ export default function IDInformationScreen() {
     const reset = useKycStore((s) => s.reset);
 
     const [idInfo, setIdInfo] = useState<IDInfo>({
-        fullName: "LÊ KHANH ĐẠT",
-        dateOfBirth: "21/12/1993",
-        gender: "Nam",
-        idNumber: "040093016268",
-        issueDate: "21/12/2022",
-        placeOfIssue: "CỤC CẢNH SÁT QUẢN LÝ HÀNH CHÍNH VỀ TRẬT TỰ CÔNG CỘNG",
-        address: "TỐ 5, PHƯỜNG NAM ĐỊNH, NINH BÌNH",
-        phoneNumber: "0348741193",
-        email: "datik.93t@gmail.com",
+        fullName: "",
+        dateOfBirth: "",
+        gender: "",
+        idNumber: "",
+        issueDate: "",
+        placeOfIssue: "",
+        address: "",
+        phoneNumber: "",
+        email: "",
     });
 
     const [editingField, setEditingField] = useState<keyof IDInfo | null>(null);
@@ -306,7 +308,12 @@ export default function IDInformationScreen() {
                                     value={idInfo[field]}
                                     isEditing={editingField === field}
                                     hasError={errors[field]}
-                                    onEdit={() => setEditingField(field)}
+                                    onEdit={() => {
+                                        setEditingField(field);
+                                        if (errors[field]) {
+                                            setIdInfo((p) => ({ ...p, [field]: "" }));
+                                        }
+                                    }}
                                     onChange={(t) => {
                                         setIdInfo((p) => ({ ...p, [field]: t }));
                                         if (errors[field]) setErrors(prev => ({ ...prev, [field]: false }));
@@ -337,7 +344,12 @@ export default function IDInformationScreen() {
                                     value={idInfo[field]}
                                     isEditing={editingField === field}
                                     hasError={errors[field]}
-                                    onEdit={() => setEditingField(field)}
+                                    onEdit={() => {
+                                        setEditingField(field);
+                                        if (errors[field]) {
+                                            setIdInfo((p) => ({ ...p, [field]: "" }));
+                                        }
+                                    }}
                                     onChange={(t) => {
                                         setIdInfo((p) => ({ ...p, [field]: t }));
                                         if (errors[field]) setErrors(prev => ({ ...prev, [field]: false }));

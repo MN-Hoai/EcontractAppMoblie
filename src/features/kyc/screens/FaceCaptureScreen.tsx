@@ -22,42 +22,13 @@ export default function FaceCaptureScreen() {
     const [permission, requestPermission] = useCameraPermissions();
     const [capturedUri, setCapturedUri] = useState<string | null>(null);
     const [isCapturing, setIsCapturing] = useState(false);
-    const [livenessStep, setLivenessStep] = useState(0); // 0: Thẳng, 1: Trái, 2: Phải, 3: Thẳng lại, 4: Capture
     const cameraRef = useRef<CameraView>(null);
-
-    const instructions = [
-        "Vui lòng nhìn thẳng",
-        "Từ từ quay mặt sang trái",
-        "Từ từ quay mặt sang phải",
-        "Quay lại nhìn thẳng",
-        "Đang xử lý ảnh..."
-    ];
 
     useEffect(() => {
         if (permission && !permission.granted) {
             requestPermission();
         }
     }, [permission]);
-
-    // Giả lập luồng nhận diện khuôn mặt Liveness Tracking
-    useEffect(() => {
-        if (capturedUri || !permission?.granted || isCapturing) {
-            return;
-        }
-
-        const timer = setTimeout(() => {
-            if (livenessStep < 3) {
-                // Nhảy sang step quay trái / quay phải / nhìn thẳng lại
-                setLivenessStep(prev => prev + 1);
-            } else if (livenessStep === 3) {
-                // Step 4 -> Tự động kích hoạt chụp khi đã nhìn thẳng lại
-                setLivenessStep(4);
-                handleCapture();
-            }
-        }, 3000); // 3 giây mô phỏng mỗi step
-
-        return () => clearTimeout(timer);
-    }, [livenessStep, capturedUri, permission?.granted, isCapturing]);
 
     const handleCapture = async () => {
         if (!cameraRef.current || isCapturing) return;
@@ -75,10 +46,7 @@ export default function FaceCaptureScreen() {
         }
     };
 
-    const handleRetake = () => {
-        setCapturedUri(null);
-        setLivenessStep(0); // Reset quá trình Liveness
-    };
+    const handleRetake = () => setCapturedUri(null);
 
     const HARDCODED_ACCOUNT_ID = "17444F49-6907-4662-BB99-57CA5E76BB59";
 
@@ -196,20 +164,7 @@ export default function FaceCaptureScreen() {
             </View>
 
             <Text style={styles.title}>Xác thực khuôn mặt</Text>
-
-            {/* Liveness Instruction */}
-            {!capturedUri ? (
-                <View style={styles.instructionBox}>
-                    <Text style={[
-                        styles.instructionText,
-                        livenessStep === 4 ? { color: "#4CAF50" } : { color: "#EEB868" }
-                    ]}>
-                        {instructions[livenessStep]}
-                    </Text>
-                </View>
-            ) : (
-                <Text style={styles.subtitle}>Xác nhận ảnh chụp</Text>
-            )}
+            <Text style={styles.subtitle}>Đặt khuôn mặt vào trong vòng tròn, giữ máy ổn định</Text>
 
             {/* Camera / Preview */}
             <View style={styles.cameraWrapper}>
@@ -241,10 +196,17 @@ export default function FaceCaptureScreen() {
                         </TouchableOpacity>
                     </View>
                 ) : (
-                    <View style={styles.autoCaptureContainer}>
-                        <ActivityIndicator color="#2092EC" size="large" />
-                        <Text style={styles.autoCaptureText}>Camera đang theo dõi khuôn mặt...</Text>
-                    </View>
+                    <TouchableOpacity
+                        style={styles.shutter}
+                        onPress={handleCapture}
+                        disabled={isCapturing}
+                        activeOpacity={0.7}
+                    >
+                        {isCapturing
+                            ? <ActivityIndicator color="#111" />
+                            : <View style={styles.shutterInner} />
+                        }
+                    </TouchableOpacity>
                 )}
             </View>
         </View>
@@ -334,40 +296,12 @@ const styles = StyleSheet.create({
     reviewRow: { flexDirection: "row", gap: 16, width: "100%" },
     retakeBtn: {
         flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-        borderWidth: 1.5, borderColor: "#2092EC", borderRadius: 16, paddingVertical: 16,
+        borderWidth: 1.5, borderColor: "#2092EC", borderRadius: 14, paddingVertical: 14,
     },
-    retakeText: { color: "#2092EC", fontWeight: "700", fontSize: 16 },
+    retakeText: { color: "#2092EC", fontWeight: "700", fontSize: 15 },
     nextBtn: {
         flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-        backgroundColor: "#2092EC", borderRadius: 16, paddingVertical: 16,
+        backgroundColor: "#2092EC", borderRadius: 14, paddingVertical: 14,
     },
-    nextText: { color: "#FFF", fontWeight: "700", fontSize: 16 },
-    instructionBox: {
-        alignItems: "center",
-        marginTop: 12,
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
-        borderRadius: 20,
-        alignSelf: "center",
-    },
-    instructionText: {
-        fontSize: 16,
-        fontWeight: "700",
-        letterSpacing: 0.5,
-    },
-    autoCaptureContainer: {
-        alignItems: "center",
-        flexDirection: "row",
-        gap: 12,
-        backgroundColor: "rgba(32, 146, 236, 0.1)",
-        paddingVertical: 14,
-        paddingHorizontal: 24,
-        borderRadius: 20,
-    },
-    autoCaptureText: {
-        color: "#2092EC",
-        fontSize: 14,
-        fontWeight: "600",
-    },
+    nextText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
 });
