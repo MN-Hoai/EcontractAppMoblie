@@ -6,7 +6,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Platform,
+    ActivityIndicator,
+    Alert,
+    Modal,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -130,7 +132,7 @@ export default function ContractDetailScreen() {
                 </View>
 
                 {/* Sign Flow */}
-                {/* <View style={[styles.card, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
+                <View style={[styles.card, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
                     <ThemedText style={styles.cardTitle}>Luồng ký duyệt</ThemedText>
                     {SIGN_STEPS.map((step, idx) => {
                         const s = getStepStyle(step.status);
@@ -152,30 +154,75 @@ export default function ContractDetailScreen() {
                             </View>
                         );
                     })}
-                </View> */}
+                </View>
 
-                {/* Sign Flow (Commented out) */}
-                {/* ... */}
+                {/* Action Buttons */}
+                <View style={styles.actionRow}>
+                    <TouchableOpacity
+                        style={styles.rejectBtn}
+                        onPress={() => router.back()}
+                    >
+                        <MaterialCommunityIcons name="close-circle-outline" size={20} color="#64748B" />
+                        <ThemedText style={styles.rejectBtnText}>Từ chối</ThemedText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.signBtn}
+                        onPress={handleSign}
+                        disabled={loadingCa}
+                    >
+                        {loadingCa ? (
+                            <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                            <MaterialCommunityIcons name="pen" size={20} color="#FFF" />
+                        )}
+                        <ThemedText style={styles.signBtnText}>
+                            {loadingCa ? "Đang kiểm tra..." : "Ký duyệt"}
+                        </ThemedText>
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
 
-            {/* ── Bottom Action Buttons ── */}
-            <View style={styles.bottomBar}>
-                <TouchableOpacity
-                    style={styles.rejectBtn}
-                    onPress={() => router.back()}
-                >
-                    <MaterialCommunityIcons name="arrow-left" size={20} color="#1565C0" />
-                    <ThemedText style={styles.rejectBtnText}>Quay lại</ThemedText>
-                </TouchableOpacity>
+            {/* Custom Modal Chứng thư số */}
+            <Modal visible={showCaModal} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
+                        <View style={styles.modalHeader}>
+                            <View style={{ width: 32 }} />
+                            <View style={styles.modalIconWrapper}>
+                                <MaterialCommunityIcons name="shield-lock-outline" size={32} color="#F59E0B" />
+                            </View>
+                            <TouchableOpacity onPress={() => setShowCaModal(false)} style={[styles.modalCloseBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" }]}>
+                                <MaterialCommunityIcons name="close" size={20} color={isDark ? "#FFF" : "#666"} />
+                            </TouchableOpacity>
+                        </View>
+                        <ThemedText style={styles.modalTitle}>Chưa có chứng thư số</ThemedText>
+                        <ThemedText style={styles.modalMessage}>{caMessage}</ThemedText>
 
-                <TouchableOpacity
-                    style={styles.signBtn}
-                    onPress={() => router.push("/(certificate)/choose-certificate2")}
-                >
-                    <MaterialCommunityIcons name="signature-freehand" size={20} color="#FFF" />
-                    <ThemedText style={styles.signBtnText}>Ký duyệt</ThemedText>
-                </TouchableOpacity>
-            </View>
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={[styles.modalBtn, styles.modalBtnOutline, { borderColor: isDark ? "rgba(255,255,255,0.2)" : "#1565C0" }]}
+                                onPress={() => {
+                                    setShowCaModal(false);
+                                    router.push("/integrate-ca");
+                                }}
+                            >
+                                <ThemedText style={[styles.modalBtnText, { color: isDark ? "#FFF" : "#1565C0" }]}>Tích hợp sẵn</ThemedText>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.modalBtn, styles.modalBtnPrimary]}
+                                onPress={() => {
+                                    setShowCaModal(false);
+                                    router.push("/identity-verification");
+                                }}
+                            >
+                                <ThemedText style={[styles.modalBtnText, { color: "#FFF" }]}>Đăng ký mới</ThemedText>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -188,8 +235,6 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         paddingHorizontal: 20,
         paddingVertical: 14,
-        paddingTop: 12,
-        paddingBottom: 16,
     },
     iconBtn: {
         width: 40, height: 40,
@@ -205,7 +250,7 @@ const styles = StyleSheet.create({
     },
     content: {
         paddingHorizontal: 20,
-        paddingBottom: 24,
+        paddingBottom: 40,
     },
     bannerCard: {
         padding: 24,
@@ -354,14 +399,10 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "700",
     },
-    bottomBar: {
+    actionRow: {
         flexDirection: "row",
         gap: 12,
-        paddingHorizontal: 16,
-        paddingTop: 6,
-        paddingBottom: Platform.OS === "ios" ? 0 : 16,
-        borderTopWidth: 1,
-        borderTopColor: "#EEF0F4",
+        marginTop: 8,
     },
     rejectBtn: {
         flex: 1,
@@ -369,17 +410,19 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
-        backgroundColor: "#EAF2FE",
+        backgroundColor: "#F1F5F9",
         borderRadius: 14,
+        borderWidth: 1.5,
+        borderColor: "#E2E8F0",
         paddingVertical: 14,
     },
     rejectBtnText: {
-        color: "#1565C0",
+        color: "#64748B",
         fontSize: 15,
         fontWeight: "700",
     },
     signBtn: {
-        flex: 1,
+        flex: 2,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
@@ -390,7 +433,7 @@ const styles = StyleSheet.create({
     },
     signBtnText: {
         color: "#FFF",
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: "700",
     },
     // Modal styles
