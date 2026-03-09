@@ -62,12 +62,16 @@ export default function SignValScreen() {
           const dataStatus = approveRes?.Data?.Status || approveRes?.data?.status;
 
           if (!isSuccessObj || (dataStatus && dataStatus !== "SUCCESS")) {
-            if (isMounted) Alert.alert("Lỗi Nghiệm Thu", approveRes?.Message || approveRes?.message || "Xác nhận nghiệm thu thất bại.");
+            if (isMounted) {
+              const friendlyMsg = (approveRes?.Message || approveRes?.message || "Xác nhận nghiệm thu thất bại.")
+                .replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", "");
+              Alert.alert("Thông báo", friendlyMsg, [{ text: "Đóng", style: "cancel" }]);
+            }
             return;
           }
         } catch (err: any) {
-          console.warn("Lỗi gọi API approve-handover:", err);
-          if (isMounted) Alert.alert("Lỗi Nghiệm Thu", "Đã có lỗi xảy ra trong quá trình gọi API approve-handover.");
+          console.log("Lỗi gọi API approve-handover:", err);
+          if (isMounted) Alert.alert("Thông báo", "Đã có sự cố ngoài ý muốn xảy ra.", [{ text: "Đóng", style: "cancel" }]);
           return;
         }
 
@@ -77,12 +81,16 @@ export default function SignValScreen() {
           viewRes = await viewOrder(requestId || "");
           console.log("View Order:", viewRes);
           if (!viewRes || viewRes.Success === false || viewRes.success === false) {
-            if (isMounted) Alert.alert("Lỗi Đơn Hàng", viewRes?.Message || viewRes?.message || "Không thể tải thông tin đơn hàng (view-order).");
+            if (isMounted) {
+              const friendlyMsg = (viewRes?.Message || viewRes?.message || "Không thể tải thông tin đơn hàng.")
+                .replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", "");
+              Alert.alert("Thông báo", friendlyMsg, [{ text: "Đóng", style: "cancel" }]);
+            }
             return;
           }
         } catch (err: any) {
-          console.warn("Lỗi gọi API view-order:", err);
-          if (isMounted) Alert.alert("Lỗi Đơn Hàng", "Đã có lỗi xảy ra trong quá trình gọi API view-order.");
+          console.log("Lỗi gọi API view-order:", err);
+          if (isMounted) Alert.alert("Thông báo", "Đã có sự cố ngoài ý muốn xảy ra.", [{ text: "Đóng", style: "cancel" }]);
           return;
         }
 
@@ -92,12 +100,16 @@ export default function SignValScreen() {
           importRes = await importCertificate(requestId || "");
           console.log("Import Certificate:", importRes);
           if (!importRes || importRes.Success === false || importRes.success === false) {
-            if (isMounted) Alert.alert("Lỗi Import Chứng Thư", importRes?.Message || importRes?.message || "Import chứng thư số thất bại.");
+            if (isMounted) {
+              const friendlyMsg = (importRes?.Message || importRes?.message || "Import chứng thư số thất bại.")
+                .replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", "");
+              Alert.alert("Thông báo", friendlyMsg, [{ text: "Đóng", style: "cancel" }]);
+            }
             return;
           }
         } catch (err: any) {
-          console.warn("Lỗi gọi API import-cert:", err);
-          if (isMounted) Alert.alert("Lỗi Import Chứng Thư", "Đã có lỗi xảy ra trong quá trình gọi API import-cert.");
+          console.log("Lỗi gọi API import-cert:", err);
+          if (isMounted) Alert.alert("Thông báo", "Đã có sự cố ngoài ý muốn xảy ra.", [{ text: "Đóng", style: "cancel" }]);
           return;
         }
 
@@ -105,7 +117,11 @@ export default function SignValScreen() {
         try {
           const certRes = await getCertInfo(requestId || "");
           if (!certRes || certRes.Success === false || certRes.success === false) {
-            if (isMounted) Alert.alert("Lỗi Lấy Thông Tin Chứng Thư", certRes?.Message || certRes?.message || "Cập nhật thông tin chứng thư thất bại.");
+            if (isMounted) {
+              const friendlyMsg = (certRes?.Message || certRes?.message || "Cập nhật thông tin chứng thư thất bại.")
+                .replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", "");
+              Alert.alert("Thông báo", friendlyMsg, [{ text: "Đóng", style: "cancel" }]);
+            }
             return;
           }
 
@@ -114,14 +130,14 @@ export default function SignValScreen() {
             setCertInfo(certData);
           }
         } catch (err: any) {
-          console.warn("Lỗi gọi API cert-info:", err);
-          if (isMounted) Alert.alert("Lỗi Lấy Thông Tin Chứng Thư", "Đã có lỗi xảy ra trong quá trình gọi API cert-info.");
+          console.log("Lỗi gọi API cert-info:", err);
+          if (isMounted) Alert.alert("Thông báo", "Đã có sự cố ngoài ý muốn xảy ra.", [{ text: "Đóng", style: "cancel" }]);
           return;
         }
 
       } catch (err: any) {
-        console.warn("Lỗi không xác định:", err);
-        if (isMounted) Alert.alert("Lỗi", "Đã có sự cố ngoài ý muốn xảy ra.");
+        console.log("Lỗi không xác định:", err);
+        if (isMounted) Alert.alert("Thông báo", "Đã có sự cố ngoài ý muốn xảy ra.", [{ text: "Đóng", style: "cancel" }]);
       } finally {
         if (isMounted) setIsLoading(false);
       }

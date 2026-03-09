@@ -104,7 +104,7 @@ export default function SignContractViewScreen() {
         setShowCaModal(true);
       }
     } catch (err) {
-      console.error("Lỗi kiểm tra chứng thư số:", err);
+      console.log("Lỗi kiểm tra chứng thư số:", err);
       Alert.alert("Lỗi", "Không thể kiểm tra trạng thái chứng thư số. Vui lòng thử lại.");
     } finally {
       setLoadingCa(false);
@@ -135,7 +135,7 @@ export default function SignContractViewScreen() {
         { text: "OK" },
       ]);
     } catch (err) {
-      console.error("Download error:", err);
+      console.log("Download error:", err);
       Alert.alert(
         "Lỗi tải xuống",
         err instanceof Error ? err.message : "Không thể lưu tệp",

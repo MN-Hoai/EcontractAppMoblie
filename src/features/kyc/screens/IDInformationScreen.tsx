@@ -56,6 +56,8 @@ const FIELD_ICONS: Record<keyof IDInfo, string> = {
     email: "email-outline",
 };
 
+// const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
+
 /**
  * Validate chuỗi ngày dd/MM/yyyy rồi trả về ISO 8601 (YYYY-MM-DD).
  * Backend C# nhận kiểu `DateTime` — .NET JSON deserializer yêu cầu ISO 8601.
@@ -66,11 +68,11 @@ const parseDateSafe = (dateStr: string, fieldLabel: string): string => {
         throw new Error(`Trường "${fieldLabel}" không được để trống.`);
     const parts = dateStr.trim().split("/");
     if (parts.length !== 3)
-        throw new Error(`Trường "${fieldLabel}" phải có định dạng dd / MM / yyyy.`);
+        throw new Error(`Trường "${fieldLabel}" phải có định dạng dd/MM/yyyy.`);
     const [dd, mm, yyyy] = parts;
     if (!dd || !mm || !yyyy || yyyy.length !== 4)
-        throw new Error(`Trường "${fieldLabel}" phải có định dạng dd / MM / yyyy.`);
-    const iso = `${yyyy} -${mm.padStart(2, "0")} -${dd.padStart(2, "0")} `;
+        throw new Error(`Trường "${fieldLabel}" phải có định dạng dd/MM/yyyy.`);
+    const iso = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
     if (isNaN(Date.parse(iso)))
         throw new Error(`Trường "${fieldLabel}" không phải ngày hợp lệ.`);
     return iso;  // YYYY-MM-DD — .NET DateTime binding
@@ -125,7 +127,7 @@ function InfoRow({
                         autoFocus
                         style={styles.rowInput}
                         selectionColor="#2092EC"
-                        placeholder={`Nhập ${label.toLowerCase()} `}
+                        placeholder={`Nhập ${label.toLowerCase()}`}
                         placeholderTextColor="#94A3B8"
                     />
                 ) : (
@@ -150,8 +152,8 @@ function InfoRow({
 /* ─── Main Screen ───────────────────────────────────────────── */
 export default function IDInformationScreen() {
     const router = useRouter();
-    const reset = useKycStore((s) => s.reset);
     const { requestId } = useAuthStore();
+    const reset = useKycStore((s) => s.reset);
 
     const [idInfo, setIdInfo] = useState<IDInfo>({
         fullName: "",
@@ -250,21 +252,17 @@ export default function IDInformationScreen() {
             };
 
             console.log("▶ [submitKycInfo] model:", JSON.stringify(model, null, 2));
+
             const serviceResponse = await submitKycInfo(requestId || "", model) as any;
             const isSuccess = serviceResponse.success ?? serviceResponse.Success;
-            const message = serviceResponse.message ?? serviceResponse.Message;
+            const rawMessage = serviceResponse.message ?? serviceResponse.Message;
+            const friendlyMessage = rawMessage?.replace("Lỗi hệ thống: ", "") || "Thông tin không hợp lệ hoặc lỗi xác thực. Vui lòng thử lại.";
 
             if (!isSuccess) {
                 Alert.alert(
-                    "Ảnh không hợp lệ",
-                    message || "Thông tin ảnh không hợp lệ hoặc lỗi xác thực. Vui lòng chụp lại bước 1 căn cước công dân.",
-                    [{
-                        text: "Chụp lại",
-                        onPress: () => {
-                            useKycStore.getState().reset();
-                            router.replace("/id-camera-front");
-                        }
-                    }]
+                    "Thông báo",
+                    friendlyMessage,
+                    [{ text: "Đóng", style: "cancel" }]
                 );
                 return;
             }
@@ -275,9 +273,9 @@ export default function IDInformationScreen() {
             const addressMessage = addressResponse.message ?? addressResponse.Message;
 
             if (!addressSuccess) {
-                showErrorModal(
-                    "Chuẩn hóa địa chỉ thất bại",
-                    addressMessage || "Không thể chuẩn hóa địa chỉ. Vui lòng thử lại."
+                Alert.alert(
+                    "Thông báo",
+                    addressMessage?.replace("Lỗi hệ thống: ", "") || "Không thể chuẩn hóa địa chỉ. Vui lòng thử lại."
                 );
                 return;
             }
@@ -288,9 +286,11 @@ export default function IDInformationScreen() {
             const orderMessage = orderResponse.message ?? orderResponse.Message;
 
             if (!orderSuccess) {
-                showErrorModal(
-                    "Tạo đơn hàng thất bại",
-                    orderMessage || "Không thể tạo đơn hàng CA. Vui lòng thử lại."
+                Alert.alert(
+                    "Thông báo",
+                    (orderMessage || "Không thể tạo đơn hàng CA. Vui lòng thử lại.")
+                        .replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", ""),
+                    [{ text: "Đóng", style: "cancel" }]
                 );
                 return;
             }
@@ -317,9 +317,10 @@ export default function IDInformationScreen() {
             });
 
         } catch (error: any) {
-            console.error("✖ [submitKycInfo]:", error.response?.data ?? error.message);
+            // Log nội bộ để debug, không dùng console.error để tránh hiện LogBox trên màn hình người dùng
+            console.log("✖ [submitKycInfo]:", error.response?.data ?? error.message);
 
-            let title = "Đã xảy ra lỗi";
+            let title = "Thông báo";
             let desc = "Không thể gửi thông tin. Vui lòng thử lại.";
 
             if (error.message === "Network Error") {
@@ -328,33 +329,25 @@ export default function IDInformationScreen() {
             } else if (error.response) {
                 const sData = error.response.data;
                 if (sData?.Message || sData?.message) {
-                    desc = sData.Message || sData.message;
+                    desc = (sData.Message || sData.message).replace("Lỗi hệ thống: ", "");
                 } else if (sData?.errors) {
                     desc = Object.entries(sData.errors as Record<string, string[]>)
-                        .map(([f, msgs]) => `${f}: ${msgs.join(", ")} `)
+                        .map(([f, msgs]) => `${f}: ${msgs.join(", ")}`)
                         .join("\n");
                 } else {
-                    desc = `Lỗi máy chủ(${error.response.status}).Vui lòng thử lại.`;
+                    desc = `Lỗi máy chủ (${error.response.status}). Vui lòng thử lại.`;
                 }
             }
-            // Optionally, we could show Alert here, but maybe it's just a network error
-            // so showErrorModal is fine. But wait, what if it's an OCR/KYC rejection error?
-            // If it is an HTTP 400 from KYC, we show Alert
+
             if (error.response && error.response.status !== 500 && error.message !== "Network Error") {
                 Alert.alert(
-                    "Ảnh không hợp lệ",
-                    desc || "Thông tin không hợp lệ. Vui lòng chụp lại bước 1 căn cước công dân.",
-                    [{
-                        text: "Chụp lại",
-                        onPress: () => {
-                            useKycStore.getState().reset();
-                            router.replace("/id-camera-front");
-                        }
-                    }]
+                    title,
+                    desc,
+                    [{ text: "Đóng", style: "cancel" }]
                 );
                 return;
             }
-            showErrorModal(title, desc);
+            Alert.alert(title, desc);
         } finally {
             setIsSubmitting(false);
         }

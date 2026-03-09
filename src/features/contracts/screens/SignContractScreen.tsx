@@ -167,7 +167,8 @@ export default function SignContractScreen() {
 
       if (!success) {
         setShowProcessing(false);
-        setOtpError(message || "Mã OTP không đúng. Vui lòng thử lại.");
+        const friendlyMessage = message?.replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", "") || "Mã OTP không đúng. Vui lòng thử lại.";
+        setOtpError(friendlyMessage);
         return;
       }
 
@@ -175,7 +176,9 @@ export default function SignContractScreen() {
       setCountdown(5);
     } catch (error: any) {
       setShowProcessing(false);
-      setOtpError(error?.response?.data?.Message || "Lỗi kết nối hoặc hệ thống. Vui lòng thử lại.");
+      const rawMsg = error?.response?.data?.Message || error?.message || "Lỗi kết nối hoặc hệ thống. Vui lòng thử lại.";
+      const friendlyMsg = rawMsg.replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", "");
+      setOtpError(friendlyMsg);
     }
   };
 

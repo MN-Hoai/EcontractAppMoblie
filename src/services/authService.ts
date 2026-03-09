@@ -37,7 +37,7 @@ export const login = async (payload: LoginRequest): Promise<LoginResponse> => {
         const response = await axios.post<LoginResponse>(url, payload);
         return response.data;
     } catch (error) {
-        console.error("Error during login:", error);
+        console.log("Error during login:", error);
         throw error;
     }
 };

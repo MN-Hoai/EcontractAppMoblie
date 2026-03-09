@@ -45,7 +45,7 @@ export default function FaceCaptureScreen() {
                 setCapturedUri(photo.uri);
             }
         } catch (e) {
-            console.error("Chụp ảnh khuôn mặt thất bại:", e);
+            console.log("Chụp ảnh khuôn mặt thất bại:", e);
             Alert.alert("Lỗi", "Không thể chụp ảnh. Vui lòng thử lại.");
         } finally {
             setIsCapturing(false);
@@ -65,7 +65,7 @@ export default function FaceCaptureScreen() {
                 setCapturedUri(result.assets[0].uri);
             }
         } catch (e) {
-            console.error("Lỗi chọn ảnh từ thư viện:", e);
+            console.log("Lỗi chọn ảnh từ thư viện:", e);
             Alert.alert("Lỗi", "Không thể chọn ảnh từ thư viện.");
         }
     };
@@ -79,15 +79,9 @@ export default function FaceCaptureScreen() {
 
         if (!frontUri || !backUri) {
             Alert.alert(
-                "Ảnh không hợp lệ",
+                "Thông báo",
                 "Thiếu ảnh CCCD. Vui lòng chụp lại bước 1 căn cước công dân.",
-                [{
-                    text: "Chụp lại",
-                    onPress: () => {
-                        useKycStore.getState().reset();
-                        router.replace("/id-camera-front");
-                    }
-                }]
+                [{ text: "Đóng", style: "cancel" }]
             );
             return;
         }
@@ -127,30 +121,18 @@ export default function FaceCaptureScreen() {
                 router.push("/id-information");
             } else {
                 Alert.alert(
-                    "Ảnh không hợp lệ",
-                    message || "Ảnh không hợp lệ hoặc không rõ nét. Vui lòng chụp lại bước 1 căn cước công dân.",
-                    [{
-                        text: "Chụp lại",
-                        onPress: () => {
-                            useKycStore.getState().reset();
-                            router.replace("/id-camera-front");
-                        }
-                    }]
+                    "Thông báo",
+                    (message || "Ảnh không hợp lệ hoặc không rõ nét.").replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", ""),
+                    [{ text: "Đóng", style: "cancel" }]
                 );
             }
         } catch (error: any) {
-            console.error("Upload KYC thất bại:", error);
-            const serverMsg = error?.response?.data?.message;
+            console.log("Upload KYC thất bại:", error);
+            const serverMsg = error?.response?.data?.message || "Có lỗi xảy ra hoặc ảnh không hợp lệ.";
             Alert.alert(
-                "Ảnh không hợp lệ",
-                serverMsg || "Có lỗi xảy ra hoặc ảnh không hợp lệ. Vui lòng chụp lại bước 1 căn cước công dân.",
-                [{
-                    text: "Chụp lại",
-                    onPress: () => {
-                        useKycStore.getState().reset();
-                        router.replace("/id-camera-front");
-                    }
-                }]
+                "Thông báo",
+                serverMsg.replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", ""),
+                [{ text: "Đóng", style: "cancel" }]
             );
         } finally {
             setIsUploading(false);

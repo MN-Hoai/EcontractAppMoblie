@@ -66,7 +66,7 @@ export default function IDCameraBackScreen() {
                 setCapturedUri(photo.uri);
             }
         } catch (e) {
-            console.error("Chụp ảnh thất bại:", e);
+            console.log("Chụp ảnh thất bại:", e);
         } finally {
             setIsCapturing(false);
         }
@@ -80,15 +80,9 @@ export default function IDCameraBackScreen() {
         const frontUri = useKycStore.getState().frontUri;
         if (!frontUri) {
             Alert.alert(
-                "Ảnh không hợp lệ",
+                "Thông báo",
                 "Không tìm thấy ảnh mặt trước. Vui lòng chụp lại bước 1 căn cước công dân.",
-                [{
-                    text: "Chụp lại",
-                    onPress: () => {
-                        useKycStore.getState().reset();
-                        router.replace("/id-camera-front");
-                    }
-                }]
+                [{ text: "Đóng", style: "cancel" }]
             );
             return;
         }

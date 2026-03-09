@@ -64,7 +64,7 @@ export default function ContractDetailScreen() {
                 setShowCaModal(true);
             }
         } catch (err) {
-            console.error("Lỗi kiểm tra chứng thư số:", err);
+            console.log("Lỗi kiểm tra chứng thư số:", err);
             Alert.alert("Lỗi", "Không thể kiểm tra trạng thái chứng thư số. Vui lòng thử lại.");
         } finally {
             setLoadingCa(false);

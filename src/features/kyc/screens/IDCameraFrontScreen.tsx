@@ -73,7 +73,7 @@ export default function IDCameraFrontScreen() {
                 setCapturedUri(photo.uri);
             }
         } catch (e) {
-            console.error("Chụp ảnh thất bại:", e);
+            console.log("Chụp ảnh thất bại:", e);
         } finally {
             setIsCapturing(false);
         }

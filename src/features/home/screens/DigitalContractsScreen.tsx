@@ -47,7 +47,7 @@ export default function DigitalContractsScreen() {
             const data = await getContracts(requestId || "");
             setContracts(data);
         } catch (error) {
-            console.error("Lỗi tải danh sách hợp đồng:", error);
+            console.log("Lỗi tải danh sách hợp đồng:", error);
             setContracts([]); // Đảm bảo contracts luôn là array
         } finally {
             setIsLoading(false);

@@ -75,7 +75,7 @@ export default function LoginScreen() {
                                 return; // Stop login flow until user provides info
                             }
                         } catch (err) {
-                            console.error("Lỗi khi kiểm tra/tạo thông tin khách hàng:", err);
+                            console.log("Lỗi khi kiểm tra/tạo thông tin khách hàng:", err);
                             setErrorMessage("Không thể giao tiếp với hệ thống khách hàng. Vui lòng thử lại.");
                             setIsLoading(false);
                             return;
@@ -132,7 +132,7 @@ export default function LoginScreen() {
             router.replace("/(tabs)");
 
         } catch (err) {
-            console.error("Lỗi khi tạo/cập nhật thông tin khách hàng:", err);
+            console.log("Lỗi khi tạo/cập nhật thông tin khách hàng:", err);
             setCustomerError("Lỗi kết nối tới hệ thống khách hàng. Vui lòng thử lại.");
         } finally {
             setIsUpdatingCustomer(false);
