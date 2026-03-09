@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { checkCaStatus, getFileContract } from "@/services/contractService";
+import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -21,8 +22,8 @@ export default function SignContractViewScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const params = useLocalSearchParams();
-
   const [loading, setLoading] = useState(true);
+  const { requestId } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [loadingCa, setLoadingCa] = useState(false);
@@ -75,13 +76,11 @@ export default function SignContractViewScreen() {
   console.log("Local file URI:", localFileUri);
   console.log("Display URL:", displayUrl);
 
-  const HARDCODED_ACCOUNT_ID = "460ed12c-8567-4c1f-a810-0e246b988662";
-
   const handleContinue = async () => {
     try {
       setLoadingCa(true);
       // Gọi API check CA
-      const res = await checkCaStatus(HARDCODED_ACCOUNT_ID);
+      const res = await checkCaStatus(requestId || "");
 
       const isSuccess = res.Success ?? res.success;
       const data = res.Data ?? res.data;

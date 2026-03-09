@@ -1,2 +1,2 @@
-﻿import ContractsScreen from '@/features/contracts/screens/ContractsScreen';
+import ContractsScreen from '@/features/contracts/screens/ContractsScreen';
 export default ContractsScreen;

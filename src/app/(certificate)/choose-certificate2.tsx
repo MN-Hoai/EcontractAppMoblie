@@ -1,4 +1,5 @@
 import { CertInfo, getCertInfo } from "@/services/contractService";
+import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -15,8 +16,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
 
 interface CertificateProvider {
   id: string;
@@ -87,6 +86,7 @@ function ProviderCard({ provider }: { provider: CertificateProvider }) {
 /* ─── Main Screen ───────────────────────────────────────────── */
 export default function ChooseCertificate2Screen() {
   const router = useRouter();
+  const { requestId } = useAuthStore();
 
   const [providers] = useState<CertificateProvider[]>([
     {
@@ -129,7 +129,7 @@ export default function ChooseCertificate2Screen() {
   };
 
   useEffect(() => {
-    getCertInfo(HARDCODED_ACCOUNT_ID)
+    getCertInfo(requestId || "")
       .then((res) => {
         const d = res.Data || res.data;
         if (d) {
@@ -144,7 +144,7 @@ export default function ChooseCertificate2Screen() {
     try {
       setShowDetail(true);
       setIsLoading(true);
-      const res = await getCertInfo(HARDCODED_ACCOUNT_ID);
+      const res = await getCertInfo(requestId || "");
       const d = res.Data || res.data;
       if (d) {
         setCertInfo(d);

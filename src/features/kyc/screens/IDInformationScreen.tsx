@@ -1,4 +1,5 @@
 import { getOrderInfo, normalizeAddress, orderCA, submitKycInfo } from "@/services/contractService";
+import { useAuthStore } from "@/store/authStore";
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -54,8 +55,6 @@ const FIELD_ICONS: Record<keyof IDInfo, string> = {
     email: "email-outline",
 };
 
-const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
-
 /**
  * Validate chuỗi ngày dd/MM/yyyy rồi trả về ISO 8601 (YYYY-MM-DD).
  * Backend C# nhận kiểu `DateTime` — .NET JSON deserializer yêu cầu ISO 8601.
@@ -66,11 +65,11 @@ const parseDateSafe = (dateStr: string, fieldLabel: string): string => {
         throw new Error(`Trường "${fieldLabel}" không được để trống.`);
     const parts = dateStr.trim().split("/");
     if (parts.length !== 3)
-        throw new Error(`Trường "${fieldLabel}" phải có định dạng dd/MM/yyyy.`);
+        throw new Error(`Trường "${fieldLabel}" phải có định dạng dd / MM / yyyy.`);
     const [dd, mm, yyyy] = parts;
     if (!dd || !mm || !yyyy || yyyy.length !== 4)
-        throw new Error(`Trường "${fieldLabel}" phải có định dạng dd/MM/yyyy.`);
-    const iso = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+        throw new Error(`Trường "${fieldLabel}" phải có định dạng dd / MM / yyyy.`);
+    const iso = `${yyyy} -${mm.padStart(2, "0")} -${dd.padStart(2, "0")} `;
     if (isNaN(Date.parse(iso)))
         throw new Error(`Trường "${fieldLabel}" không phải ngày hợp lệ.`);
     return iso;  // YYYY-MM-DD — .NET DateTime binding
@@ -125,7 +124,7 @@ function InfoRow({
                         autoFocus
                         style={styles.rowInput}
                         selectionColor="#2092EC"
-                        placeholder={`Nhập ${label.toLowerCase()}`}
+                        placeholder={`Nhập ${label.toLowerCase()} `}
                         placeholderTextColor="#94A3B8"
                     />
                 ) : (
@@ -151,6 +150,7 @@ function InfoRow({
 export default function IDInformationScreen() {
     const router = useRouter();
     const reset = useKycStore((s) => s.reset);
+    const { requestId } = useAuthStore();
 
     const [idInfo, setIdInfo] = useState<IDInfo>({
         fullName: "",
@@ -249,8 +249,7 @@ export default function IDInformationScreen() {
             };
 
             console.log("▶ [submitKycInfo] model:", JSON.stringify(model, null, 2));
-
-            const serviceResponse = await submitKycInfo(HARDCODED_ACCOUNT_ID, model) as any;
+            const serviceResponse = await submitKycInfo(requestId || "", model) as any;
             const isSuccess = serviceResponse.success ?? serviceResponse.Success;
             const message = serviceResponse.message ?? serviceResponse.Message;
 
@@ -263,7 +262,7 @@ export default function IDInformationScreen() {
             }
 
             // ── Bước 4: Chuẩn hóa địa chỉ ─────────────────────────
-            const addressResponse = await normalizeAddress(HARDCODED_ACCOUNT_ID);
+            const addressResponse = await normalizeAddress(requestId || "");
             const addressSuccess = addressResponse.success ?? addressResponse.Success;
             const addressMessage = addressResponse.message ?? addressResponse.Message;
 
@@ -276,7 +275,7 @@ export default function IDInformationScreen() {
             }
 
             // ── Bước 5: Tạo đơn hàng CA ──────────────────────────
-            const orderResponse = await orderCA(HARDCODED_ACCOUNT_ID);
+            const orderResponse = await orderCA(requestId || "");
             const orderSuccess = orderResponse.success ?? orderResponse.Success;
             const orderMessage = orderResponse.message ?? orderResponse.Message;
 
@@ -292,7 +291,7 @@ export default function IDInformationScreen() {
             // Non-fatal: nếu API này lỗi thì vẫn navigate, chỉ thiếu data hiển thị
             let infoData = null;
             try {
-                const infoResponse = await getOrderInfo(HARDCODED_ACCOUNT_ID);
+                const infoResponse = await getOrderInfo(requestId || "");
                 infoData = infoResponse.data ?? infoResponse.Data ?? null;
             } catch (infoErr: any) {
                 console.warn("getOrderInfo lỗi, navigate với data rỗng:", infoErr?.response?.status ?? infoErr?.message);
@@ -324,10 +323,10 @@ export default function IDInformationScreen() {
                     desc = sData.Message || sData.message;
                 } else if (sData?.errors) {
                     desc = Object.entries(sData.errors as Record<string, string[]>)
-                        .map(([f, msgs]) => `${f}: ${msgs.join(", ")}`)
+                        .map(([f, msgs]) => `${f}: ${msgs.join(", ")} `)
                         .join("\n");
                 } else {
-                    desc = `Lỗi máy chủ (${error.response.status}). Vui lòng thử lại.`;
+                    desc = `Lỗi máy chủ(${error.response.status}).Vui lòng thử lại.`;
                 }
             }
             showErrorModal(title, desc);

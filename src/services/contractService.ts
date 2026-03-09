@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as FileSystem from "expo-file-system/legacy";
 
-const API_BASE_URL = "http://192.168.1.83:5000";
+const API_BASE_URL = "http://192.168.1.82:5000";
 
 export interface Contract {
   ContractId: string;
@@ -435,6 +435,35 @@ export const submitKycImages = async (accountId: string, formData: FormData) => 
     return response.data;
   } catch (error) {
     console.error("Error submitting KYC images:", error);
+    throw error;
+  }
+};
+
+export interface CustomerRequestDTO {
+  FullName: string;
+  Phone?: string;
+  Email?: string;
+  IsCA: boolean;
+}
+
+export const checkCustomerExist = async (accountId: string) => {
+  try {
+    const url = `${API_BASE_URL}/api/check-customer-exist?accountId=${accountId}`;
+    const response = await axios.get(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error check customer exist:", error);
+    throw error;
+  }
+};
+
+export const addOrUpdateCustomer = async (accountId: string, model: CustomerRequestDTO) => {
+  try {
+    const url = `${API_BASE_URL}/api/customer?accountId=${accountId}`;
+    const response = await axios.post(url, model);
+    return response.data;
+  } catch (error) {
+    console.error("Error add or update customer:", error);
     throw error;
   }
 };

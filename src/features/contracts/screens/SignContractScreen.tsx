@@ -1,4 +1,5 @@
 import { confirmOtp, confirmSign, resendOtp } from "@/services/contractService";
+import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -15,8 +16,6 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-
-const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
 
 /** Chuyển YYYY-MM-DD hoặc ISO string → dd/MM/yyyy để hiển thị */
 function formatDate(dateStr?: string): string {
@@ -112,6 +111,7 @@ export default function SignContractScreen() {
     orderId: string;
   }>();
 
+  const { requestId } = useAuthStore();
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
   const otpCardRef = useRef<View>(null);
@@ -130,7 +130,7 @@ export default function SignContractScreen() {
 
   /* Gọi ngầm API confirm-sign khi vừa vào màn hình */
   useEffect(() => {
-    confirmSign(HARDCODED_ACCOUNT_ID).catch((e) => {
+    confirmSign(requestId || "").catch((e) => {
       console.warn("Lỗi gọi ngầm confirmSign:", e?.response?.data || e.message);
     });
   }, []);
@@ -161,7 +161,7 @@ export default function SignContractScreen() {
     setOtpError(null);
 
     try {
-      const response = await confirmOtp(HARDCODED_ACCOUNT_ID, otp) as any;
+      const response = await confirmOtp(requestId || "", otp) as any;
       const success = response.success ?? response.Success;
       const message = response.message ?? response.Message;
 
@@ -187,7 +187,7 @@ export default function SignContractScreen() {
     setResendCooldown(10);
     focusInput();
     try {
-      await resendOtp(HARDCODED_ACCOUNT_ID);
+      await resendOtp(requestId || "");
     } catch (e) {
       console.warn("Lỗi gửi lại OTP:", e);
     }

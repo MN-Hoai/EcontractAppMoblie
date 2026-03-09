@@ -2,6 +2,7 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Contract, getContracts } from "@/services/contractService";
+import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -16,8 +17,6 @@ import {
     View
 } from "react-native";
 
-const HARDCODED_ACCOUNT_ID = "E064B20B-3312-4454-B412-0EFD2312C1B1";
-
 const STATUS_FILTERS = [
     { key: "all", label: "Tất cả", color: "#607D8B" },
     { key: "0", label: "Chờ duyệt", color: "#FBC02D" },
@@ -29,6 +28,7 @@ export default function DigitalContractsScreen() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const router = useRouter();
+    const { requestId } = useAuthStore();
 
     const [contracts, setContracts] = useState<Contract[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +44,7 @@ export default function DigitalContractsScreen() {
     const loadContracts = async () => {
         setIsLoading(true);
         try {
-            const data = await getContracts(HARDCODED_ACCOUNT_ID);
+            const data = await getContracts(requestId || "");
             setContracts(data);
         } catch (error) {
             console.error("Lỗi tải danh sách hợp đồng:", error);

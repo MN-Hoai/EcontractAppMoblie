@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { checkCaStatus } from "@/services/contractService";
+import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -35,6 +36,7 @@ export default function ContractDetailScreen() {
     const isDark = colorScheme === "dark";
     const router = useRouter();
     const params = useLocalSearchParams();
+    const { requestId } = useAuthStore();
 
     const [loadingCa, setLoadingCa] = useState(false);
     const [showCaModal, setShowCaModal] = useState(false);
@@ -46,12 +48,10 @@ export default function ContractDetailScreen() {
         return { dot: "#9E9E9E", label: "Chưa đến lượt", color: "#9E9E9E" };
     };
 
-    const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
-
     const handleSign = async () => {
         try {
             setLoadingCa(true);
-            const res = await checkCaStatus(HARDCODED_ACCOUNT_ID);
+            const res = await checkCaStatus(requestId || "");
 
             const isSuccess = res.Success ?? res.success;
             const data = res.Data ?? res.data;

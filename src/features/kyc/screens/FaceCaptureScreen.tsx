@@ -1,4 +1,5 @@
 import { submitKycImages } from "@/services/contractService";
+import { useAuthStore } from "@/store/authStore";
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -15,14 +16,13 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-
-const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
 const ENABLE_IMAGE_PICKER = true; // Set false to disable gallery selection
 
 export default function FaceCaptureScreen() {
-    const router = useRouter();
     const setFaceUri = useKycStore((s) => s.setFaceUri);
     const setRequestId = useKycStore((s) => s.setRequestId);
+    const { requestId } = useAuthStore();
+    const router = useRouter();
 
     const [permission, requestPermission] = useCameraPermissions();
     const [capturedUri, setCapturedUri] = useState<string | null>(null);
@@ -105,16 +105,16 @@ export default function FaceCaptureScreen() {
                 type: "image/jpeg",
             } as any);
 
-            const serviceResponse = await submitKycImages(HARDCODED_ACCOUNT_ID, formData) as any;
+            const serviceResponse = await submitKycImages(requestId || "", formData) as any;
 
             const isSuccess = serviceResponse.success ?? serviceResponse.Success;
             const message = serviceResponse.message ?? serviceResponse.Message;
             const resData = serviceResponse.data ?? serviceResponse.Data;
-            const requestId = resData?.requestId ?? resData?.RequestId;
+            const newRequestId = resData?.requestId ?? resData?.RequestId;
 
-            if (isSuccess && requestId) {
+            if (isSuccess && newRequestId) {
                 setFaceUri(capturedUri);
-                setRequestId(requestId);
+                setRequestId(newRequestId);
                 router.push("/id-information");
             } else {
                 Alert.alert("Xác minh thất bại", message || "Vui lòng thử lại.");

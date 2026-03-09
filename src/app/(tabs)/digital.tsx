@@ -1,2 +1,2 @@
-﻿import DigitalContractsScreen from '@/features/home/screens/DigitalContractsScreen';
+import DigitalContractsScreen from '@/features/home/screens/DigitalContractsScreen';
 export default DigitalContractsScreen;

@@ -5,6 +5,7 @@ import {
   importCertificate,
   viewOrder,
 } from "@/services/contractService";
+import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -36,11 +37,9 @@ function InfoRow({ icon, label, value }: { icon: string; label: string; value: s
   );
 }
 
-const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
-
-/* ─── Main Screen ───────────────────────────────────────────── */
 export default function SignValScreen() {
   const router = useRouter();
+  const { requestId } = useAuthStore();
   const [showCertModal, setShowCertModal] = useState(false);
   const [certInfo, setCertInfo] = useState<CertInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,7 +55,7 @@ export default function SignValScreen() {
         // --- Bước 1: Gọi nghiệm thu ---
         let approveRes;
         try {
-          approveRes = await approveHandOver(HARDCODED_ACCOUNT_ID);
+          approveRes = await approveHandOver(requestId || "");
           console.log("Approve Handover:", approveRes);
 
           const isSuccessObj = approveRes && (approveRes.Success === true || approveRes.success === true);
@@ -75,7 +74,7 @@ export default function SignValScreen() {
         // --- Bước 2: Gọi viewOrder ---
         let viewRes;
         try {
-          viewRes = await viewOrder(HARDCODED_ACCOUNT_ID);
+          viewRes = await viewOrder(requestId || "");
           console.log("View Order:", viewRes);
           if (!viewRes || viewRes.Success === false || viewRes.success === false) {
             if (isMounted) Alert.alert("Lỗi Đơn Hàng", viewRes?.Message || viewRes?.message || "Không thể tải thông tin đơn hàng (view-order).");
@@ -90,7 +89,7 @@ export default function SignValScreen() {
         // --- Bước 3: Import certificate ---
         let importRes;
         try {
-          importRes = await importCertificate(HARDCODED_ACCOUNT_ID);
+          importRes = await importCertificate(requestId || "");
           console.log("Import Certificate:", importRes);
           if (!importRes || importRes.Success === false || importRes.success === false) {
             if (isMounted) Alert.alert("Lỗi Import Chứng Thư", importRes?.Message || importRes?.message || "Import chứng thư số thất bại.");
@@ -104,7 +103,7 @@ export default function SignValScreen() {
 
         // --- Bước 4: Lấy thông tin chứng thư ---
         try {
-          const certRes = await getCertInfo(HARDCODED_ACCOUNT_ID);
+          const certRes = await getCertInfo(requestId || "");
           if (!certRes || certRes.Success === false || certRes.success === false) {
             if (isMounted) Alert.alert("Lỗi Lấy Thông Tin Chứng Thư", certRes?.Message || certRes?.message || "Cập nhật thông tin chứng thư thất bại.");
             return;
@@ -133,7 +132,7 @@ export default function SignValScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [requestId]);
 
   const handleConfirm = () => {
     router.push("/(certificate)/choose-certificate2");
