@@ -46,7 +46,7 @@ export default function ContractDetailScreen() {
         return { dot: "#9E9E9E", label: "Chưa đến lượt", color: "#9E9E9E" };
     };
 
-    const HARDCODED_ACCOUNT_ID = "17444F49-6907-4662-BB99-57CA5E76BB59";
+    const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
 
     const handleSign = async () => {
         try {

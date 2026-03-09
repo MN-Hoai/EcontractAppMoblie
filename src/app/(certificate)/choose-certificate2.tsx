@@ -1,8 +1,12 @@
+import { CertInfo, getCertInfo } from "@/services/contractService";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  Clipboard,
   Modal,
   Platform,
   ScrollView,
@@ -12,6 +16,8 @@ import {
   View,
 } from "react-native";
 
+const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
+
 interface CertificateProvider {
   id: string;
   name: string;
@@ -20,12 +26,40 @@ interface CertificateProvider {
   selected: boolean;
 }
 
-/* ─── Info Row for Modal ─────────────────────────────────────── */
-function ModalInfoRow({ label, value }: { label: string; value: string }) {
+/* ─── Copy Row ─────────────────────────────────────────────── */
+function CopyRow({ label, value, canCopy = false }: { label: string; value: string; canCopy?: boolean }) {
+  const handleCopy = () => {
+    Clipboard.setString(value);
+    Alert.alert("Đã sao chép", `${label} đã được sao chép vào clipboard.`);
+  };
+
   return (
-    <View style={styles.modalInfoRow}>
-      <Text style={styles.modalLabel}>{label}</Text>
-      <Text style={styles.modalValue}>{value}</Text>
+    <View style={detailStyles.row}>
+      <View style={detailStyles.rowContent}>
+        <Text style={detailStyles.rowLabel}>{label}</Text>
+        <Text style={detailStyles.rowValue}>{value}</Text>
+      </View>
+      {canCopy && value !== "—" && (
+        <TouchableOpacity onPress={handleCopy} style={detailStyles.copyBtn} activeOpacity={0.7}>
+          <MaterialCommunityIcons name="content-copy" size={18} color="#9BA8B5" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+/* ─── Status Badge ─────────────────────────────────────────── */
+function StatusBadge({ status }: { status: string }) {
+  const isValid = status.toLowerCase() === "valid" || status === "Đang hoạt động";
+  const label = isValid ? "Đang hoạt động" : status;
+  return (
+    <View style={detailStyles.row}>
+      <View style={detailStyles.rowContent}>
+        <Text style={detailStyles.rowLabel}>Trạng thái</Text>
+        <Text style={[detailStyles.rowValue, isValid ? detailStyles.statusActive : detailStyles.statusInactive]}>
+          {label}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -64,18 +98,86 @@ export default function ChooseCertificate2Screen() {
     },
   ]);
 
-  const [selectedCert, setSelectedCert] = useState<string | null>("446");
+  const [selectedCert, setSelectedCert] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [certInfo, setCertInfo] = useState<CertInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const certDetails = {
-    code: "223",
-    serial: "446",
-    issuer: "CA RS",
-    subscriber: "UID=CMND:001089020747, CN=PHAM ĐỨC HUY, L=NAM ĐỊNH, C=VN",
-    status: "Hoạt động",
-    start: "16/10/2024",
-    end: "16/10/2025",
+  // Helper date formatter dd/MM/yyyy
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = d.getFullYear();
+    return `${dd}/${mm}/${yy}`;
   };
+
+  // Parse CN from subjectDN
+  const getSubjectName = (info: CertInfo | null) =>
+    (info?.subjectDN || info?.SubjectDN)?.match(/CN=([^,]+)/)?.[1] || "—";
+
+  // Parse certStatus label
+  const getCertStatusLabel = (info: CertInfo | null) => {
+    const s = info?.certStatus || info?.CertStatus || "";
+    if (!s) return "—";
+    if (s.toLowerCase() === "valid") return "Đang hoạt động";
+    if (s.toLowerCase() === "revoked") return "Đã thu hồi";
+    if (s.toLowerCase() === "expired") return "Đã hết hạn";
+    return s;
+  };
+
+  useEffect(() => {
+    getCertInfo(HARDCODED_ACCOUNT_ID)
+      .then((res) => {
+        const d = res.Data || res.data;
+        if (d) {
+          setCertInfo(d);
+          setSelectedCert(d.credentialId || d.CredentialId || d.serialNumber || d.SerialNumber || null);
+        }
+      })
+      .catch((err) => console.warn("Initial cert load err:", err));
+  }, []);
+
+  const handleDetailPress = async () => {
+    try {
+      setShowDetail(true);
+      setIsLoading(true);
+      const res = await getCertInfo(HARDCODED_ACCOUNT_ID);
+      const d = res.Data || res.data;
+      if (d) {
+        setCertInfo(d);
+        setSelectedCert(d.credentialId || d.CredentialId || d.serialNumber || d.SerialNumber || null);
+      }
+    } catch (err) {
+      console.warn("Lỗi lấy thông tin chứng thư:", err);
+      Alert.alert("Lỗi", "Không thể lấy thông tin chứng thư số.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Derived values for card
+  const serialNo = certInfo?.serialNumber || certInfo?.SerialNumber || "—";
+  const credId = certInfo?.credentialId || certInfo?.CredentialId || "—";
+  const issuerDN = certInfo?.issuerDN || certInfo?.IssuerDN || "—";
+  const expireDate = formatDate(certInfo?.validTo || certInfo?.ValidTo);
+  const startDate = formatDate(certInfo?.validFrom || certInfo?.ValidFrom);
+  const subjectDN = certInfo?.subjectDN || certInfo?.SubjectDN || "—";
+  const subscriberId = certInfo?.subscriberId || certInfo?.SubscriberId || "—";
+  const phoneNumber = certInfo?.phoneNumber || certInfo?.PhoneNumber || "—";
+  const subjectName = getSubjectName(certInfo);
+  const statusLabel = getCertStatusLabel(certInfo);
+
+  // Parse gói CTS (từ subscriberId: CA_MS_xxx → lấy phần sau CA_)
+  const certPackage = (() => {
+    const sid = subscriberId;
+    if (!sid || sid === "—") return "—";
+    // ví dụ: CA_MS_6278278763097878 → MS_CN_APP hay lấy từ subscriberId prefix
+    const match = sid.match(/^CA_([A-Z_]+)/);
+    return match ? match[1] + "_APP" : sid;
+  })();
 
   return (
     <View style={styles.container}>
@@ -124,18 +226,18 @@ export default function ChooseCertificate2Screen() {
         <TouchableOpacity
           style={styles.certCard}
           activeOpacity={0.8}
-          onPress={() => setSelectedCert("446")}
+          onPress={() => setSelectedCert(credId !== "—" ? credId : serialNo)}
         >
           <View style={styles.certTop}>
             <View style={styles.certIconBg}>
               <MaterialCommunityIcons name="certificate" size={24} color="#2092EC" />
             </View>
             <View style={styles.certMainInfo}>
-              <Text style={styles.certName}>Serial: {certDetails.serial}</Text>
-              <Text style={styles.certIssuer}>Nhà cung cấp: {certDetails.issuer}</Text>
+              <Text style={styles.certName} numberOfLines={1}>{subjectName}</Text>
+              <Text style={styles.certIssuer} numberOfLines={1}>Nhà cung cấp: {issuerDN}</Text>
             </View>
             <View style={styles.radioOutline}>
-              {selectedCert === "446" && <View style={styles.radioInner} />}
+              {selectedCert && selectedCert !== "—" && <View style={styles.radioInner} />}
             </View>
           </View>
 
@@ -144,16 +246,17 @@ export default function ChooseCertificate2Screen() {
           <View style={styles.certTags}>
             <View style={styles.tag}>
               <MaterialCommunityIcons name="clock-outline" size={12} color="#666" />
-              <Text style={styles.tagText}>Hạn: {certDetails.end}</Text>
+              <Text style={styles.tagText}>Hạn: {expireDate}</Text>
             </View>
             <View style={[styles.tag, { backgroundColor: "#E8F5E9" }]}>
-              <Text style={[styles.tagText, { color: "#4CAF50", fontWeight: "700" }]}>Đang hoạt động</Text>
+              <MaterialCommunityIcons name="check-circle-outline" size={12} color="#4CAF50" />
+              <Text style={[styles.tagText, { color: "#4CAF50", fontWeight: "700" }]}>{statusLabel}</Text>
             </View>
           </View>
 
           <TouchableOpacity
             style={styles.detailBtn}
-            onPress={() => setShowDetail(true)}
+            onPress={handleDetailPress}
           >
             <Text style={styles.detailBtnText}>Xem chi tiết</Text>
             <MaterialCommunityIcons name="chevron-right" size={16} color="#2092EC" />
@@ -163,12 +266,6 @@ export default function ChooseCertificate2Screen() {
 
       {/* ── Bottom Bar ── */}
       <View style={styles.footer}>
-        {/* <View style={styles.disclaimerBox}>
-          <MaterialCommunityIcons name="information-outline" size={14} color="#666" />
-          <Text style={styles.disclaimerText}>
-            Tôi đã đọc hiểu và đồng ý với Điều kiện & điều khoản sử dụng Chứng thư số của Viettel/VietinBank.
-          </Text>
-        </View> */}
         <TouchableOpacity
           style={[styles.primaryBtn, !selectedCert && styles.btnDisabled]}
           disabled={!selectedCert}
@@ -189,6 +286,7 @@ export default function ChooseCertificate2Screen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
+            {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Chi tiết chứng thư số</Text>
               <TouchableOpacity onPress={() => setShowDetail(false)} style={styles.closeBtn}>
@@ -196,26 +294,54 @@ export default function ChooseCertificate2Screen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalContent}>
-              <View style={styles.paperEffect}>
-                <ModalInfoRow label="Số Serial" value={certDetails.serial} />
-                <ModalInfoRow label="Nhà phát hành" value={certDetails.issuer} />
-                <View style={styles.divider} />
-                <Text style={styles.modalSubLabel}>Thông tin thuê bao</Text>
-                <Text style={styles.modalSubscriberText}>{certDetails.subscriber}</Text>
-                <View style={styles.divider} />
-                <ModalInfoRow label="Thời hạn từ" value={certDetails.start} />
-                <ModalInfoRow label="Đến ngày" value={certDetails.end} />
-                <ModalInfoRow label="Trạng thái" value={certDetails.status} />
-              </View>
-            </ScrollView>
+            <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
+              {isLoading ? (
+                <View style={{ paddingVertical: 60, alignItems: "center" }}>
+                  <ActivityIndicator size="large" color="#2092EC" />
+                  <Text style={{ marginTop: 12, color: "#666", fontSize: 14 }}>Đang tải chi tiết...</Text>
+                </View>
+              ) : (
+                <View style={detailStyles.card}>
+                  {/* Chủ thể */}
+                  <CopyRow label="Chủ thể" value={subjectName} />
+                  <View style={detailStyles.divider} />
 
-            {/* <TouchableOpacity
-              style={styles.modalCloseBtnAction}
-              onPress={() => setShowDetail(false)}
-            >
-              <Text style={styles.modalCloseBtnText}>Đóng</Text>
-            </TouchableOpacity> */}
+                  {/* Mã chứng thư số */}
+                  <CopyRow label="Mã chứng thư số" value={credId} canCopy />
+                  <View style={detailStyles.divider} />
+
+                  {/* Số thuê bao */}
+                  <CopyRow label="Số thuê bao" value={subscriberId} canCopy />
+                  <View style={detailStyles.divider} />
+
+                  {/* Số serial */}
+                  <CopyRow label="Số serial" value={serialNo} canCopy />
+                  <View style={detailStyles.divider} />
+
+                  {/* Tổ chức phát hành */}
+                  <CopyRow label="Tổ chức phát hành" value={issuerDN} />
+                  <View style={detailStyles.divider} />
+
+                  {/* Thông tin thuê bao */}
+                  <CopyRow label="Thông tin thuê bao" value={subjectDN} />
+                  <View style={detailStyles.divider} />
+
+                  {/* Trạng thái */}
+                  <StatusBadge status={statusLabel} />
+                  <View style={detailStyles.divider} />
+
+                  {/* Ngày bắt đầu - Ngày kết thúc */}
+                  <CopyRow
+                    label="Ngày bắt đầu - Ngày kết thúc"
+                    value={`${startDate} - ${expireDate}`}
+                  />
+                  <View style={detailStyles.divider} />
+
+                  {/* Gói chứng thư số */}
+                  <CopyRow label="Gói chứng thư số" value={certPackage} />
+                </View>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -223,6 +349,37 @@ export default function ChooseCertificate2Screen() {
   );
 }
 
+/* ─── Detail Modal Styles ────────────────────────────────────── */
+const detailStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E8EDF2",
+    overflow: "hidden",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  rowContent: { flex: 1 },
+  rowLabel: { fontSize: 13, color: "#8E9BAA", fontWeight: "500", marginBottom: 4 },
+  rowValue: { fontSize: 14, color: "#0F172A", fontWeight: "600", lineHeight: 20 },
+  copyBtn: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  divider: { height: 1, backgroundColor: "#F1F5F9", marginHorizontal: 0 },
+  statusActive: { color: "#1B8B2E", fontWeight: "700" },
+  statusInactive: { color: "#D32F2F", fontWeight: "700" },
+});
+
+/* ─── Main Styles ─────────────────────────────────────────────── */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F0F4F8" },
 
@@ -287,7 +444,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#E41E26", // Viettel style
+    backgroundColor: "#E41E26",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -362,8 +519,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#EDF2F7",
   },
-  disclaimerBox: { flexDirection: "row", gap: 8, marginBottom: 16 },
-  disclaimerText: { fontSize: 11, color: "#666", lineHeight: 16, flex: 1 },
   primaryBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -377,55 +532,32 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.5 },
 
   /* Modal */
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   modalBox: {
-    backgroundColor: "#FFF",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    height: "70%",
+    backgroundColor: "#F8FAFC",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    maxHeight: "82%",
     overflow: "hidden",
   },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    backgroundColor: "#FFF",
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F2F5",
+    borderBottomColor: "#E2E8F0",
   },
-  modalTitle: { fontSize: 17, fontWeight: "700", color: "#111" },
+  modalTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A" },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#F5F7FA",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
   },
-  modalContent: { padding: 20 },
-  paperEffect: {
-    backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  modalInfoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-  },
-  modalLabel: { fontSize: 13, color: "#666" },
-  modalValue: { fontSize: 13, fontWeight: "700", color: "#111" },
-  modalSubLabel: { fontSize: 12, color: "#9E9E9E", marginTop: 8, fontWeight: "600" },
-  modalSubscriberText: { fontSize: 13, color: "#444", marginTop: 6, lineHeight: 20 },
-  divider: { height: 1, backgroundColor: "#EDF2F7", marginVertical: 8 },
-  modalCloseBtnAction: {
-    padding: 16,
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: "#F0F2F5",
-    marginBottom: Platform.OS === "ios" ? 20 : 0,
-  },
-  modalCloseBtnText: { color: "#1565C0", fontWeight: "700", fontSize: 15 },
+  modalContent: { padding: 16, paddingBottom: 32 },
 });

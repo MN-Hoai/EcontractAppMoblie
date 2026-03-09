@@ -1,6 +1,7 @@
+import { confirmOtp, confirmSign, resendOtp } from "@/services/contractService";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -15,7 +16,22 @@ import {
   View
 } from "react-native";
 
-const VALID_OTP = "000000";
+const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
+
+/** Chuyển YYYY-MM-DD hoặc ISO string → dd/MM/yyyy để hiển thị */
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return "—";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  } catch {
+    return dateStr;
+  }
+}
 
 /* ─── Info row (read-only) ──────────────────────────────────── */
 function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
@@ -26,7 +42,7 @@ function InfoRow({ icon, label, value }: { icon: string; label: string; value: s
       </View>
       <View style={styles.infoContent}>
         <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue} numberOfLines={2}>{value}</Text>
+        <Text style={styles.infoValue} numberOfLines={2}>{value || "—"}</Text>
       </View>
     </View>
   );
@@ -88,6 +104,14 @@ function OtpBoxes({
 /* ─── Main Screen ───────────────────────────────────────────── */
 export default function SignContractScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    fullName: string;
+    dateOfBirth: string;
+    gender: string;
+    permanentAddress: string;
+    orderId: string;
+  }>();
+
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
   const otpCardRef = useRef<View>(null);
@@ -97,13 +121,23 @@ export default function SignContractScreen() {
   const [showProcessing, setShowProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [isSuccessOtp, setIsSuccessOtp] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const isOtpComplete = otp.length === 6;
-  const isOtpValid = otp === VALID_OTP;
+  const isOtpValid = otpError === null;
 
-  /* Countdown after confirm */
+  /* Gọi ngầm API confirm-sign khi vừa vào màn hình */
   useEffect(() => {
-    if (!showProcessing) return;
+    confirmSign(HARDCODED_ACCOUNT_ID).catch((e) => {
+      console.warn("Lỗi gọi ngầm confirmSign:", e?.response?.data || e.message);
+    });
+  }, []);
+
+  /* Countdown after confirm success */
+  useEffect(() => {
+    if (!showProcessing || !isSuccessOtp) return;
     if (countdown === 0) {
       setShowProcessing(false);
       setShowSuccess(true);
@@ -111,12 +145,57 @@ export default function SignContractScreen() {
     }
     const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(t);
-  }, [showProcessing, countdown]);
+  }, [showProcessing, countdown, isSuccessOtp]);
 
-  const handleConfirm = () => {
-    if (!isOtpValid) return;
-    setCountdown(5);
+  /* Cooldown cho nút gửi lại OTP */
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  const handleConfirm = async () => {
+    if (!isOtpComplete) return;
+
     setShowProcessing(true);
+    setOtpError(null);
+
+    try {
+      const response = await confirmOtp(HARDCODED_ACCOUNT_ID, otp) as any;
+      const success = response.success ?? response.Success;
+      const message = response.message ?? response.Message;
+
+      if (!success) {
+        setShowProcessing(false);
+        setOtpError(message || "Mã OTP không đúng. Vui lòng thử lại.");
+        return;
+      }
+
+      setIsSuccessOtp(true);
+      setCountdown(5);
+    } catch (error: any) {
+      setShowProcessing(false);
+      setOtpError(error?.response?.data?.Message || "Lỗi kết nối hoặc hệ thống. Vui lòng thử lại.");
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setOtp("");
+    setOtpError(null);
+    setIsSuccessOtp(false);
+    setResendCooldown(10);
+    focusInput();
+    try {
+      await resendOtp(HARDCODED_ACCOUNT_ID);
+    } catch (e) {
+      console.warn("Lỗi gửi lại OTP:", e);
+    }
+  };
+
+  const handleApprove = () => {
+    setShowSuccess(false);
+    router.push("/sign-val" as any);
   };
 
   const focusInput = () => {
@@ -136,6 +215,8 @@ export default function SignContractScreen() {
   };
 
   const handleOtpChange = (text: string) => {
+    setOtpError(null);
+    setIsSuccessOtp(false);
     setOtp(text.replace(/[^0-9]/g, ""));
   };
 
@@ -208,15 +289,15 @@ export default function SignContractScreen() {
               </View>
             </View>
 
-            <InfoRow icon="account-outline" label="Họ và tên" value="LÊ KHANH ĐẠT" />
+            <InfoRow icon="account-outline" label="Họ và tên" value={params.fullName ?? "—"} />
             <View style={styles.rowDivider} />
-            <InfoRow icon="calendar-outline" label="Ngày sinh" value="21/12/1993" />
+            <InfoRow icon="calendar-outline" label="Ngày sinh" value={formatDate(params.dateOfBirth)} />
             <View style={styles.rowDivider} />
-            <InfoRow icon="gender-male-female" label="Giới tính" value="Nam" />
+            <InfoRow icon="gender-male-female" label="Giới tính" value={params.gender ?? "—"} />
             <View style={styles.rowDivider} />
-            <InfoRow icon="map-marker-outline" label="Địa chỉ" value="TỐ 5, PHƯỜNG NAM ĐỊNH, NINH BÌNH" />
+            <InfoRow icon="map-marker-outline" label="Địa chỉ" value={params.permanentAddress ?? "—"} />
             <View style={styles.rowDivider} />
-            <InfoRow icon="barcode" label="Mã đơn hàng" value="6209443990" />
+            <InfoRow icon="barcode" label="Mã đơn hàng" value={params.orderId ?? "—"} />
           </View>
 
           {/* ── Hợp đồng ── */}
@@ -302,14 +383,20 @@ export default function SignContractScreen() {
                     color={isOtpValid ? "#4CAF50" : "#E53935"}
                   />
                   <Text style={[styles.otpStatusText, { color: isOtpValid ? "#4CAF50" : "#E53935" }]}>
-                    {isOtpValid ? "Mã OTP chính xác" : "Mã OTP không đúng. Vui lòng thử lại"}
+                    {isOtpValid ? "Mã OTP hợp lệ" : otpError}
                   </Text>
                 </View>
               )}
 
-              <TouchableOpacity style={styles.resendRow} onPress={() => { setOtp(""); focusInput(); }}>
+              <TouchableOpacity
+                style={[styles.resendRow, resendCooldown > 0 && { opacity: 0.4 }]}
+                onPress={handleResendOtp}
+                disabled={resendCooldown > 0}
+              >
                 <MaterialCommunityIcons name="refresh" size={14} color="#2092EC" />
-                <Text style={styles.resendText}>Gửi lại mã OTP</Text>
+                <Text style={styles.resendText}>
+                  {resendCooldown > 0 ? `Gửi lại sau ${resendCooldown}s` : "Gửi lại mã OTP"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -318,9 +405,9 @@ export default function SignContractScreen() {
         {/* ── Bottom bar ── */}
         <View style={styles.bottomBar}>
           <TouchableOpacity
-            style={[styles.confirmBtn, !isOtpValid && { opacity: 0.45 }]}
+            style={[styles.confirmBtn, !isOtpComplete && { opacity: 0.45 }]}
             onPress={handleConfirm}
-            disabled={!isOtpValid}
+            disabled={!isOtpComplete}
             activeOpacity={0.85}
           >
 
@@ -367,7 +454,7 @@ export default function SignContractScreen() {
             </Text>
             <TouchableOpacity
               style={styles.successBtn}
-              onPress={() => { setShowSuccess(false); router.push("/sign-val" as any); }}
+              onPress={handleApprove}
             >
               <MaterialCommunityIcons name="file-check" size={18} color="#FFF" />
               <Text style={styles.successBtnText}>Nghiệm thu</Text>

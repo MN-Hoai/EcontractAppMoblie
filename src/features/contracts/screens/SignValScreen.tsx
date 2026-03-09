@@ -1,8 +1,17 @@
+import {
+  approveHandOver,
+  CertInfo,
+  getCertInfo,
+  importCertificate,
+  viewOrder,
+} from "@/services/contractService";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Modal,
   Platform,
   ScrollView,
@@ -27,10 +36,123 @@ function InfoRow({ icon, label, value }: { icon: string; label: string; value: s
   );
 }
 
+const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
+
 /* ─── Main Screen ───────────────────────────────────────────── */
 export default function SignValScreen() {
   const router = useRouter();
   const [showCertModal, setShowCertModal] = useState(false);
+  const [certInfo, setCertInfo] = useState<CertInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+
+        // --- Bước 1: Gọi nghiệm thu ---
+        let approveRes;
+        try {
+          approveRes = await approveHandOver(HARDCODED_ACCOUNT_ID);
+          console.log("Approve Handover:", approveRes);
+
+          const isSuccessObj = approveRes && (approveRes.Success === true || approveRes.success === true);
+          const dataStatus = approveRes?.Data?.Status || approveRes?.data?.status;
+
+          if (!isSuccessObj || (dataStatus && dataStatus !== "SUCCESS")) {
+            if (isMounted) Alert.alert("Lỗi Nghiệm Thu", approveRes?.Message || approveRes?.message || "Xác nhận nghiệm thu thất bại.");
+            return;
+          }
+        } catch (err: any) {
+          console.warn("Lỗi gọi API approve-handover:", err);
+          if (isMounted) Alert.alert("Lỗi Nghiệm Thu", "Đã có lỗi xảy ra trong quá trình gọi API approve-handover.");
+          return;
+        }
+
+        // --- Bước 2: Gọi viewOrder ---
+        let viewRes;
+        try {
+          viewRes = await viewOrder(HARDCODED_ACCOUNT_ID);
+          console.log("View Order:", viewRes);
+          if (!viewRes || viewRes.Success === false || viewRes.success === false) {
+            if (isMounted) Alert.alert("Lỗi Đơn Hàng", viewRes?.Message || viewRes?.message || "Không thể tải thông tin đơn hàng (view-order).");
+            return;
+          }
+        } catch (err: any) {
+          console.warn("Lỗi gọi API view-order:", err);
+          if (isMounted) Alert.alert("Lỗi Đơn Hàng", "Đã có lỗi xảy ra trong quá trình gọi API view-order.");
+          return;
+        }
+
+        // --- Bước 3: Import certificate ---
+        let importRes;
+        try {
+          importRes = await importCertificate(HARDCODED_ACCOUNT_ID);
+          console.log("Import Certificate:", importRes);
+          if (!importRes || importRes.Success === false || importRes.success === false) {
+            if (isMounted) Alert.alert("Lỗi Import Chứng Thư", importRes?.Message || importRes?.message || "Import chứng thư số thất bại.");
+            return;
+          }
+        } catch (err: any) {
+          console.warn("Lỗi gọi API import-cert:", err);
+          if (isMounted) Alert.alert("Lỗi Import Chứng Thư", "Đã có lỗi xảy ra trong quá trình gọi API import-cert.");
+          return;
+        }
+
+        // --- Bước 4: Lấy thông tin chứng thư ---
+        try {
+          const certRes = await getCertInfo(HARDCODED_ACCOUNT_ID);
+          if (!certRes || certRes.Success === false || certRes.success === false) {
+            if (isMounted) Alert.alert("Lỗi Lấy Thông Tin Chứng Thư", certRes?.Message || certRes?.message || "Cập nhật thông tin chứng thư thất bại.");
+            return;
+          }
+
+          const certData = certRes.Data || certRes.data;
+          if (isMounted && certData) {
+            setCertInfo(certData);
+          }
+        } catch (err: any) {
+          console.warn("Lỗi gọi API cert-info:", err);
+          if (isMounted) Alert.alert("Lỗi Lấy Thông Tin Chứng Thư", "Đã có lỗi xảy ra trong quá trình gọi API cert-info.");
+          return;
+        }
+
+      } catch (err: any) {
+        console.warn("Lỗi không xác định:", err);
+        if (isMounted) Alert.alert("Lỗi", "Đã có sự cố ngoài ý muốn xảy ra.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleConfirm = () => {
+    router.push("/(certificate)/choose-certificate2");
+  };
+
+  // Helpers string -> dd/MM/yyyy
+  const formatDateTime = (dateStr?: string) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = d.getFullYear();
+    return `${dd}/${mm}/${yy}`;
+  };
+
+  const getSubjectName = () => (certInfo?.subjectDN || certInfo?.SubjectDN)?.match(/CN=([^,]+)/)?.[1] || "—";
+  const getSubjectUID = () => (certInfo?.subjectDN || certInfo?.SubjectDN)?.match(/UID=CCCD:([^,]+)/)?.[1]
+    || (certInfo?.subjectDN || certInfo?.SubjectDN)?.match(/UID=([^,]+)/)?.[1] || "—";
 
   return (
     <View style={styles.container}>
@@ -51,121 +173,126 @@ export default function SignValScreen() {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      {/* ── Progress stepper ── */}
-
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Banner ── */}
-        <View style={styles.banner}>
-          <MaterialCommunityIcons
-            name="certificate-outline"
-            size={22}
-            color="#FFB300"
-          />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.bannerTitle}>Xác nhận chứng thư</Text>
-            <Text style={styles.bannerSub}>
-              Vui lòng kiểm tra kỹ thông tin chứng thư số đã được cấp
-            </Text>
-          </View>
+      {isLoading ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color="#1565C0" />
+          <Text style={{ marginTop: 12, color: "#666", fontWeight: "500" }}>Đang tải thông tin chứng thư số...</Text>
         </View>
-
-        {/* ── Info Card ── */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderLeft}>
+      ) : (
+        <>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* ── Banner ── */}
+            <View style={styles.banner}>
               <MaterialCommunityIcons
-                name="shield-account-outline"
-                size={15}
-                color="#1565C0"
+                name="certificate-outline"
+                size={22}
+                color="#FFB300"
               />
-              <Text style={styles.cardHeaderText}>THÔNG TIN CHỨNG THƯ SỐ</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.bannerTitle}>Xác nhận chứng thư</Text>
+                <Text style={styles.bannerSub}>
+                  Vui lòng kiểm tra kỹ thông tin chứng thư số đã được cấp
+                </Text>
+              </View>
             </View>
-            <View style={styles.verifiedBadge}>
-              <MaterialCommunityIcons name="check-decagram" size={13} color="#4CAF50" />
-              <Text style={styles.verifiedText}>Đã cấp</Text>
+
+            {/* ── Info Card ── */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardHeaderLeft}>
+                  <MaterialCommunityIcons
+                    name="shield-account-outline"
+                    size={15}
+                    color="#1565C0"
+                  />
+                  <Text style={styles.cardHeaderText}>THÔNG TIN CHỨNG THƯ SỐ</Text>
+                </View>
+                <View style={styles.verifiedBadge}>
+                  <MaterialCommunityIcons name="check-decagram" size={13} color="#4CAF50" />
+                  <Text style={styles.verifiedText}>Đã cấp</Text>
+                </View>
+              </View>
+              <InfoRow
+                icon="shield-key-outline"
+                label="Mã chứng thư"
+                value={certInfo?.credentialId || certInfo?.CredentialId || "—"}
+              />
+              <InfoRow
+                icon="barcode"
+                label="Số Serial"
+                value={certInfo?.serialNumber || certInfo?.SerialNumber || "—"}
+              />
+              <View style={styles.rowDivider} />
+              <InfoRow
+                icon="office-building-outline"
+                label="Tổ chức phát hành"
+                value={certInfo?.issuerDN || certInfo?.IssuerDN || "—"}
+              />
+              <View style={styles.rowDivider} />
+              <InfoRow
+                icon="card-account-details-outline"
+                label="Thông tin thuê bao"
+                value={certInfo?.subjectDN || certInfo?.SubjectDN || "—"}
+              />
+              <View style={styles.rowDivider} />
+              <InfoRow
+                icon="calendar-check-outline"
+                label="Ngày bắt đầu"
+                value={formatDateTime(certInfo?.validFrom || certInfo?.ValidFrom)}
+              />
+              <View style={styles.rowDivider} />
+              <InfoRow
+                icon="calendar-alert-outline"
+                label="Ngày kết thúc"
+                value={formatDateTime(certInfo?.validTo || certInfo?.ValidTo)}
+              />
             </View>
+
+            {/* ── Document Link ── */}
+            <TouchableOpacity
+              style={styles.contractRow}
+              onPress={() => setShowCertModal(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.contractRowIcon}>
+                <MaterialCommunityIcons
+                  name="file-sign"
+                  size={20}
+                  color="#1565C0"
+                />
+              </View>
+              <View style={styles.contractRowContent}>
+                <Text style={styles.contractRowLabel}>Biên bản nghiệm thu</Text>
+                <Text style={styles.contractRowDesc}>Xem chi tiết nội dung biên bản</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#BBBEC7" />
+            </TouchableOpacity>
+          </ScrollView>
+
+          {/* ── Bottom bar ── */}
+          <View style={styles.bottomBar}>
+            <TouchableOpacity
+              style={[styles.submitBtn, isSubmitting && { opacity: 0.7 }]}
+              onPress={handleConfirm}
+              disabled={isSubmitting}
+              activeOpacity={0.85}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="check-all" size={18} color="#FFF" />
+                  <Text style={styles.submitBtnText}>Xác nhận nghiệm thu</Text>
+                  <MaterialCommunityIcons name="arrow-right" size={18} color="#FFF" />
+                </>
+              )}
+            </TouchableOpacity>
           </View>
-
-          <InfoRow
-            icon="numeric"
-            label="Số Serial"
-            value="5404fffeb7033fb316d672201c010446"
-          />
-          <View style={styles.rowDivider} />
-          <InfoRow
-            icon="office-building-outline"
-            label="Tổ chức phát hành"
-            value="C=VN, O=Viettel Group, CN=Viettel-CA RS"
-          />
-          <View style={styles.rowDivider} />
-          <InfoRow
-            icon="account-details-outline"
-            label="Thông tin thuê bao"
-            value="UID=001089020747, CN=PHAM ĐỨC HUY, L=NAM ĐỊNH, C=VN"
-          />
-          <View style={styles.rowDivider} />
-          <InfoRow
-            icon="calendar-clock-outline"
-            label="Ngày bắt đầu"
-            value="16/10/2024"
-          />
-          <View style={styles.rowDivider} />
-          <InfoRow
-            icon="calendar-remove-outline"
-            label="Ngày kết thúc"
-            value="16/10/2025"
-          />
-        </View>
-
-        {/* ── Document Link ── */}
-        <TouchableOpacity
-          style={styles.contractRow}
-          onPress={() => setShowCertModal(true)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.contractRowIcon}>
-            <MaterialCommunityIcons
-              name="file-sign"
-              size={20}
-              color="#1565C0"
-            />
-          </View>
-          <View style={styles.contractRowContent}>
-            <Text style={styles.contractRowLabel}>Biên bản nghiệm thu</Text>
-            <Text style={styles.contractRowDesc}>Xem chi tiết nội dung biên bản</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color="#BBBEC7" />
-        </TouchableOpacity>
-
-        {/* ── Warning Note ── */}
-        {/* <View style={styles.warningBox}>
-          <MaterialCommunityIcons
-            name="information-outline"
-            size={18}
-            color="#FFB300"
-          />
-          <Text style={styles.warningText}>
-            Chứng thư số đã sẵn sàng để sử dụng cho các giao dịch điện tử của Quý khách.
-          </Text>
-        </View> */}
-      </ScrollView>
-
-      {/* ── Bottom bar ── */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.submitBtn}
-          onPress={() => router.push("/(certificate)/choose-certificate2")}
-          activeOpacity={0.85}
-        >
-          <MaterialCommunityIcons name="check-all" size={18} color="#FFF" />
-          <Text style={styles.submitBtnText}>Xác nhận nghiệm thu</Text>
-          <MaterialCommunityIcons name="arrow-right" size={18} color="#FFF" />
-        </TouchableOpacity>
-      </View>
+        </>
+      )}
 
       {/* ── Certificate Modal ── */}
       <Modal
@@ -207,15 +334,15 @@ export default function SignValScreen() {
 
                   <View style={styles.certInfoRow}>
                     <Text style={styles.certLabel}>Khách hàng:</Text>
-                    <Text style={styles.certValue}>PHẠM ĐỨC HUY</Text>
+                    <Text style={styles.certValue}>{getSubjectName()}</Text>
                   </View>
                   <View style={styles.certInfoRow}>
                     <Text style={styles.certLabel}>Số CCCD:</Text>
-                    <Text style={styles.certValue}>001089020747</Text>
+                    <Text style={styles.certValue}>{getSubjectUID()}</Text>
                   </View>
                   <View style={styles.certInfoRow}>
                     <Text style={styles.certLabel}>SĐT:</Text>
-                    <Text style={styles.certValue}>0935035303</Text>
+                    <Text style={styles.certValue}>{certInfo?.phoneNumber || certInfo?.PhoneNumber || "—"}</Text>
                   </View>
 
                   <View style={styles.certDivider} />
@@ -223,9 +350,10 @@ export default function SignValScreen() {
                   <Text style={styles.certSectionTitle}>THÔNG TIN CHỨNG THƯ SỐ</Text>
 
                   <View style={styles.certDetailBox}>
-                    <DetailItem label="Serial" value="5404fffeb7033fb316d672201c010446" />
-                    <DetailItem label="Issuer" value="Viettel-CA RS" />
-                    <DetailItem label="Thời hạn" value="16.10.2024 - 16.10.2025" />
+                    <DetailItem label="Mã chứng thư" value={certInfo?.credentialId || certInfo?.CredentialId || "—"} />
+                    <DetailItem label="Serial" value={certInfo?.serialNumber || certInfo?.SerialNumber || "—"} />
+                    <DetailItem label="Issuer" value={certInfo?.issuerDN || certInfo?.IssuerDN || "—"} />
+                    <DetailItem label="Thời hạn" value={`${formatDateTime(certInfo?.validFrom || certInfo?.ValidFrom)} - ${formatDateTime(certInfo?.validTo || certInfo?.ValidTo)}`} />
                   </View>
 
                   <Text style={[styles.certText, { marginTop: 16 }]}>
@@ -236,7 +364,7 @@ export default function SignValScreen() {
                     <View style={styles.certSignBox}>
                       <Text style={styles.certSignLabel}>ĐẠI DIỆN BÊN A</Text>
                       <View style={styles.certSignSpace} />
-                      <Text style={styles.certSignName}>PHẠM ĐỨC HUY</Text>
+                      <Text style={styles.certSignName}>{getSubjectName()}</Text>
                     </View>
                     <View style={styles.certSignBox}>
                       <Text style={styles.certSignLabel}>ĐẠI DIỆN BÊN B</Text>
@@ -247,13 +375,6 @@ export default function SignValScreen() {
                 </View>
               </View>
             </ScrollView>
-
-            {/* <TouchableOpacity
-              style={styles.modalBottomBtn}
-              onPress={() => setShowCertModal(false)}
-            >
-              <Text style={styles.modalBottomBtnText}>Đóng</Text>
-            </TouchableOpacity> */}
           </View>
         </View>
       </Modal>
@@ -295,49 +416,10 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#FFF", fontSize: 17, fontWeight: "700" },
   headerSub: { color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 2 },
 
-  /* Stepper */
-  stepper: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "flex-start",
-    backgroundColor: "#FFF",
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEF0F4",
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
   },
-  stepItem: { alignItems: "center", flex: 1, position: "relative" },
-  stepLine: {
-    position: "absolute",
-    top: 14,
-    right: "50%",
-    width: "100%",
-    height: 2,
-    backgroundColor: "#E0E0E0",
-    zIndex: 0,
-  },
-  stepLineDone: { backgroundColor: "#4CAF50" },
-  stepCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#E8EDF2",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1,
-  },
-  stepCircleActive: { backgroundColor: "#2092EC" },
-  stepCircleDone: { backgroundColor: "#4CAF50" },
-  stepNum: { fontSize: 12, fontWeight: "700", color: "#9E9E9E" },
-  stepLabel: {
-    fontSize: 11,
-    color: "#9E9E9E",
-    marginTop: 5,
-    fontWeight: "500",
-  },
-  stepLabelActive: { color: "#2092EC", fontWeight: "700" },
-
-  scrollContent: { padding: 16, paddingBottom: 24 },
 
   /* Banner */
   banner: {
@@ -397,24 +479,31 @@ const styles = StyleSheet.create({
   /* Info row */
   infoRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start", // Changed to flex-start for long multi-line text
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     gap: 12,
   },
   infoIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "#EAF2FE",
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: "#F0F7FF",
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 2,
   },
   infoContent: { flex: 1 },
-  infoLabel: { fontSize: 11, color: "#9E9E9E", fontWeight: "600", marginBottom: 3 },
-  infoValue: { fontSize: 13, color: "#111", fontWeight: "600", lineHeight: 18 },
+  infoLabel: { fontSize: 11, color: "#8E9AA0", fontWeight: "600", marginBottom: 3 },
+  infoValue: {
+    fontSize: 13,
+    color: "#1A1C1E",
+    fontWeight: "600",
+    lineHeight: 20,
+    flexShrink: 1, // Ensure it doesn't push the icon
+  },
 
-  rowDivider: { height: 1, backgroundColor: "#F2F4F7", marginLeft: 62 },
+  rowDivider: { height: 1, backgroundColor: "#F2F4F7", marginLeft: 64 },
 
   /* Contract row */
   contractRow: {
@@ -514,49 +603,80 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     margin: 16,
     padding: 24,
-    borderRadius: 4,
+    paddingTop: 32,
+    borderRadius: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 15,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "#E8EDF2",
   },
-  certTop: { alignItems: "center", marginBottom: 24 },
-  certViettel: { fontSize: 24, fontWeight: "800", color: "#E41E26", letterSpacing: 0.5 },
-  certSub: { fontSize: 11, color: "#888", marginTop: 4 },
+  certTop: { alignItems: "center", marginBottom: 28 },
+  certViettel: {
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#E41E26",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  certSub: { fontSize: 12, color: "#64748B", marginTop: 4, fontWeight: "500" },
   certMainTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "900",
     textAlign: "center",
-    color: "#000",
-    lineHeight: 22,
-    marginBottom: 24,
+    color: "#0F172A",
+    lineHeight: 26,
+    marginBottom: 28,
+    letterSpacing: 0.5,
   },
   certContent: { flex: 1 },
-  certText: { fontSize: 13, color: "#444", lineHeight: 20 },
-  certInfoRow: { flexDirection: "row", marginTop: 8, gap: 8 },
-  certLabel: { fontSize: 13, fontWeight: "700", color: "#444" },
-  certValue: { fontSize: 13, color: "#111", flex: 1 },
-  certDivider: { height: 1, backgroundColor: "#EEE", marginVertical: 20 },
-  certSectionTitle: { fontSize: 13, fontWeight: "900", color: "#1565C0", marginBottom: 12 },
+  certText: { fontSize: 14, color: "#334155", lineHeight: 22 },
+  certInfoRow: {
+    flexDirection: "row",
+    marginTop: 10,
+    gap: 10,
+    alignItems: "flex-start",
+  },
+  certLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#475569",
+    width: 90,
+  },
+  certValue: { fontSize: 14, color: "#0F172A", flex: 1, fontWeight: "500" },
+  certDivider: { height: 1.5, backgroundColor: "#F1F5F9", marginVertical: 24 },
+  certSectionTitle: {
+    fontSize: 13,
+    fontWeight: "900",
+    color: "#1565C0",
+    marginBottom: 16,
+    letterSpacing: 1,
+  },
   certDetailBox: {
     backgroundColor: "#F8FAFC",
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  certSignArea: { flexDirection: "row", marginTop: 40, gap: 20 },
+  certSignArea: {
+    flexDirection: "row",
+    marginTop: 40,
+    gap: 16,
+    justifyContent: "space-between",
+  },
   certSignBox: { flex: 1, alignItems: "center" },
-  certSignLabel: { fontSize: 11, fontWeight: "800", color: "#444" },
-  certSignSpace: { height: 80 },
-  certSignName: { fontSize: 12, fontWeight: "700", color: "#111" },
+  certSignLabel: { fontSize: 11, fontWeight: "800", color: "#64748B", letterSpacing: 0.5 },
+  certSignSpace: { height: 70 },
+  certSignName: { fontSize: 13, fontWeight: "700", color: "#0F172A", textAlign: "center" },
   modalBottomBtn: {
     backgroundColor: "#FFF",
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: "center",
     borderTopWidth: 1,
-    borderTopColor: "#F0F2F5",
+    borderTopColor: "#F1F5F9",
   },
-  modalBottomBtnText: { color: "#1565C0", fontWeight: "700", fontSize: 15 },
+  modalBottomBtnText: { color: "#1565C0", fontWeight: "700", fontSize: 16 },
 });

@@ -2,17 +2,22 @@ import { submitKycImages } from "@/services/contractService";
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
     Image,
+    Modal,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
+
+const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
+const ENABLE_IMAGE_PICKER = true; // Set false to disable gallery selection
 
 export default function FaceCaptureScreen() {
     const router = useRouter();
@@ -22,6 +27,7 @@ export default function FaceCaptureScreen() {
     const [permission, requestPermission] = useCameraPermissions();
     const [capturedUri, setCapturedUri] = useState<string | null>(null);
     const [isCapturing, setIsCapturing] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const cameraRef = useRef<CameraView>(null);
 
     useEffect(() => {
@@ -46,9 +52,25 @@ export default function FaceCaptureScreen() {
         }
     };
 
-    const handleRetake = () => setCapturedUri(null);
+    const handlePickImage = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.85,
+            });
 
-    const HARDCODED_ACCOUNT_ID = "17444F49-6907-4662-BB99-57CA5E76BB59";
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                setCapturedUri(result.assets[0].uri);
+            }
+        } catch (e) {
+            console.error("Lỗi chọn ảnh từ thư viện:", e);
+            Alert.alert("Lỗi", "Không thể chọn ảnh từ thư viện.");
+        }
+    };
+
+    const handleRetake = () => setCapturedUri(null);
 
     const handleNext = async () => {
         if (!capturedUri) return;
@@ -61,38 +83,29 @@ export default function FaceCaptureScreen() {
             return;
         }
 
-        setIsCapturing(true);
+        setIsUploading(true);
         try {
             const formData = new FormData();
 
-            // Ảnh mặt trước CCCD
             formData.append("frontImage", {
                 uri: frontUri,
                 name: frontUri.split("/").pop() || "front.jpg",
                 type: "image/jpeg",
             } as any);
 
-            // Ảnh mặt sau CCCD
             formData.append("backImage", {
                 uri: backUri,
                 name: backUri.split("/").pop() || "back.jpg",
                 type: "image/jpeg",
             } as any);
 
-            // Ảnh khuôn mặt
             formData.append("faceImage", {
                 uri: capturedUri,
                 name: capturedUri.split("/").pop() || "face.jpg",
                 type: "image/jpeg",
             } as any);
 
-            // Không append accountId vào FormData vì ASP.NET mặc định nhận Guid từ QueryString
-            // formData.append("accountId", HARDCODED_ACCOUNT_ID);
-
-            console.log("Đang gửi 3 ảnh KYC lên server...");
             const serviceResponse = await submitKycImages(HARDCODED_ACCOUNT_ID, formData) as any;
-
-            // { Success: bool, Message: string, Data: { RequestId: string } }
 
             const isSuccess = serviceResponse.success ?? serviceResponse.Success;
             const message = serviceResponse.message ?? serviceResponse.Message;
@@ -100,25 +113,21 @@ export default function FaceCaptureScreen() {
             const requestId = resData?.requestId ?? resData?.RequestId;
 
             if (isSuccess && requestId) {
-                // Lưu vào store
                 setFaceUri(capturedUri);
                 setRequestId(requestId);
-                console.log("KYC thành công, RequestId:", requestId);
                 router.push("/id-information");
             } else {
-                // Hiển thị thông báo lỗi từ server
                 Alert.alert("Xác minh thất bại", message || "Vui lòng thử lại.");
             }
         } catch (error: any) {
             console.error("Upload KYC thất bại:", error);
-            // Lấy message lỗi từ server nếu có
             const serverMsg = error?.response?.data?.message;
             Alert.alert(
                 "Lỗi",
                 serverMsg || "Không thể gửi ảnh lên máy chủ. Vui lòng thử lại."
             );
         } finally {
-            setIsCapturing(false);
+            setIsUploading(false);
         }
     };
 
@@ -144,6 +153,49 @@ export default function FaceCaptureScreen() {
 
     return (
         <View style={styles.container}>
+
+            {/* ── Upload Loading Overlay (dark theme — đồng bộ màn hình camera) ── */}
+            <Modal visible={isUploading} transparent animationType="fade" statusBarTranslucent>
+                <View style={styles.loadingOverlay}>
+                    <View style={styles.loadingCard}>
+
+                        <View style={styles.loadingSpinnerWrap}>
+                            <ActivityIndicator size="large" color="#2092EC" />
+                        </View>
+
+                        <Text style={styles.loadingTitle}>Đang xử lý ảnh</Text>
+                        <Text style={styles.loadingDesc}>
+                            Hệ thống đang tải lên và xác thực{"\n"}3 hình ảnh của bạn. Vui lòng chờ...
+                        </Text>
+
+                        {/* Danh sách hình đang gửi */}
+                        <View style={styles.uploadList}>
+                            {[
+                                { icon: "card-account-details", label: "Ảnh mặt trước CCCD" },
+                                { icon: "card-account-details-outline", label: "Ảnh mặt sau CCCD" },
+                                { icon: "face-recognition", label: "Ảnh khuôn mặt" },
+                            ].map((item, i) => (
+                                <View key={i} style={styles.uploadItem}>
+                                    <View style={styles.uploadIconWrap}>
+                                        <MaterialCommunityIcons
+                                            name={item.icon as any}
+                                            size={16}
+                                            color="#2092EC"
+                                        />
+                                    </View>
+                                    <Text style={styles.uploadLabel}>{item.label}</Text>
+                                    <ActivityIndicator size="small" color="#2092EC" />
+                                </View>
+                            ))}
+                        </View>
+
+                        <Text style={styles.loadingNote}>
+                            Không tắt ứng dụng trong lúc đang tải lên
+                        </Text>
+                    </View>
+                </View>
+            </Modal>
+
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
@@ -185,23 +237,41 @@ export default function FaceCaptureScreen() {
                             <MaterialCommunityIcons name="camera-retake" size={20} color="#2092EC" />
                             <Text style={styles.retakeText}>Chụp lại</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
+                        <TouchableOpacity
+                            style={[styles.nextBtn, isUploading && { opacity: 0.6 }]}
+                            onPress={handleNext}
+                            disabled={isUploading}
+                        >
                             <Text style={styles.nextText}>Tiếp tục</Text>
                             <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
                         </TouchableOpacity>
                     </View>
                 ) : (
-                    <TouchableOpacity
-                        style={styles.shutter}
-                        onPress={handleCapture}
-                        disabled={isCapturing}
-                        activeOpacity={0.7}
-                    >
-                        {isCapturing
-                            ? <ActivityIndicator color="#111" />
-                            : <View style={styles.shutterInner} />
-                        }
-                    </TouchableOpacity>
+                    <View style={styles.captureRow}>
+                        {ENABLE_IMAGE_PICKER && (
+                            <TouchableOpacity
+                                style={styles.pickImageBtn}
+                                onPress={handlePickImage}
+                                activeOpacity={0.7}
+                            >
+                                <MaterialCommunityIcons name="image-multiple" size={26} color="#FFF" />
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                            style={styles.shutter}
+                            onPress={handleCapture}
+                            disabled={isCapturing}
+                            activeOpacity={0.7}
+                        >
+                            {isCapturing
+                                ? <ActivityIndicator color="#111" />
+                                : <View style={styles.shutterInner} />
+                            }
+                        </TouchableOpacity>
+                        {ENABLE_IMAGE_PICKER && (
+                            <View style={{ width: 44 }} /> /* Spacer để cân bằng justify-content */
+                        )}
+                    </View>
                 )}
             </View>
         </View>
@@ -210,11 +280,81 @@ export default function FaceCaptureScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#0A0A0A" },
-    center: { flex: 1, backgroundColor: "#0A0A0A", alignItems: "center", justifyContent: "center", gap: 16 },
-    permText: { color: "#FFF", fontSize: 15, opacity: 0.7, textAlign: 'center', paddingHorizontal: 40 },
+    center: {
+        flex: 1, backgroundColor: "#0A0A0A",
+        alignItems: "center", justifyContent: "center", gap: 16,
+    },
+    permText: { color: "#FFF", fontSize: 15, opacity: 0.7, textAlign: "center", paddingHorizontal: 40 },
     permBtn: { backgroundColor: "#2092EC", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
     permBtnText: { color: "#FFF", fontWeight: "700" },
 
+    /* ── Loading Overlay (dark, khớp nền camera) ── */
+    loadingOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.88)",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 28,
+    },
+    loadingCard: {
+        backgroundColor: "#111827",
+        borderRadius: 24,
+        padding: 28,
+        width: "100%",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "rgba(32,146,236,0.25)",
+    },
+    loadingSpinnerWrap: {
+        width: 68,
+        height: 68,
+        borderRadius: 34,
+        backgroundColor: "rgba(32,146,236,0.12)",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 16,
+    },
+    loadingTitle: {
+        color: "#F1F5F9",
+        fontSize: 17,
+        fontWeight: "700",
+        marginBottom: 6,
+    },
+    loadingDesc: {
+        color: "rgba(241,245,249,0.5)",
+        fontSize: 13,
+        textAlign: "center",
+        lineHeight: 20,
+        marginBottom: 22,
+    },
+    uploadList: { width: "100%", gap: 8, marginBottom: 20 },
+    uploadItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(255,255,255,0.04)",
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        gap: 10,
+    },
+    uploadIconWrap: {
+        width: 30, height: 30, borderRadius: 8,
+        backgroundColor: "rgba(32,146,236,0.13)",
+        alignItems: "center", justifyContent: "center",
+    },
+    uploadLabel: {
+        flex: 1,
+        color: "rgba(241,245,249,0.75)",
+        fontSize: 13,
+        fontWeight: "500",
+    },
+    loadingNote: {
+        color: "rgba(255,255,255,0.25)",
+        fontSize: 11,
+        textAlign: "center",
+    },
+
+    /* ── Header ── */
     header: {
         flexDirection: "row",
         alignItems: "center",
@@ -224,8 +364,7 @@ const styles = StyleSheet.create({
         paddingBottom: 8,
     },
     iconBtn: {
-        width: 40, height: 40,
-        borderRadius: 12,
+        width: 40, height: 40, borderRadius: 12,
         backgroundColor: "rgba(255,255,255,0.12)",
         alignItems: "center", justifyContent: "center",
     },
@@ -234,49 +373,26 @@ const styles = StyleSheet.create({
     stepLine: { width: 40, height: 2, borderRadius: 1 },
 
     title: { color: "#FFF", fontSize: 20, fontWeight: "700", textAlign: "center", marginTop: 12 },
-    subtitle: { color: "rgba(255,255,255,0.5)", fontSize: 13, textAlign: "center", marginTop: 6, paddingHorizontal: 32 },
+    subtitle: {
+        color: "rgba(255,255,255,0.5)", fontSize: 13,
+        textAlign: "center", marginTop: 6, paddingHorizontal: 32,
+    },
 
-    cameraWrapper: {
-        flex: 1,
-        marginTop: 30,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    camera: {
-        width: 320,
-        height: 320,
-        borderRadius: 160,
-        overflow: 'hidden',
-    },
-    previewContainer: {
-        width: 320,
-        height: 320,
-        borderRadius: 160,
-        overflow: 'hidden',
-    },
-    preview: {
-        width: '100%',
-        height: '100%',
-    },
+    cameraWrapper: { flex: 1, marginTop: 30, alignItems: "center", justifyContent: "center" },
+    camera: { width: 320, height: 320, borderRadius: 160, overflow: "hidden" },
+    previewContainer: { width: 320, height: 320, borderRadius: 160, overflow: "hidden" },
+    preview: { width: "100%", height: "100%" },
     overlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        justifyContent: 'center',
-        alignItems: 'center',
+        flex: 1, backgroundColor: "rgba(0,0,0,0.3)",
+        justifyContent: "center", alignItems: "center",
     },
     circularHole: {
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        borderWidth: 3,
-        borderColor: '#2092EC',
-        borderStyle: 'dashed',
+        width: 300, height: 300, borderRadius: 150,
+        borderWidth: 3, borderColor: "#2092EC", borderStyle: "dashed",
     },
     circularOverlay: {
         ...StyleSheet.absoluteFillObject,
-        borderRadius: 160,
-        borderWidth: 4,
-        borderColor: '#4CAF50',
+        borderRadius: 160, borderWidth: 4, borderColor: "#4CAF50",
     },
 
     controls: { height: 150, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
@@ -287,7 +403,6 @@ const styles = StyleSheet.create({
         alignItems: "center", justifyContent: "center",
     },
     shutterInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: "#FFF" },
-
     reviewRow: { flexDirection: "row", gap: 16, width: "100%" },
     retakeBtn: {
         flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
@@ -299,4 +414,16 @@ const styles = StyleSheet.create({
         backgroundColor: "#2092EC", borderRadius: 14, paddingVertical: 14,
     },
     nextText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
+    captureRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
+        gap: 30
+    },
+    pickImageBtn: {
+        width: 44, height: 44, borderRadius: 22,
+        backgroundColor: "rgba(255,255,255,0.15)",
+        alignItems: "center", justifyContent: "center",
+    },
 });

@@ -1,12 +1,11 @@
-import { submitKycInfo } from "@/services/contractService";
+import { getOrderInfo, normalizeAddress, orderCA, submitKycInfo } from "@/services/contractService";
 import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -55,14 +54,29 @@ const FIELD_ICONS: Record<keyof IDInfo, string> = {
     email: "email-outline",
 };
 
-const HARDCODED_ACCOUNT_ID = "17444F49-6907-4662-BB99-57CA5E76BB59";
+const HARDCODED_ACCOUNT_ID = "86EBC12D-DCB0-45DA-B7D5-FAA04F9E9DD9";
 
-const parseDate = (dateStr: string): string | null => {
-    if (!dateStr) return null;
-    const parts = dateStr.split("/");
-    if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    return null;
+/**
+ * Validate chuỗi ngày dd/MM/yyyy rồi trả về ISO 8601 (YYYY-MM-DD).
+ * Backend C# nhận kiểu `DateTime` — .NET JSON deserializer yêu cầu ISO 8601.
+ * Throw Error nếu format không hợp lệ.
+ */
+const parseDateSafe = (dateStr: string, fieldLabel: string): string => {
+    if (!dateStr || dateStr.trim() === "")
+        throw new Error(`Trường "${fieldLabel}" không được để trống.`);
+    const parts = dateStr.trim().split("/");
+    if (parts.length !== 3)
+        throw new Error(`Trường "${fieldLabel}" phải có định dạng dd/MM/yyyy.`);
+    const [dd, mm, yyyy] = parts;
+    if (!dd || !mm || !yyyy || yyyy.length !== 4)
+        throw new Error(`Trường "${fieldLabel}" phải có định dạng dd/MM/yyyy.`);
+    const iso = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+    if (isNaN(Date.parse(iso)))
+        throw new Error(`Trường "${fieldLabel}" không phải ngày hợp lệ.`);
+    return iso;  // YYYY-MM-DD — .NET DateTime binding
 };
+
+
 
 /* ─── Editable row component ────────────────────────────────── */
 function InfoRow({
@@ -152,72 +166,171 @@ export default function IDInformationScreen() {
 
     const [editingField, setEditingField] = useState<keyof IDInfo | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [countdown, setCountdown] = useState(80);
     const [errors, setErrors] = useState<Partial<Record<keyof IDInfo, boolean>>>({});
     const [isErrorModalVisible, setIsErrorModalVisible] = useState(false);
+    const [errorModalTitle, setErrorModalTitle] = useState("Thông tin chưa đầy đủ");
+    const [errorModalDesc, setErrorModalDesc] = useState("Vui lòng kiểm tra và điền đầy đủ các trường thông tin được đánh dấu màu đỏ để tiếp tục.");
+
+    // --- Xử lý đếm ngược khi đang submit ---
+    useEffect(() => {
+        if (!isSubmitting) {
+            setCountdown(80);
+            return;
+        }
+        if (countdown === 0) return;
+
+        const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+        return () => clearTimeout(t);
+    }, [isSubmitting, countdown]);
+
+    const showErrorModal = (title: string, desc: string) => {
+        setErrorModalTitle(title);
+        setErrorModalDesc(desc);
+        setIsErrorModalVisible(true);
+    };
 
     const handleSubmit = async () => {
-        // Validation: Check for empty fields
+        // ── Bước 1: Kiểm tra trường trống ──────────────────────────
         const newErrors: Partial<Record<keyof IDInfo, boolean>> = {};
-        let hasAnyError = false;
+        let hasEmptyField = false;
 
         for (const field of Object.keys(idInfo) as (keyof IDInfo)[]) {
             if (!idInfo[field] || idInfo[field].trim() === "") {
                 newErrors[field] = true;
-                hasAnyError = true;
+                hasEmptyField = true;
             }
         }
 
-        if (hasAnyError) {
+        if (hasEmptyField) {
             setErrors(newErrors);
-            setIsErrorModalVisible(true);
+            showErrorModal(
+                "Thông tin chưa đầy đủ",
+                "Vui lòng kiểm tra và điền đầy đủ các trường được đánh dấu màu đỏ để tiếp tục."
+            );
             return;
         }
 
+        // ── Bước 2: Validate định dạng ngày (không throw) ──────────
+        const dateErrors: Partial<Record<keyof IDInfo, boolean>> = {};
+        let dateOfBirthStr: string | null = null;
+        let issueDateStr: string | null = null;
+
+        try { dateOfBirthStr = parseDateSafe(idInfo.dateOfBirth, "Ngày sinh"); }
+        catch { dateErrors.dateOfBirth = true; }
+
+        try { issueDateStr = parseDateSafe(idInfo.issueDate, "Ngày cấp"); }
+        catch { dateErrors.issueDate = true; }
+
+        if (Object.keys(dateErrors).length > 0) {
+            setErrors(dateErrors);
+            showErrorModal(
+                "Định dạng ngày không hợp lệ",
+                "Vui lòng nhập ngày theo định dạng dd/MM/yyyy.\nVí dụ: 15/01/1990"
+            );
+            return;
+        }
+
+        // ── Bước 3: Gọi API ─────────────────────────────────────────
         setErrors({});
+        setCountdown(80);
         setIsSubmitting(true);
         try {
             const model = {
                 IdNumber: idInfo.idNumber,
                 FullName: idInfo.fullName,
-                DateOfBirth: parseDate(idInfo.dateOfBirth),
+                DateOfBirth: dateOfBirthStr!,   // dd/MM/yyyy
                 Gender: idInfo.gender,
-                IssueDate: parseDate(idInfo.issueDate),
+                IssueDate: issueDateStr!,        // dd/MM/yyyy
                 IssuePlace: idInfo.placeOfIssue,
                 PermanentAddress: idInfo.address,
                 PhoneNumber: idInfo.phoneNumber,
                 Email: idInfo.email,
             };
 
+            console.log("▶ [submitKycInfo] model:", JSON.stringify(model, null, 2));
+
             const serviceResponse = await submitKycInfo(HARDCODED_ACCOUNT_ID, model) as any;
             const isSuccess = serviceResponse.success ?? serviceResponse.Success;
             const message = serviceResponse.message ?? serviceResponse.Message;
 
-            if (isSuccess) {
-                router.push("/sign-contract");
-            } else {
-                throw new Error(message || "Lỗi khi xác thực thông tin");
+            if (!isSuccess) {
+                showErrorModal(
+                    "Xác thực thất bại",
+                    message || "Không thể xác thực thông tin. Vui lòng thử lại."
+                );
+                return;
             }
-        } catch (error: any) {
-            let msg = "Không thể gửi thông tin. Vui lòng thử lại.";
 
-            if (error.message && error.message.includes("Lỗi khi xác thực")) {
-                msg = error.message;
-            } else if (error.message === "Network Error") {
-                msg = "Lỗi kết nối mạng. Kiểm tra IP/Port và Firewall server.";
+            // ── Bước 4: Chuẩn hóa địa chỉ ─────────────────────────
+            const addressResponse = await normalizeAddress(HARDCODED_ACCOUNT_ID);
+            const addressSuccess = addressResponse.success ?? addressResponse.Success;
+            const addressMessage = addressResponse.message ?? addressResponse.Message;
+
+            if (!addressSuccess) {
+                showErrorModal(
+                    "Chuẩn hóa địa chỉ thất bại",
+                    addressMessage || "Không thể chuẩn hóa địa chỉ. Vui lòng thử lại."
+                );
+                return;
+            }
+
+            // ── Bước 5: Tạo đơn hàng CA ──────────────────────────
+            const orderResponse = await orderCA(HARDCODED_ACCOUNT_ID);
+            const orderSuccess = orderResponse.success ?? orderResponse.Success;
+            const orderMessage = orderResponse.message ?? orderResponse.Message;
+
+            if (!orderSuccess) {
+                showErrorModal(
+                    "Tạo đơn hàng thất bại",
+                    orderMessage || "Không thể tạo đơn hàng CA. Vui lòng thử lại."
+                );
+                return;
+            }
+
+            // ── Bước 6: Lấy thông tin đơn hàng để hiển thị ───────
+            // Non-fatal: nếu API này lỗi thì vẫn navigate, chỉ thiếu data hiển thị
+            let infoData = null;
+            try {
+                const infoResponse = await getOrderInfo(HARDCODED_ACCOUNT_ID);
+                infoData = infoResponse.data ?? infoResponse.Data ?? null;
+            } catch (infoErr: any) {
+                console.warn("getOrderInfo lỗi, navigate với data rỗng:", infoErr?.response?.status ?? infoErr?.message);
+            }
+
+            router.push({
+                pathname: "/sign-contract",
+                params: {
+                    fullName: infoData?.FullName ?? infoData?.fullName ?? "",
+                    dateOfBirth: infoData?.DateOfBirth ?? infoData?.dateOfBirth ?? "",
+                    gender: infoData?.Gender ?? infoData?.gender ?? "",
+                    permanentAddress: infoData?.PermanentAddress ?? infoData?.permanentAddress ?? "",
+                    orderId: infoData?.OrderID ?? infoData?.orderId ?? "",
+                },
+            });
+
+        } catch (error: any) {
+            console.error("✖ [submitKycInfo]:", error.response?.data ?? error.message);
+
+            let title = "Đã xảy ra lỗi";
+            let desc = "Không thể gửi thông tin. Vui lòng thử lại.";
+
+            if (error.message === "Network Error") {
+                title = "Lỗi kết nối";
+                desc = "Không thể kết nối đến máy chủ. Kiểm tra lại mạng và thử lại.";
             } else if (error.response) {
                 const sData = error.response.data;
-                // Nếu API trả về ServiceResponse lỗi
                 if (sData?.Message || sData?.message) {
-                    msg = sData.Message || sData.message;
+                    desc = sData.Message || sData.message;
                 } else if (sData?.errors) {
-                    // Lỗi validation mặc định của ASP.NET (vd sai kiểu DateTime, thiếu trường)
-                    const firstErrorKey = Object.keys(sData.errors)[0];
-                    msg = sData.errors[firstErrorKey][0];
+                    desc = Object.entries(sData.errors as Record<string, string[]>)
+                        .map(([f, msgs]) => `${f}: ${msgs.join(", ")}`)
+                        .join("\n");
                 } else {
-                    msg = `Lỗi ${error.response.status}: Dữ liệu k hợp lệ`;
+                    desc = `Lỗi máy chủ (${error.response.status}). Vui lòng thử lại.`;
                 }
             }
-            Alert.alert("Lỗi", msg);
+            showErrorModal(title, desc);
         } finally {
             setIsSubmitting(false);
         }
@@ -384,20 +497,45 @@ export default function IDInformationScreen() {
                         disabled={isSubmitting}
                         activeOpacity={0.85}
                     >
-                        {isSubmitting ? (
-                            <ActivityIndicator size="small" color="#FFF" />
-                        ) : (
-                            <MaterialCommunityIcons name="shield-check" size={20} color="#FFF" />
-                        )}
-                        <Text style={styles.submitBtnText}>
-                            {isSubmitting ? "Đang gửi..." : "Xác thực"}
-                        </Text>
-                        {!isSubmitting && (
-                            <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
-                        )}
+                        <MaterialCommunityIcons name="shield-check" size={20} color="#FFF" />
+                        <Text style={styles.submitBtnText}>Xác thực</Text>
+                        <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
                     </TouchableOpacity>
                 </View>
             </View>
+
+            {/* ── Submit Loading Overlay ── */}
+            <Modal visible={isSubmitting} transparent animationType="fade" statusBarTranslucent>
+                <View style={styles.loadingOverlay}>
+                    <View style={styles.loadingCard}>
+
+                        {/* Icon đếm ngược gradient tròn */}
+                        <LinearGradient
+                            colors={["#1565C0", "#2092EC"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.loadingIconCircle}
+                        >
+                            <Text style={{ color: "#FFF", fontSize: 28, fontWeight: "800" }}>
+                                {countdown}s
+                            </Text>
+                        </LinearGradient>
+
+                        <Text style={styles.loadingTitle}>Đang tạo đơn hàng</Text>
+                        <Text style={styles.loadingDesc}>
+                            Đang liên hệ đối tác tạo đơn hàng. Vui lòng không thoát ứng dụng trong quá trình xử lý.
+                        </Text>
+
+                        {/* Spinner bar */}
+                        <View style={styles.loadingBarWrap}>
+                            <ActivityIndicator size="small" color="#2092EC" />
+                            <View style={styles.loadingBar} />
+                        </View>
+
+                    </View>
+                </View>
+            </Modal>
+
 
             {/* ── Custom Error Modal ── */}
             <Modal
@@ -411,10 +549,8 @@ export default function IDInformationScreen() {
                         <View style={styles.errorIconCircle}>
                             <MaterialCommunityIcons name="alert-outline" size={32} color="#D32F2F" />
                         </View>
-                        <Text style={styles.errorModalTitle}>Thông tin chưa đầy đủ</Text>
-                        <Text style={styles.errorModalDesc}>
-                            Vui lòng kiểm tra và điền đầy đủ các trường thông tin được đánh dấu màu đỏ để tiếp tục.
-                        </Text>
+                        <Text style={styles.errorModalTitle}>{errorModalTitle}</Text>
+                        <Text style={styles.errorModalDesc}>{errorModalDesc}</Text>
                         <TouchableOpacity
                             style={styles.errorModalBtn}
                             onPress={() => setIsErrorModalVisible(false)}
@@ -690,4 +826,62 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         fontSize: 15,
     },
+
+    /* ── Submit Loading Overlay (light/blue theme) ── */
+    loadingOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(15,30,60,0.55)",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 28,
+    },
+    loadingCard: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 24,
+        padding: 28,
+        width: "100%",
+        alignItems: "center",
+        shadowColor: "#1565C0",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 24,
+        elevation: 12,
+    },
+    loadingIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 20,
+    },
+    loadingTitle: {
+        color: "#1E293B",
+        fontSize: 18,
+        fontWeight: "700",
+        marginBottom: 6,
+        textAlign: "center",
+    },
+    loadingDesc: {
+        color: "#94A3B8",
+        fontSize: 13,
+        textAlign: "center",
+        lineHeight: 20,
+        marginBottom: 24,
+    },
+    loadingBarWrap: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    loadingBar: {
+        flex: 1,
+        height: 3,
+        borderRadius: 2,
+        backgroundColor: "#E2E8F0",
+        overflow: "hidden",
+    },
 });
+
+
+

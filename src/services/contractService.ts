@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as FileSystem from "expo-file-system/legacy";
 
-const API_BASE_URL = "http://192.168.1.86:5000";
+const API_BASE_URL = "http://192.168.1.83:5000";
 
 export interface Contract {
   ContractId: string;
@@ -188,6 +188,243 @@ export const submitKycInfo = async (accountId: string, model: any) => {
     throw error;
   }
 };
+
+export interface NormalizeAddressResponse {
+  Success?: boolean;
+  Message?: string;
+  Data?: any;
+  // camelCase fallback
+  success?: boolean;
+  message?: string;
+  data?: any;
+}
+
+export const normalizeAddress = async (accountId: string): Promise<NormalizeAddressResponse> => {
+  try {
+    const url = `${API_BASE_URL}/api/customer/address?accountId=${accountId}`;
+    const response = await axios.post(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error normalizing address:", error);
+    throw error;
+  }
+};
+
+export interface OrderCAResponse {
+  Success?: boolean;
+  Message?: string;
+  Data?: any;
+  // camelCase fallback
+  success?: boolean;
+  message?: string;
+  data?: any;
+}
+
+export const orderCA = async (accountId: string): Promise<OrderCAResponse> => {
+  try {
+    const url = `${API_BASE_URL}/api/order-ca?accountId=${accountId}`;
+    const response = await axios.post(url);
+    const result = response.data;
+
+    // Nếu thành công thì gọi ngầm viewOrder
+    if (result.Success || result.success) {
+      viewOrder(accountId).catch((err) =>
+        console.warn("Lỗi gọi ngầm viewOrder:", err)
+      );
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error creating CA order:", error);
+    throw error;
+  }
+};
+
+export interface OrderInfoData {
+  FullName?: string;
+  DateOfBirth?: string;
+  Gender?: string;
+  PermanentAddress?: string;
+  OrderID?: string;
+  // camelCase fallback
+  fullName?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  permanentAddress?: string;
+  orderId?: string;
+}
+
+export interface OrderInfoResponse {
+  Success?: boolean;
+  Message?: string;
+  Data?: OrderInfoData;
+  success?: boolean;
+  message?: string;
+  data?: OrderInfoData;
+}
+
+export const getOrderInfo = async (accountId: string): Promise<OrderInfoResponse> => {
+  try {
+    const url = `${API_BASE_URL}/api/order/customer?accountId=${accountId}`;
+    const response = await axios.post(url);   // POST theo backend [HttpPost]
+    return response.data;
+  } catch (error: any) {
+    // Nếu 405 thì thử lại với GET
+    if (error?.response?.status === 405) {
+      const url = `${API_BASE_URL}/api/order/customer?accountId=${accountId}`;
+      const retry = await axios.get(url);
+      return retry.data;
+    }
+    console.error("Error fetching order info:", error);
+    throw error;
+  }
+};
+
+export const approveHandOver = async (accountId: string) => {
+  try {
+    const url = `${API_BASE_URL}/api/approve-handover?accountId=${accountId}`;
+    const response = await axios.post(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error approve handover:", error);
+    throw error;
+  }
+};
+
+export const viewOrder = async (accountId: string) => {
+  try {
+    const url = `${API_BASE_URL}/api/view-order?accountId=${accountId}`;
+    const response = await axios.post(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error view order:", error);
+    throw error;
+  }
+};
+
+export interface CertificateCloudCaInfo {
+  id?: number;
+  requestId?: string;
+  fromDate?: string;
+  toDate?: string;
+  issuer?: string;
+  serialNumber?: string;
+  subject?: string;
+  createdDate?: string;
+
+  // PascalCase fallback for direct API mappings
+  FromDate?: string;
+  ToDate?: string;
+  Issuer?: string;
+  SerialNumber?: string;
+  Subject?: string;
+}
+
+export const getCloudCaInfo = async (accountId: string) => {
+  try {
+    const url = `${API_BASE_URL}/api/cloud-ca-info?accountId=${accountId}`;
+    const response = await axios.get(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error get cloud ca info:", error);
+    throw error;
+  }
+};
+
+/* ─── Cert Info (api/cert-info) ─────────────────────────────── */
+export interface CertInfo {
+  id?: number;
+  requestId?: string;
+  credentialId?: string;
+  subscriberId?: string;
+  phoneNumber?: string;
+  certStatus?: string;
+  issuerDN?: string;
+  subjectDN?: string;
+  serialNumber?: string;
+  validFrom?: string;
+  validTo?: string;
+  // PascalCase fallback
+  CredentialId?: string;
+  SubscriberId?: string;
+  PhoneNumber?: string;
+  CertStatus?: string;
+  IssuerDN?: string;
+  SubjectDN?: string;
+  SerialNumber?: string;
+  ValidFrom?: string;
+  ValidTo?: string;
+}
+
+export interface CertInfoResponse {
+  success?: boolean;
+  message?: string;
+  data?: CertInfo;
+  Success?: boolean;
+  Message?: string;
+  Data?: CertInfo;
+}
+
+/** POST api/import-cert?accountId=<id> – không truyền userId */
+export const importCertificate = async (accountId: string): Promise<CertInfoResponse> => {
+  try {
+    const url = `${API_BASE_URL}/api/import-cert?accountId=${accountId}`;
+    const response = await axios.post(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error import certificate:", error);
+    throw error;
+  }
+};
+
+/** GET api/cert-info?accountId=<id> – lấy thông tin chứng thư số đã import */
+export const getCertInfo = async (accountId: string): Promise<CertInfoResponse> => {
+  try {
+    const url = `${API_BASE_URL}/api/cert-info?accountId=${accountId}`;
+    const response = await axios.get(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error get cert info:", error);
+    throw error;
+  }
+};
+
+
+
+export const confirmSign = async (accountId: string) => {
+  try {
+    const url = `${API_BASE_URL}/api/confirm-sign?accountId=${accountId}`;
+    const response = await axios.post(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error confirm sign:", error);
+    throw error;
+  }
+};
+
+export const resendOtp = async (accountId: string) => {
+  try {
+    const url = `${API_BASE_URL}/api/resend-otp?accountId=${accountId}`;
+    const response = await axios.post(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error resend otp:", error);
+    throw error;
+  }
+};
+
+export const confirmOtp = async (accountId: string, otpCode: string) => {
+  try {
+    const url = `${API_BASE_URL}/api/confirm-otp?accountId=${accountId}&otpCode=${otpCode}`;
+    const response = await axios.post(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error confirm otp:", error);
+    throw error;
+  }
+};
+
+
 
 export const submitKycImages = async (accountId: string, formData: FormData) => {
   try {

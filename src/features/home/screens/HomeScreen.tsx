@@ -282,9 +282,11 @@ export default function HomeScreen() {
                         { icon: "file-plus-outline", label: "Tạo hợp đồng", route: "/contracts", color: "#E91E63" },
                         { icon: "history", label: "Lịch sử", route: "/contracts", color: "#795548" },
                         { icon: "history", label: "3 thông tin sau khi xac thuc 2 mat the cc", route: "/id-information", color: "#795548" },
-                         { icon: "history", label: "2 khuon mat", route: "/face-capture", color: "#795548" },
+                        { icon: "history", label: "2 khuon mat", route: "/face-capture", color: "#795548" },
                         { icon: "history", label: "1 xem lại thông tin 2 mat cccd", route: "/id-preview", color: "#795548" },
                         { icon: "history", label: "4 xác thực thông tin để mua , truoc buoc nghiem thu", route: "/sign-contract", color: "#795548" },
+                        { icon: "history", label: "5 Chứng thư số", route: "/(certificate)/choose-certificate2", color: "#795548" },
+                        { icon: "history", label: "6 Chứng thư số", route: "/(contract)/sign-val", color: "#795548" },
 
 
                     ].map((item, index) => (
