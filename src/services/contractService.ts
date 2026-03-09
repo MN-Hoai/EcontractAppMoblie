@@ -1,11 +1,7 @@
 import axios from "axios";
 import * as FileSystem from "expo-file-system/legacy";
 
-<<<<<<< HEAD
 const API_BASE_URL = "http://192.168.1.82:5000";
-=======
-const API_BASE_URL = "http://192.168.1.86:5000";
->>>>>>> 58310a00546603f62d86522c14914b3eea6f16eb
 
 export interface Contract {
   ContractId: string;
@@ -38,7 +34,7 @@ export const getContracts = async (accountId: string): Promise<Contract[]> => {
     console.warn("getContracts: định dạng response không xác định", result);
     return [];
   } catch (error) {
-    console.error("Error fetching contracts:", error);
+    console.log("Error fetching contracts:", error);
     throw error;
   }
 };
@@ -83,7 +79,7 @@ export const fetchContractFdf = async (
 
     return response.data;
   } catch (error) {
-    console.error("Error fetching FDF:", error);
+    console.log("Error fetching FDF:", error);
     throw error;
   }
 };
@@ -101,7 +97,7 @@ export const fetchFdfByUrl = async (fdfUrl: string): Promise<string> => {
 
     return response.data;
   } catch (error) {
-    console.error("Error fetching FDF by URL:", error);
+    console.log("Error fetching FDF by URL:", error);
     throw error;
   }
 };
@@ -128,7 +124,7 @@ export const fetchContractWithFdf = async (
       fdfData,
     };
   } catch (error) {
-    console.error("Error fetching contract with FDF:", error);
+    console.log("Error fetching contract with FDF:", error);
     throw error;
   }
 };
@@ -177,7 +173,7 @@ export const checkCaStatus = async (accountId: string): Promise<CheckCaResponse>
     const response = await axios.get(url);
     return response.data;
   } catch (error) {
-    console.error("Error checking CA status:", error);
+    console.log("Error checking CA status:", error);
     throw error;
   }
 };
@@ -188,7 +184,7 @@ export const submitKycInfo = async (accountId: string, model: any) => {
     const response = await axios.post(url, model);
     return response.data;
   } catch (error) {
-    console.error("Error submitting KYC info:", error);
+    console.log("Error submitting KYC info:", error);
     throw error;
   }
 };
@@ -206,10 +202,16 @@ export interface NormalizeAddressResponse {
 export const normalizeAddress = async (accountId: string): Promise<NormalizeAddressResponse> => {
   try {
     const url = `${API_BASE_URL}/api/customer/address?accountId=${accountId}`;
-    const response = await axios.post(url);
+    const response = await axios.post(url, {});
     return response.data;
-  } catch (error) {
-    console.error("Error normalizing address:", error);
+  } catch (error: any) {
+    // Nếu 405 thì thử lại với GET
+    if (error?.response?.status === 405) {
+      const url = `${API_BASE_URL}/api/customer/address?accountId=${accountId}`;
+      const retry = await axios.get(url);
+      return retry.data;
+    }
+    console.log("Error normalizing address:", error);
     throw error;
   }
 };
@@ -227,7 +229,7 @@ export interface OrderCAResponse {
 export const orderCA = async (accountId: string): Promise<OrderCAResponse> => {
   try {
     const url = `${API_BASE_URL}/api/order-ca?accountId=${accountId}`;
-    const response = await axios.post(url);
+    const response = await axios.post(url, {});
     const result = response.data;
 
     // Nếu thành công thì gọi ngầm viewOrder
@@ -239,7 +241,7 @@ export const orderCA = async (accountId: string): Promise<OrderCAResponse> => {
 
     return result;
   } catch (error) {
-    console.error("Error creating CA order:", error);
+    console.log("Error creating CA order:", error);
     throw error;
   }
 };
@@ -270,7 +272,7 @@ export interface OrderInfoResponse {
 export const getOrderInfo = async (accountId: string): Promise<OrderInfoResponse> => {
   try {
     const url = `${API_BASE_URL}/api/order/customer?accountId=${accountId}`;
-    const response = await axios.post(url);   // POST theo backend [HttpPost]
+    const response = await axios.post(url, {});   // POST theo backend [HttpPost]
     return response.data;
   } catch (error: any) {
     // Nếu 405 thì thử lại với GET
@@ -279,7 +281,7 @@ export const getOrderInfo = async (accountId: string): Promise<OrderInfoResponse
       const retry = await axios.get(url);
       return retry.data;
     }
-    console.error("Error fetching order info:", error);
+    console.log("Error fetching order info:", error);
     throw error;
   }
 };
@@ -287,10 +289,10 @@ export const getOrderInfo = async (accountId: string): Promise<OrderInfoResponse
 export const approveHandOver = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/approve-handover?accountId=${accountId}`;
-    const response = await axios.post(url);
+    const response = await axios.post(url, {});
     return response.data;
   } catch (error) {
-    console.error("Error approve handover:", error);
+    console.log("Error approve handover:", error);
     throw error;
   }
 };
@@ -298,10 +300,10 @@ export const approveHandOver = async (accountId: string) => {
 export const viewOrder = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/view-order?accountId=${accountId}`;
-    const response = await axios.post(url);
+    const response = await axios.post(url, {});
     return response.data;
   } catch (error) {
-    console.error("Error view order:", error);
+    console.log("Error view order:", error);
     throw error;
   }
 };
@@ -324,13 +326,15 @@ export interface CertificateCloudCaInfo {
   Subject?: string;
 }
 
+
+
 export const getCloudCaInfo = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/cloud-ca-info?accountId=${accountId}`;
     const response = await axios.get(url);
     return response.data;
   } catch (error) {
-    console.error("Error get cloud ca info:", error);
+    console.log("Error get cloud ca info:", error);
     throw error;
   }
 };
@@ -373,10 +377,10 @@ export interface CertInfoResponse {
 export const importCertificate = async (accountId: string): Promise<CertInfoResponse> => {
   try {
     const url = `${API_BASE_URL}/api/import-cert?accountId=${accountId}`;
-    const response = await axios.post(url);
+    const response = await axios.post(url, {});
     return response.data;
   } catch (error) {
-    console.error("Error import certificate:", error);
+    console.log("Error import certificate:", error);
     throw error;
   }
 };
@@ -388,7 +392,7 @@ export const getCertInfo = async (accountId: string): Promise<CertInfoResponse> 
     const response = await axios.get(url);
     return response.data;
   } catch (error) {
-    console.error("Error get cert info:", error);
+    console.log("Error get cert info:", error);
     throw error;
   }
 };
@@ -398,10 +402,10 @@ export const getCertInfo = async (accountId: string): Promise<CertInfoResponse> 
 export const confirmSign = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/confirm-sign?accountId=${accountId}`;
-    const response = await axios.post(url);
+    const response = await axios.post(url, {});
     return response.data;
   } catch (error) {
-    console.error("Error confirm sign:", error);
+    console.log("Error confirm sign:", error);
     throw error;
   }
 };
@@ -409,10 +413,10 @@ export const confirmSign = async (accountId: string) => {
 export const resendOtp = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/resend-otp?accountId=${accountId}`;
-    const response = await axios.post(url);
+    const response = await axios.post(url, {});
     return response.data;
   } catch (error) {
-    console.error("Error resend otp:", error);
+    console.log("Error resend otp:", error);
     throw error;
   }
 };
@@ -420,10 +424,10 @@ export const resendOtp = async (accountId: string) => {
 export const confirmOtp = async (accountId: string, otpCode: string) => {
   try {
     const url = `${API_BASE_URL}/api/confirm-otp?accountId=${accountId}&otpCode=${otpCode}`;
-    const response = await axios.post(url);
+    const response = await axios.post(url, {});
     return response.data;
   } catch (error) {
-    console.error("Error confirm otp:", error);
+    console.log("Error confirm otp:", error);
     throw error;
   }
 };
@@ -438,7 +442,7 @@ export const submitKycImages = async (accountId: string, formData: FormData) => 
     });
     return response.data;
   } catch (error) {
-    console.error("Error submitting KYC images:", error);
+    console.log("Error submitting KYC images:", error);
     throw error;
   }
 };
@@ -456,7 +460,7 @@ export const checkCustomerExist = async (accountId: string) => {
     const response = await axios.get(url);
     return response.data;
   } catch (error) {
-    console.error("Error check customer exist:", error);
+    console.log("Error check customer exist:", error);
     throw error;
   }
 };
@@ -467,7 +471,7 @@ export const addOrUpdateCustomer = async (accountId: string, model: CustomerRequ
     const response = await axios.post(url, model);
     return response.data;
   } catch (error) {
-    console.error("Error add or update customer:", error);
+    console.log("Error add or update customer:", error);
     throw error;
   }
 };
