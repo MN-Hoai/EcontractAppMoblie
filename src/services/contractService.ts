@@ -1,7 +1,16 @@
 import axios from "axios";
 import * as FileSystem from "expo-file-system/legacy";
 
-const API_BASE_URL = "http://192.168.1.82:5000";
+export const API_BASE_URL = "http://192.168.1.86:5000";
+
+/**
+ * Helper function to convert relative path to full URL
+ */
+export const getFullUrl = (path: string): string => {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return `${API_BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+};
 
 export interface Contract {
   ContractId: string;

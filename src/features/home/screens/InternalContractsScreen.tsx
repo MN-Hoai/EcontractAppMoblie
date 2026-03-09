@@ -95,7 +95,7 @@ export default function InternalContractsScreen() {
     };
 
     return (
-  <View style={[styles.container, { backgroundColor: isDark ? "#0D1B23" : "#F0F4F8" }]}>            {/* Gradient Header */}
+        <View style={[styles.container, { backgroundColor: isDark ? "#0D1B23" : "#F0F4F8" }]}>
             <LinearGradient
                 colors={["#1565C0", "#2092EC"]}
                 start={{ x: 0, y: 0 }}
@@ -127,7 +127,6 @@ export default function InternalContractsScreen() {
                     </View>
                 </View>
 
-                {/* Search Bar */}
                 {showSearch && (
                     <View style={styles.searchBar}>
                         <MaterialCommunityIcons name="magnify" size={20} color="rgba(255,255,255,0.7)" />
@@ -148,7 +147,6 @@ export default function InternalContractsScreen() {
                 )}
             </LinearGradient>
 
-            {/* Filter Panel */}
             {showFilter && (
                 <View style={[styles.filterPanel, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
                     <ThemedText style={styles.filterPanelTitle}>Lọc theo trạng thái</ThemedText>

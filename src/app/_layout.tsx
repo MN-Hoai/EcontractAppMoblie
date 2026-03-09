@@ -49,10 +49,6 @@ export default function RootLayout() {
         <Stack.Screen name="(contract)" />
         <Stack.Screen name="(certificate)" />
 
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

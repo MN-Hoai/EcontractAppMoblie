@@ -1,7 +1,8 @@
 import {
   FdfData,
   fetchFdfByUrl,
-  parseFdfData,
+  getFullUrl,
+  parseFdfData
 } from "@/services/contractService";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -18,8 +19,6 @@ import {
   View,
 } from "react-native";
 
-// API Base URL - should match the backend server
-const API_BASE_URL = "http://192.168.1.86:5000";
 
 /* ─── Field Row Component ───────────────────────────────────── */
 function FieldRow({ label, value }: { label: string; value: string }) {
@@ -46,12 +45,6 @@ export default function SignContractPreviewScreen() {
   const fdfPath = params.fdfPath as string;
   const filePath = params.filePath as string;
 
-  // Helper function to convert relative path to full URL
-  const getFullUrl = (path: string): string => {
-    if (!path) return "";
-    if (path.startsWith("http://") || path.startsWith("https://")) return path;
-    return `${API_BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
-  };
 
   // Fetch FDF data if path is provided
   useEffect(() => {
