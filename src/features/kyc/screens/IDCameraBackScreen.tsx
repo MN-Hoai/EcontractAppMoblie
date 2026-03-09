@@ -79,8 +79,17 @@ export default function IDCameraBackScreen() {
 
         const frontUri = useKycStore.getState().frontUri;
         if (!frontUri) {
-            Alert.alert("Lỗi", "Không tìm thấy ảnh mặt trước. Vui lòng chụp lại.");
-            router.replace("/id-camera-front");
+            Alert.alert(
+                "Ảnh không hợp lệ",
+                "Không tìm thấy ảnh mặt trước. Vui lòng chụp lại bước 1 căn cước công dân.",
+                [{
+                    text: "Chụp lại",
+                    onPress: () => {
+                        useKycStore.getState().reset();
+                        router.replace("/id-camera-front");
+                    }
+                }]
+            );
             return;
         }
 

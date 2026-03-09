@@ -1,7 +1,11 @@
 import axios from "axios";
 import * as FileSystem from "expo-file-system/legacy";
 
+<<<<<<< HEAD
 const API_BASE_URL = "http://192.168.1.82:5000";
+=======
+const API_BASE_URL = "http://192.168.1.86:5000";
+>>>>>>> 58310a00546603f62d86522c14914b3eea6f16eb
 
 export interface Contract {
   ContractId: string;

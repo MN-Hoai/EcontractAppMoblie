@@ -2,8 +2,8 @@ import { useKycStore } from "@/store/kycStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Animated,
@@ -33,6 +33,15 @@ export default function IDCameraFrontScreen() {
             requestPermission();
         }
     }, [permission]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const frontUri = useKycStore.getState().frontUri;
+            if (!frontUri) {
+                setCapturedUri(null);
+            }
+        }, [])
+    );
 
     useEffect(() => {
         if (!capturedUri) {

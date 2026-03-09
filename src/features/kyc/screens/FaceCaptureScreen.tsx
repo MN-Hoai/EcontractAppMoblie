@@ -78,8 +78,17 @@ export default function FaceCaptureScreen() {
         const { frontUri, backUri } = useKycStore.getState();
 
         if (!frontUri || !backUri) {
-            Alert.alert("Lỗi", "Thiếu ảnh CCCD. Vui lòng chụp lại từ đầu.");
-            router.replace("/id-camera-front");
+            Alert.alert(
+                "Ảnh không hợp lệ",
+                "Thiếu ảnh CCCD. Vui lòng chụp lại bước 1 căn cước công dân.",
+                [{
+                    text: "Chụp lại",
+                    onPress: () => {
+                        useKycStore.getState().reset();
+                        router.replace("/id-camera-front");
+                    }
+                }]
+            );
             return;
         }
 
@@ -117,14 +126,31 @@ export default function FaceCaptureScreen() {
                 setRequestId(newRequestId);
                 router.push("/id-information");
             } else {
-                Alert.alert("Xác minh thất bại", message || "Vui lòng thử lại.");
+                Alert.alert(
+                    "Ảnh không hợp lệ",
+                    message || "Ảnh không hợp lệ hoặc không rõ nét. Vui lòng chụp lại bước 1 căn cước công dân.",
+                    [{
+                        text: "Chụp lại",
+                        onPress: () => {
+                            useKycStore.getState().reset();
+                            router.replace("/id-camera-front");
+                        }
+                    }]
+                );
             }
         } catch (error: any) {
             console.error("Upload KYC thất bại:", error);
             const serverMsg = error?.response?.data?.message;
             Alert.alert(
-                "Lỗi",
-                serverMsg || "Không thể gửi ảnh lên máy chủ. Vui lòng thử lại."
+                "Ảnh không hợp lệ",
+                serverMsg || "Có lỗi xảy ra hoặc ảnh không hợp lệ. Vui lòng chụp lại bước 1 căn cước công dân.",
+                [{
+                    text: "Chụp lại",
+                    onPress: () => {
+                        useKycStore.getState().reset();
+                        router.replace("/id-camera-front");
+                    }
+                }]
             );
         } finally {
             setIsUploading(false);
