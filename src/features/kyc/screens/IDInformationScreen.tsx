@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -255,9 +256,16 @@ export default function IDInformationScreen() {
             const message = serviceResponse.message ?? serviceResponse.Message;
 
             if (!isSuccess) {
-                showErrorModal(
-                    "Xác thực thất bại",
-                    message || "Không thể xác thực thông tin. Vui lòng thử lại."
+                Alert.alert(
+                    "Ảnh không hợp lệ",
+                    message || "Thông tin ảnh không hợp lệ hoặc lỗi xác thực. Vui lòng chụp lại bước 1 căn cước công dân.",
+                    [{
+                        text: "Chụp lại",
+                        onPress: () => {
+                            useKycStore.getState().reset();
+                            router.replace("/id-camera-front");
+                        }
+                    }]
                 );
                 return;
             }
@@ -329,6 +337,23 @@ export default function IDInformationScreen() {
                 } else {
                     desc = `Lỗi máy chủ (${error.response.status}). Vui lòng thử lại.`;
                 }
+            }
+            // Optionally, we could show Alert here, but maybe it's just a network error
+            // so showErrorModal is fine. But wait, what if it's an OCR/KYC rejection error?
+            // If it is an HTTP 400 from KYC, we show Alert
+            if (error.response && error.response.status !== 500 && error.message !== "Network Error") {
+                Alert.alert(
+                    "Ảnh không hợp lệ",
+                    desc || "Thông tin không hợp lệ. Vui lòng chụp lại bước 1 căn cước công dân.",
+                    [{
+                        text: "Chụp lại",
+                        onPress: () => {
+                            useKycStore.getState().reset();
+                            router.replace("/id-camera-front");
+                        }
+                    }]
+                );
+                return;
             }
             showErrorModal(title, desc);
         } finally {
