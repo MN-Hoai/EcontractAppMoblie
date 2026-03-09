@@ -80,8 +80,14 @@ export default function FaceCaptureScreen() {
         if (!frontUri || !backUri) {
             Alert.alert(
                 "Thông báo",
-                "Thiếu ảnh CCCD. Vui lòng chụp lại bước 1 căn cước công dân.",
-                [{ text: "Đóng", style: "cancel" }]
+                "Thiếu ảnh CCCD. Vui lòng chụp lại từ bước 1.",
+                [{
+                    text: "Chụp lại",
+                    onPress: () => {
+                        useKycStore.getState().reset();
+                        router.replace("/id-camera-front");
+                    }
+                }]
             );
             return;
         }
@@ -122,17 +128,29 @@ export default function FaceCaptureScreen() {
             } else {
                 Alert.alert(
                     "Thông báo",
-                    (message || "Ảnh không hợp lệ hoặc không rõ nét.").replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", ""),
-                    [{ text: "Đóng", style: "cancel" }]
+                    (message || "Ảnh không hợp lệ hoặc không rõ nét. Vui lòng chụp lại từ bước 1.").replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", ""),
+                    [{
+                        text: "Chụp lại",
+                        onPress: () => {
+                            useKycStore.getState().reset();
+                            router.replace("/id-camera-front");
+                        }
+                    }]
                 );
             }
         } catch (error: any) {
             console.log("Upload KYC thất bại:", error);
-            const serverMsg = error?.response?.data?.message || "Có lỗi xảy ra hoặc ảnh không hợp lệ.";
+            const serverMsg = error?.response?.data?.message || "Có lỗi xảy ra hoặc ảnh không hợp lệ. Vui lòng chụp lại từ bước 1.";
             Alert.alert(
                 "Thông báo",
                 serverMsg.replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", ""),
-                [{ text: "Đóng", style: "cancel" }]
+                [{
+                    text: "Chụp lại",
+                    onPress: () => {
+                        useKycStore.getState().reset();
+                        router.replace("/id-camera-front");
+                    }
+                }]
             );
         } finally {
             setIsUploading(false);
