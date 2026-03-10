@@ -1,9 +1,11 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
+    Alert,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
@@ -14,6 +16,7 @@ export default function HomeScreen() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const router = useRouter();
+    const logout = useAuthStore((state) => state.logout);
 
     return (
         <ScrollView
@@ -31,14 +34,39 @@ export default function HomeScreen() {
 
             {/* Header Section */}
             <View style={styles.header}>
-                <View>
+                <View style={{ flex: 1 }}>
                     <ThemedText style={styles.welcomeText}>Xin chào,</ThemedText>
                     <ThemedText type="title" style={styles.userName}>MAI NHAT HOAI</ThemedText>
                 </View>
-                <TouchableOpacity style={styles.notificationBtn}>
-                    <MaterialCommunityIcons name="bell-outline" size={24} color={isDark ? "#FFF" : "#333"} />
-                    <View style={styles.notificationBadge} />
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <TouchableOpacity style={styles.notificationBtn}>
+                        <MaterialCommunityIcons name="bell-outline" size={24} color={isDark ? "#FFF" : "#333"} />
+                        <View style={styles.notificationBadge} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.notificationBtn, { backgroundColor: isDark ? "rgba(255,82,82,0.15)" : "#FFEBEE" }]}
+                        onPress={() => {
+                            Alert.alert(
+                                "Đăng xuất",
+                                "Bạn có chắc chắn muốn đăng xuất không?",
+                                [
+                                    { text: "Hủy", style: "cancel" },
+                                    {
+                                        text: "Đăng xuất",
+                                        style: "destructive",
+                                        onPress: () => {
+                                            logout();
+                                            router.replace("/login");
+                                        }
+                                    }
+                                ]
+                            );
+                        }}
+                    >
+                        <MaterialCommunityIcons name="logout" size={22} color={isDark ? "#FFAB91" : "#D32F2F"} />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {/* Subscription Card */}
