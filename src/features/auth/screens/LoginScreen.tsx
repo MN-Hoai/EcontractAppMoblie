@@ -43,6 +43,7 @@ export default function LoginScreen() {
                 const response = await login({ email, password });
 
                 if (response.success && response.data) {
+
                     const reqId = response.data.user?.id;
                     if (reqId) {
                         try {
@@ -128,7 +129,10 @@ export default function LoginScreen() {
 
             // Update success, complete auth login
             setShowCustomerModal(false);
-            setAuthData(tempAuthData);
+
+            setAuthData({
+                ...tempAuthData
+            });
             router.replace("/(tabs)");
 
         } catch (err) {
