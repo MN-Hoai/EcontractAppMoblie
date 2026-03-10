@@ -9,6 +9,7 @@ import {
     ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
+    KeyboardTypeOptions,
     Modal,
     Platform,
     ScrollView,
@@ -90,6 +91,7 @@ function InfoRow({
     onChange,
     onBlur,
     hasError,
+    keyboardType,
 }: {
     label: string;
     icon: string;
@@ -99,6 +101,7 @@ function InfoRow({
     onChange: (t: string) => void;
     onBlur: () => void;
     hasError?: boolean;
+    keyboardType?: KeyboardTypeOptions;
 }) {
     const inputRef = useRef<TextInput>(null);
 
@@ -129,6 +132,7 @@ function InfoRow({
                         selectionColor="#2092EC"
                         placeholder={`Nhập ${label.toLowerCase()}`}
                         placeholderTextColor="#94A3B8"
+                        keyboardType={keyboardType}
                     />
                 ) : (
                     <Text
