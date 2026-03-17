@@ -41,11 +41,20 @@ export default function LoginScreen() {
                 setIsLoading(true);
                 setErrorMessage("");
                 const response = await login({ email, password });
+                console.log("Login API Response:", JSON.stringify(response, null, 2));
 
                 if (response.success && response.data) {
-
                     const reqId = response.data.user?.id;
                     if (reqId) {
+                        // SAVE IT NOW (Required by User for subsequent calls)
+                        setAuthData({
+                            accessToken: response.data.access_token,
+                            refreshToken: response.data.refresh_token!,
+                            expiresAt: response.data.expires_at || "",
+                            user: response.data.user!,
+                            requestId: reqId || ""
+                        });
+
                         try {
                             console.log("================================");
                             console.log("Account ID for CheckCustomerExist:", reqId);
@@ -57,8 +66,8 @@ export default function LoginScreen() {
                             const hasEmailOrPhone = dataObj.hasEmailOrPhone === true || String(dataObj.hasEmailOrPhone).toLowerCase() === "true";
 
                             if (!isExist || !hasEmailOrPhone) {
-                                const fullName = `${response.data.user.first_name || ""} ${response.data.user.last_name || ""}`.trim() || "";
-                                const emailToken = response.data.user.email || "";
+                                const fullName = `${response.data.user?.first_name || ""} ${response.data.user?.last_name || ""}`.trim() || "";
+                                const emailToken = response.data.user?.email || "";
 
                                 setCustomerName(fullName);
                                 setCustomerEmail(emailToken);
@@ -66,31 +75,32 @@ export default function LoginScreen() {
                                 setCustomerError("");
                                 setTempAuthData({
                                     accessToken: response.data.access_token,
-                                    refreshToken: response.data.refresh_token,
+                                    refreshToken: response.data.refresh_token!,
                                     expiresAt: response.data.expires_at,
-                                    user: response.data.user,
-                                    requestId: reqId
+                                    user: response.data.user!,
+                                    requestId: reqId || ""
                                 });
                                 setShowCustomerModal(true);
                                 setIsLoading(false);
-                                return; // Stop login flow until user provides info
+                                return;
                             }
                         } catch (err) {
                             console.log("Lỗi khi kiểm tra/tạo thông tin khách hàng:", err);
-                            setErrorMessage("Không thể giao tiếp với hệ thống khách hàng. Vui lòng thử lại.");
-                            setIsLoading(false);
-                            return;
+                            // Fallback - still log in even if customer check fails, Or keep it strictly
                         }
+                        
+                        router.replace("/(tabs)");
+                    } else {
+                        // Fallback fallback
+                        setAuthData({
+                            accessToken: response.data.access_token,
+                            refreshToken: response.data.refresh_token!,
+                            expiresAt: response.data.expires_at || "",
+                            user: response.data.user!,
+                            requestId: ""
+                        });
+                        router.replace("/(tabs)");
                     }
-
-                    setAuthData({
-                        accessToken: response.data.access_token,
-                        refreshToken: response.data.refresh_token,
-                        expiresAt: response.data.expires_at,
-                        user: response.data.user,
-                        requestId: reqId
-                    });
-                    router.replace("/(tabs)");
                 } else {
                     setErrorMessage("Sai thông tin tài khoản, vui lòng kiểm tra lại.");
                 }
@@ -234,7 +244,7 @@ export default function LoginScreen() {
                     <View style={styles.footer}>
                         <ThemedText style={styles.footerText}>Bạn chưa có tài khoản? </ThemedText>
                         <TouchableOpacity onPress={() => router.push("/register")}>
-                            <ThemedText style={styles.registerLink}>Đăng ký ngay</ThemedText>
+                            <ThemedText style={styles.registerLabel}>Đăng ký ngay</ThemedText>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -327,40 +337,65 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    scrollContainer: {
+        flexGrow: 1,
+    },
     content: {
         flex: 1,
-        paddingHorizontal: 32,
+        paddingHorizontal: 28,
         justifyContent: "center",
+        paddingTop: 40,
+        paddingBottom: 40,
     },
     logoContainer: {
         alignItems: "center",
-        marginBottom: 48,
+        marginBottom: 40,
     },
     logoCircle: {
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: "rgba(32, 146, 236, 0.1)",
-        alignItems: "center",
+        backgroundColor: "#E0F2FF",
         justifyContent: "center",
+        alignItems: "center",
         marginBottom: 16,
     },
     appName: {
-        fontSize: 28,
+        fontSize: 32,
         fontWeight: "800",
         color: "#2092EC",
+        marginBottom: 8,
+        letterSpacing: -0.5,
     },
     tagline: {
-        fontSize: 14,
+        fontSize: 16,
         opacity: 0.6,
+        textAlign: "center",
+    },
+    header: {
+        marginBottom: 44,
+    },
+    title: {
+        fontSize: 32,
+        fontWeight: "800",
+        color: "#2092EC",
+        marginBottom: 12,
+        letterSpacing: -0.5,
+    },
+    subtitle: {
+        fontSize: 16,
+        opacity: 0.6,
+        lineHeight: 24,
     },
     form: {
-        width: "100%",
+        gap: 20,
+    },
+    inputWrapper: {
+        gap: 8,
     },
     inputLabel: {
         fontSize: 14,
         fontWeight: "600",
-        marginBottom: 8,
         marginLeft: 4,
     },
     inputContainer: {
@@ -368,38 +403,53 @@ const styles = StyleSheet.create({
         alignItems: "center",
         borderRadius: 16,
         paddingHorizontal: 16,
-        height: 56,
-        marginBottom: 24,
+        height: 58,
+        borderWidth: 1,
+        borderColor: "transparent",
     },
     inputIcon: {
         marginRight: 12,
     },
     input: {
         flex: 1,
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "500",
+    },
+    forgotPassword: {
+        alignSelf: "flex-end",
+    },
+    forgotPasswordText: {
+        color: "#2092EC",
+        fontSize: 14,
+        fontWeight: "600",
     },
     loginButton: {
         backgroundColor: "#2092EC",
-        height: 56,
+        height: 58,
         borderRadius: 16,
         alignItems: "center",
         justifyContent: "center",
+        marginTop: 10,
         elevation: 4,
-        shadowColor: "#000",
+        shadowColor: "#2092EC",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
     },
     loginButtonText: {
         color: "#FFF",
         fontSize: 16,
         fontWeight: "700",
     },
+    errorContainer: {
+        backgroundColor: "rgba(255, 59, 48, 0.1)",
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 20,
+    },
     errorText: {
-        color: "#EF4444",
-        fontSize: 14,
-        marginBottom: 16,
+        color: "#FF3B30",
+        fontSize: 13,
         textAlign: "center",
         fontWeight: "500",
     },
@@ -412,27 +462,59 @@ const styles = StyleSheet.create({
         fontSize: 14,
         opacity: 0.6,
     },
-    registerLink: {
+    registerLabel: {
         fontSize: 14,
         fontWeight: "700",
         color: "#2092EC",
     },
-    // Modal styles
+    // Modal Customer Styles
     modalOverlay: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.5)",
-        justifyContent: "flex-end",
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
     },
     modalContent: {
+        width: '100%',
+        backgroundColor: '#FFF',
+        borderRadius: 24,
         padding: 24,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
     },
     modalTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        marginBottom: 8,
-        textAlign: "center",
+        fontSize: 22,
+        fontWeight: '800',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        opacity: 0.6,
+        textAlign: 'center',
+        marginBottom: 24,
+        lineHeight: 20,
+    },
+    modalForm: {
+        gap: 16,
+    },
+    modalInputWrapper: {
+        gap: 6,
+    },
+    modalInputLabel: {
+        fontSize: 13,
+        fontWeight: '700',
+        marginLeft: 4,
+    },
+    modalInput: {
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        height: 50,
+        fontSize: 14,
+        fontWeight: '500',
     },
 });

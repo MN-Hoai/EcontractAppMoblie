@@ -1,7 +1,7 @@
 
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Contract, getContracts } from "@/services/contractService";
+import { DigitalContract, DigitalContractService } from "@/services/digitalContractService";
 import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,11 +17,12 @@ import {
     View
 } from "react-native";
 
-const STATUS_FILTERS = [
-    { key: "all", label: "Tất cả", color: "#607D8B" },
-    { key: "0", label: "Chờ duyệt", color: "#FBC02D" },
-    { key: "1", label: "Hoàn thành", color: "#4CAF50" },
-    { key: "2", label: "Từ chối", color: "#E53935" },
+const CONTRACT_TABS = [
+    { key: "waiting", label: "Chờ ký", color: "#FBC02D" },
+    { key: "my", label: "Tôi lập", color: "#9C27B0" },
+    { key: "completed", label: "Hoàn tất", color: "#2196F3" },
+    { key: "canceled", label: "Từ chối", color: "#E53935" },
+    { key: "signed", label: "Đã ký", color: "#4CAF50" },
 ];
 
 export default function DigitalContractsScreen() {
@@ -30,58 +31,68 @@ export default function DigitalContractsScreen() {
     const router = useRouter();
     const { requestId } = useAuthStore();
 
-    const [contracts, setContracts] = useState<Contract[]>([]);
+    const [contracts, setContracts] = useState<DigitalContract[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showSearch, setShowSearch] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [searchText, setSearchText] = useState("");
-    const [activeFilter, setActiveFilter] = useState("all");
+    const [activeTab, setActiveTab] = useState("waiting");
 
     useEffect(() => {
         loadContracts();
-    }, []);
+    }, [activeTab]);
 
     const loadContracts = async () => {
         setIsLoading(true);
         try {
-            const data = await getContracts(requestId || "");
-            setContracts(data);
+            const data = await DigitalContractService.getContracts(activeTab, 1, 50, true);
+            setContracts(data?.Many || []);
         } catch (error) {
             console.log("Lỗi tải danh sách hợp đồng:", error);
-            setContracts([]); // Đảm bảo contracts luôn là array
+            setContracts([]);
         } finally {
             setIsLoading(false);
         }
     };
 
+    const parseDotNetDate = (dateString?: string | null) => {
+        if (!dateString) return null;
+        const match = dateString.match(/\/Date\((\d+)[+\-]?\d*\)\//);
+        if (match && match[1]) {
+            return new Date(parseInt(match[1], 10));
+        }
+        return new Date(dateString);
+    };
+
     const getStatusInfo = (status: number) => {
         switch (status) {
-            case 0: return { label: "Chờ duyệt", color: "#FBC02D", bg: isDark ? "#3E2723" : "#FFF9E6", type: "waiting" };
-            case 1: return { label: "Hoàn thành", color: "#4CAF50", bg: isDark ? "#1B5E20" : "#E8F5E9", type: "completed" };
-            case 2: return { label: "Từ chối", color: "#E53935", bg: isDark ? "#4A1010" : "#FFEBEE", type: "rejected" };
-            default: return { label: "Không xác định", color: "#9E9E9E", bg: "#F5F5F5", type: "unknown" };
+            case 0: return { label: "Chờ ký", color: "#FBC02D", bg: isDark ? "#3E2723" : "#FFF9E6", type: "waiting" };
+            case 1: return { label: "Hoàn tất", color: "#2196F3", bg: isDark ? "#122A40" : "#E3F2FD", type: "completed" };
+            case 2: return { label: "Từ chối", color: "#E53935", bg: isDark ? "#4A1010" : "#FFEBEE", type: "canceled" };
+            case 3: return { label: "Đã ký", color: "#4CAF50", bg: isDark ? "#1B5E20" : "#E8F5E9", type: "signed" };
+            default: return { label: "Không xác định", color: "#9E9E9E", bg: isDark ? "#2A2A2A" : "#F5F5F5", type: "unknown" };
         }
     };
 
     const filteredContracts = contracts.filter((c) => {
-        const matchFilter = activeFilter === "all" || c.Status.toString() === activeFilter;
-        const matchSearch =
-            c.ContractName.toLowerCase().includes(searchText.toLowerCase());
-        return matchFilter && matchSearch;
+        const title = c.ContractName || c.Name || "";
+        const company = c.CompanyAName || "";
+        const matchSearch = title.toLowerCase().includes(searchText.toLowerCase()) ||
+            company.toLowerCase().includes(searchText.toLowerCase());
+        return matchSearch;
     });
 
-    const renderItem = ({ item }: { item: Contract }) => {
+    const renderItem = ({ item }: { item: DigitalContract }) => {
         const statusInfo = getStatusInfo(item.Status);
         const isWaiting = item.Status === 0;
         const isRejected = item.Status === 2;
 
-        const displayDate = item.ContractDate
-            ? new Date(item.ContractDate).toLocaleString("vi-VN", {
+        const parsedDate = parseDotNetDate(item.RequestSentDate || item.CreatedDate);
+        const displayDate = parsedDate
+            ? parsedDate.toLocaleString("vi-VN", {
                 day: "2-digit",
                 month: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
+                year: "numeric"
             })
             : "N/A";
 
@@ -101,7 +112,7 @@ export default function DigitalContractsScreen() {
                 ]}
                 onPress={() => router.push({
                     pathname: "/contract-detail",
-                    params: { id: item.ContractId, name: item.ContractName }
+                    params: { id: item.Id, name: item.ContractName || item.Name, path: item.FileFinalPath || "" }
                 })}
             >
                 <View style={styles.cardMainRow}>
@@ -117,16 +128,23 @@ export default function DigitalContractsScreen() {
                         />
                     </View>
                     <View style={styles.contentContainer}>
-                        <ThemedText style={styles.contractTitle}>{item.ContractName}</ThemedText>
-                        <View style={styles.statusBadgeRow}>
-                            <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
-                                <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>
+                        <View style={styles.titleRow}>
+                            <ThemedText style={styles.contractTitle} numberOfLines={1}>
+                                {item.ContractName || item.Name}
+                            </ThemedText>
+                            <View style={[styles.statusBadgeSmall, { backgroundColor: statusInfo.bg }]}>
+                                <ThemedText style={[styles.statusTextSmall, { color: statusInfo.color }]}>
                                     {statusInfo.label}
                                 </ThemedText>
                             </View>
                         </View>
+
+                        <ThemedText style={styles.senderText} numberOfLines={1}>
+                            Người gửi: {item.CompanyAName || "Hệ thống"}
+                        </ThemedText>
+
                         <View style={styles.dateRow}>
-                            <MaterialCommunityIcons name="clock-outline" size={13} color="#9E9E9E" />
+                            <MaterialCommunityIcons name="calendar-outline" size={13} color="#9E9E9E" />
                             <ThemedText style={styles.dateText}>{displayDate}</ThemedText>
                         </View>
                     </View>
@@ -155,16 +173,9 @@ export default function DigitalContractsScreen() {
                     <View style={styles.headerBtns}>
                         <TouchableOpacity
                             style={[styles.headerIconBtn, showSearch && styles.headerIconBtnActive]}
-                            onPress={() => { setShowSearch(!showSearch); setShowFilter(false); }}
+                            onPress={() => setShowSearch(!showSearch)}
                         >
                             <MaterialCommunityIcons name="magnify" size={22} color="#FFF" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.headerIconBtn, showFilter && styles.headerIconBtnActive]}
-                            onPress={() => { setShowFilter(!showFilter); setShowSearch(false); }}
-                        >
-                            <MaterialCommunityIcons name="tune-variant" size={22} color="#FFF" />
-                            {activeFilter !== "all" && <View style={styles.filterDot} />}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -190,31 +201,32 @@ export default function DigitalContractsScreen() {
                 )}
             </LinearGradient>
 
-            {/* Filter Panel */}
-            {showFilter && (
-                <View style={[styles.filterPanel, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
-                    <ThemedText style={styles.filterPanelTitle}>Lọc theo trạng thái</ThemedText>
-                    <View style={styles.filterChips}>
-                        {STATUS_FILTERS.map((f) => (
-                            <TouchableOpacity
-                                key={f.key}
-                                style={[
-                                    styles.chip,
-                                    activeFilter === f.key && { backgroundColor: f.color, borderColor: f.color }
-                                ]}
-                                onPress={() => setActiveFilter(f.key)}
-                            >
-                                {activeFilter === f.key && (
-                                    <MaterialCommunityIcons name="check" size={14} color="#FFF" />
-                                )}
-                                <ThemedText style={[styles.chipText, activeFilter === f.key && { color: "#FFF" }]}>
-                                    {f.label}
-                                </ThemedText>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-            )}
+            {/* Horizontal Scrollable Tabs */}
+            <View style={[styles.tabsWrapper, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
+                <FlatList
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    data={CONTRACT_TABS}
+                    keyExtractor={(item) => item.key}
+                    contentContainerStyle={styles.tabsScroll}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            onPress={() => setActiveTab(item.key)}
+                            style={[
+                                styles.tabItem,
+                                activeTab === item.key && { borderBottomColor: item.color, borderBottomWidth: 3 }
+                            ]}
+                        >
+                            <ThemedText style={[
+                                styles.tabLabel,
+                                activeTab === item.key && { color: item.color, fontWeight: "700" }
+                            ]}>
+                                {item.label}
+                            </ThemedText>
+                        </TouchableOpacity>
+                    )}
+                />
+            </View>
 
             {isLoading ? (
                 <View style={styles.loadingContainer}>
@@ -225,7 +237,7 @@ export default function DigitalContractsScreen() {
                 <FlatList
                     data={filteredContracts}
                     renderItem={renderItem}
-                    keyExtractor={(item) => item.ContractId}
+                    keyExtractor={(item) => item.Id}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
@@ -420,17 +432,48 @@ const styles = StyleSheet.create({
         alignItems: "center", justifyContent: "center", marginRight: 14,
     },
     contentContainer: { flex: 1 },
-    contractTitle: { fontSize: 15, fontWeight: "700", marginBottom: 8, lineHeight: 20 },
-    statusBadge: {
-        alignSelf: "flex-start",
-        paddingHorizontal: 10, paddingVertical: 4,
-        borderRadius: 8,
+    titleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+        marginBottom: 4,
     },
-
-    statusText: { fontSize: 11, fontWeight: "700" },
-    senderText: { fontSize: 13, opacity: 0.55, marginBottom: 6 },
+    contractTitle: { flex: 1, fontSize: 16, fontWeight: "700" },
+    statusBadgeSmall: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    statusTextSmall: {
+        fontSize: 10,
+        fontWeight: "800",
+        textTransform: "uppercase",
+    },
+    senderText: {
+        fontSize: 13,
+        opacity: 0.7,
+        marginBottom: 6,
+    },
     dateRow: { flexDirection: "row", alignItems: "center", gap: 4 },
     dateText: { fontSize: 12, color: "#9E9E9E" },
+    tabsWrapper: {
+        borderBottomWidth: 1,
+        borderBottomColor: "rgba(0,0,0,0.05)",
+    },
+    tabsScroll: {
+        paddingHorizontal: 16,
+    },
+    tabItem: {
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        marginRight: 8,
+    },
+    tabLabel: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#999",
+    },
     empty: {
         alignItems: "center", justifyContent: "center",
         paddingVertical: 60, gap: 14,

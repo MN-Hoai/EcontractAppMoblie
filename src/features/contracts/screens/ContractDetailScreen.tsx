@@ -1,11 +1,11 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { checkCaStatus } from "@/services/contractService";
+import { checkCaStatus, executeExternalSignContract } from "@/services/contractService";
 import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -14,7 +14,7 @@ import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 
 const CONTRACT_INFO = [
@@ -42,6 +42,22 @@ export default function ContractDetailScreen() {
     const [showCaModal, setShowCaModal] = useState(false);
     const [caMessage, setCaMessage] = useState("");
 
+    // --- Sign Contract State ---
+    const [showProcessing, setShowProcessing] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [countdown, setCountdown] = useState(100);
+    const [signError, setSignError] = useState<string | null>(null);
+
+    // Countdown logic
+    useEffect(() => {
+        if (!showProcessing) return;
+        if (countdown <= 0) {
+            return;
+        }
+        const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+        return () => clearTimeout(t);
+    }, [showProcessing, countdown]);
+
     const getStepStyle = (status: string) => {
         if (status === "signed") return { dot: "#4CAF50", label: "Đã ký", color: "#4CAF50" };
         if (status === "waiting") return { dot: "#FBC02D", label: "Chờ ký", color: "#FBC02D" };
@@ -58,7 +74,8 @@ export default function ContractDetailScreen() {
             const message = res.Message ?? res.message ?? "Bạn chưa tích hợp chứng thư số";
 
             if (isSuccess && data === true) {
-                router.push("/sign-contract");
+                // Have CA -> trigger sign contract directly
+                handleProceedToSign();
             } else {
                 setCaMessage(message);
                 setShowCaModal(true);
@@ -68,6 +85,33 @@ export default function ContractDetailScreen() {
             Alert.alert("Lỗi", "Không thể kiểm tra trạng thái chứng thư số. Vui lòng thử lại.");
         } finally {
             setLoadingCa(false);
+        }
+    };
+
+    const handleProceedToSign = async () => {
+        const accountId = requestId || ""; // Or we might need user?.id if requestId is not right. Assuming requestId works for this screen context as per user implementation, but SignContractScreen used user?.id. Will use requestId as it was used in checkCaStatus here.
+        const contractId = (params.contractId as string) || (params.id as string) || ""; // Adjust based on how contractId is passed
+
+        setShowProcessing(true);
+        setSignError(null);
+        setCountdown(100);
+
+        console.log("===> executeExternalSignContract params:", { accountId, contractId });
+
+        try {
+            const signResponse = await executeExternalSignContract(accountId, contractId) as any;
+            const signSuccess = signResponse.Success ?? signResponse.success;
+
+            if (signSuccess) {
+                setShowProcessing(false);
+                setShowSuccess(true);
+            } else {
+                setShowProcessing(false);
+                setSignError(signResponse.Message ?? signResponse.message ?? "Lỗi ký hợp đồng từ hệ thống.");
+            }
+        } catch (err: any) {
+            setShowProcessing(false);
+            setSignError(err?.message || "Lỗi gọi API sign-contract.");
         }
     };
 
@@ -107,7 +151,10 @@ export default function ContractDetailScreen() {
                         </View>
                         <TouchableOpacity
                             style={styles.bannerViewBtn}
-                            onPress={() => router.push("/contract-content")}
+                            onPress={() => router.push({
+                                pathname: "/contract-content",
+                                params: { id: params.id, name: params.name, path: params.path }
+                            })}
                         >
                             <MaterialCommunityIcons name="file-eye-outline" size={18} color="#FFF" />
                             <ThemedText style={styles.bannerViewBtnText}>Xem chi tiết</ThemedText>
@@ -223,6 +270,46 @@ export default function ContractDetailScreen() {
                     </View>
                 </View>
             </Modal>
+
+            {/* ── Processing modal ── */}
+            <Modal visible={showProcessing} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: isDark ? "#1D3D47" : "#FFF", alignItems: "center" }]}>
+                        <LinearGradient colors={["#1565C0", "#2092EC"]} style={{ width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                            <MaterialCommunityIcons name="timer-sand" size={36} color="#FFF" />
+                        </LinearGradient>
+                        <ThemedText style={{ fontSize: 28, fontWeight: "900", color: "#1565C0", marginBottom: 6 }}>{countdown}s</ThemedText>
+                        <ThemedText style={{ fontSize: 17, fontWeight: "700", marginBottom: 10 }}>Đang chờ xác nhận</ThemedText>
+                        <ThemedText style={{ fontSize: 13, textAlign: "center", opacity: 0.7, marginBottom: 20 }}>Hệ thống đang xử lý yêu cầu ký hợp đồng. Vui lòng không đóng ứng dụng...</ThemedText>
+                        {signError && (
+                            <ThemedText style={{ color: "red", textAlign: "center", marginTop: 10 }}>{signError}</ThemedText>
+                        )}
+                        {signError && (
+                            <TouchableOpacity onPress={() => setShowProcessing(false)} style={{ marginTop: 20, padding: 10, backgroundColor: "#E0E0E0", borderRadius: 8 }}>
+                                <ThemedText style={{ color: "#333", fontWeight: "600" }}>Đóng</ThemedText>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ── Success modal ── */}
+            <Modal visible={showSuccess} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: isDark ? "#1D3D47" : "#FFF", alignItems: "center", paddingVertical: 32 }]}>
+                        <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#4CAF50", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                            <MaterialCommunityIcons name="check-bold" size={40} color="#FFF" />
+                        </View>
+                        <ThemedText style={{ fontSize: 22, fontWeight: "800", marginBottom: 10 }}>Ký số thành công!</ThemedText>
+                        <ThemedText style={{ fontSize: 13, textAlign: "center", opacity: 0.7, marginBottom: 24 }}>Quý khách đã thực hiện ký thành công hợp đồng này.</ThemedText>
+
+                        <TouchableOpacity style={{ backgroundColor: "#1565C0", borderRadius: 14, paddingVertical: 14, width: "100%", alignItems: "center", marginBottom: 10 }} onPress={() => { setShowSuccess(false); router.replace("/(tabs)" as any); }}>
+                            <ThemedText style={{ color: "#FFF", fontWeight: "700", fontSize: 15 }}>Về trang chủ</ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
         </SafeAreaView>
     );
 }

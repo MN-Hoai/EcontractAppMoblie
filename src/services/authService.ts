@@ -5,6 +5,7 @@ const API_BASE_URL = "https://api.officeai.vn/v1";
 export interface LoginRequest {
     email?: string;
     password?: string;
+    refresh_token?: string;
 }
 
 export interface UserInfo {
@@ -19,7 +20,7 @@ export interface UserInfo {
 export interface LoginResponseData {
     expires_at: string;
     refresh_token: string;
-    user: UserInfo;
+    user?: UserInfo;
     access_token: string;
 }
 
@@ -38,6 +39,17 @@ export const login = async (payload: LoginRequest): Promise<LoginResponse> => {
         return response.data;
     } catch (error) {
         console.log("Error during login:", error);
+        throw error;
+    }
+};
+
+export const refreshAccessToken = async (refreshToken: string): Promise<LoginResponse> => {
+    try {
+        const url = `${API_BASE_URL}/auth/refresh-token`; // Fallback to refresh-token endpoint
+        const response = await axios.post<LoginResponse>(url, { refresh_token: refreshToken });
+        return response.data;
+    } catch (error) {
+        console.log("Error during token refresh:", error);
         throw error;
     }
 };

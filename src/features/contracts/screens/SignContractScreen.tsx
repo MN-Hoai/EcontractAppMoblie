@@ -1,4 +1,4 @@
-import { confirmOtp, confirmSign, resendOtp } from "@/services/contractService";
+import { confirmOtp, confirmSign, executeExternalSignContract, resendOtp } from "@/services/contractService";
 import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -111,7 +111,7 @@ export default function SignContractScreen() {
     orderId: string;
   }>();
 
-  const { requestId } = useAuthStore();
+  const { requestId, user } = useAuthStore();
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
   const otpCardRef = useRef<View>(null);
@@ -138,9 +138,7 @@ export default function SignContractScreen() {
   /* Countdown after confirm success */
   useEffect(() => {
     if (!showProcessing || !isSuccessOtp) return;
-    if (countdown === 0) {
-      setShowProcessing(false);
-      setShowSuccess(true);
+    if (countdown <= 0) {
       return;
     }
     const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
@@ -172,8 +170,30 @@ export default function SignContractScreen() {
         return;
       }
 
+      // We set countdown to 100s as requested
+      const accountId = user?.id || "";
+      const contractId = params.orderId || ""; // Using orderId as contractId based on routing params availability
+
       setIsSuccessOtp(true);
-      setCountdown(5);
+      setCountdown(100);
+
+      console.log("===> executeExternalSignContract params:", { accountId, contractId });
+
+      try {
+        const signResponse = await executeExternalSignContract(accountId, contractId) as any;
+        const signSuccess = signResponse.Success ?? signResponse.success;
+
+        if (signSuccess) {
+          setShowProcessing(false);
+          setShowSuccess(true);
+        } else {
+          setShowProcessing(false);
+          setOtpError(signResponse.Message ?? signResponse.message ?? "Lỗi ký hợp đồng từ hệ thống.");
+        }
+      } catch (err: any) {
+        setShowProcessing(false);
+        setOtpError(err?.message || "Lỗi gọi API sign-contract.");
+      }
     } catch (error: any) {
       setShowProcessing(false);
       const rawMsg = error?.response?.data?.Message || error?.message || "Lỗi kết nối hoặc hệ thống. Vui lòng thử lại.";
@@ -431,9 +451,9 @@ export default function SignContractScreen() {
               <MaterialCommunityIcons name="timer-sand" size={36} color="#FFF" />
             </LinearGradient>
             <Text style={styles.modalCountdown}>{countdown}s</Text>
-            <Text style={styles.modalTitle}>Đang xử lý yêu cầu</Text>
+            <Text style={styles.modalTitle}>Đang chờ xác nhận</Text>
             <Text style={styles.modalMsg}>
-              Viettel đã tiếp nhận yêu cầu đăng ký Chứng thư số. Vui lòng chờ trong giây lát...
+              Hệ thống đang xử lý yêu cầu ký hợp đồng. Vui lòng không đóng ứng dụng...
             </Text>
             <View style={styles.processingDots}>
               {[0, 1, 2].map((i) => (

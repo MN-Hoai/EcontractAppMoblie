@@ -3,7 +3,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/store/authStore";
+import { getContracts, Contract } from "@/services/contractService";
 import {
     FlatList,
     SafeAreaView,
@@ -13,14 +15,14 @@ import {
     View,
 } from "react-native";
 
-const ALL_CONTRACTS = [
-    { id: "1", title: "Hợp đồng lao động - VNG", status: "Chờ duyệt", sender: "Nguyễn Văn A", date: "23/02/2026 09:00", type: "waiting" },
-    { id: "2", title: "Hợp đồng thuê nhà", status: "Hoàn thành", sender: "Trần Thị B", date: "20/02/2026 14:30", type: "completed" },
-    { id: "3", title: "Hợp đồng mua bán thiết bị", status: "Hoàn thành", sender: "Lê Văn C", date: "15/02/2026 10:15", type: "completed" },
-    { id: "4", title: "Hợp đồng dịch vụ tư vấn", status: "Chờ duyệt", sender: "Phạm Đức D", date: "12/02/2026 16:00", type: "waiting" },
-    { id: "5", title: "Hợp đồng cung cấp phần mềm", status: "Đang xử lý", sender: "Hữu Tín", date: "10/02/2026 08:45", type: "processing" },
-    { id: "6", title: "Biên bản thanh lý hợp đồng", status: "Hoàn thành", sender: "Minh Tuấn", date: "05/02/2026 11:00", type: "completed" },
-];
+// const ALL_CONTRACTS = [
+//     { id: "1", title: "Hợp đồng lao động - VNG", status: "Chờ duyệt", sender: "Nguyễn Văn A", date: "23/02/2026 09:00", type: "waiting" },
+//     { id: "2", title: "Hợp đồng thuê nhà", status: "Hoàn thành", sender: "Trần Thị B", date: "20/02/2026 14:30", type: "completed" },
+//     { id: "3", title: "Hợp đồng mua bán thiết bị", status: "Hoàn thành", sender: "Lê Văn C", date: "15/02/2026 10:15", type: "completed" },
+//     { id: "4", title: "Hợp đồng dịch vụ tư vấn", status: "Chờ duyệt", sender: "Phạm Đức D", date: "12/02/2026 16:00", type: "waiting" },
+//     { id: "5", title: "Hợp đồng cung cấp phần mềm", status: "Đang xử lý", sender: "Hữu Tín", date: "10/02/2026 08:45", type: "processing" },
+//     { id: "6", title: "Biên bản thanh lý hợp đồng", status: "Hoàn thành", sender: "Minh Tuấn", date: "05/02/2026 11:00", type: "completed" },
+// ];
 
 const STATUS_FILTERS = [
     { key: "all", label: "Tất cả", color: "#607D8B" },
@@ -33,11 +35,89 @@ export default function ContractsScreen() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const router = useRouter();
+    const { requestId } = useAuthStore();
+
+    const [contracts, setContracts] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     const [showSearch, setShowSearch] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [searchText, setSearchText] = useState("");
     const [activeFilter, setActiveFilter] = useState("all");
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchContracts = async () => {
+            if (!requestId) {
+                if (isMounted) setIsLoading(false);
+                return;
+            }
+            try {
+                setIsLoading(true);
+                const data = await getContracts(requestId);
+                if (isMounted) {
+                    // Map API Contract interface to Local UI format
+                    const mappedContracts = data.map((c: Contract) => {
+                        const cId = c.id || c.Id || "";
+                        // Mapping Status based on API value
+                        let typeStr = "processing";
+                        let statusText = "Đang xử lý";
+                        
+                        if (c.Status === 1) {
+                            typeStr = "processing";
+                            statusText = "Đang xử lý";
+                        } else if (c.Status === 2) {
+                            typeStr = "completed";
+                            statusText = "Hoàn thành";
+                        } else if (c.Status === 3 || c.Status === 4) {
+                            // Example mapping, adjust based on actual API definitions
+                            typeStr = "waiting";
+                            statusText = "Chờ duyệt";
+                        }
+
+                        // Formatting date: Expecting ISO format from API, if not leave as is
+                        let formattedDate = c.ContractDate;
+                        if (c.ContractDate && c.ContractDate.includes("T")) {
+                             const d = new Date(c.ContractDate);
+                             const dd = String(d.getDate()).padStart(2, "0");
+                             const mm = String(d.getMonth() + 1).padStart(2, "0");
+                             const yy = d.getFullYear();
+                             const hh = String(d.getHours()).padStart(2, "0");
+                             const min = String(d.getMinutes()).padStart(2, "0");
+                             formattedDate = `${dd}/${mm}/${yy} ${hh}:${min}`;
+                        } else if (c.ContractDate && !c.ContractDate.includes("/")) {
+                             // Assuming YYYY-MM-DD
+                             const parts = c.ContractDate.split("-");
+                             if (parts.length === 3) {
+                                  formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                             }
+                        }
+
+                        return {
+                            id: cId,
+                            title: c.ContractName || "Hợp đồng không tên",
+                            status: statusText,
+                            sender: "Hệ thống", // Or from API if available
+                            date: formattedDate || "—",
+                            type: typeStr,
+                            originalData: c
+                        };
+                    });
+                    setContracts(mappedContracts);
+                }
+            } catch (error) {
+                console.log("Failed to fetch contracts:", error);
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        fetchContracts();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [requestId]);
 
     const getStatusStyle = (type: string) => {
         switch (type) {
@@ -48,7 +128,7 @@ export default function ContractsScreen() {
         }
     };
 
-    const filteredContracts = ALL_CONTRACTS.filter((c) => {
+    const filteredContracts = contracts.filter((c) => {
         const matchFilter = activeFilter === "all" || c.type === activeFilter;
         const matchSearch =
             c.title.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -56,7 +136,7 @@ export default function ContractsScreen() {
         return matchFilter && matchSearch;
     });
 
-    const renderItem = ({ item }: { item: typeof ALL_CONTRACTS[0] }) => {
+    const renderItem = ({ item }: { item: any }) => {
         const statusStyle = getStatusStyle(item.type);
         const isWaiting = item.type === "waiting";
 
@@ -74,7 +154,7 @@ export default function ContractsScreen() {
                 ]}
                 onPress={() => router.push({
                     pathname: "/contract-detail",
-                    params: { id: item.id, name: item.title }
+                    params: { id: item.id, name: item.title, path: item.originalData.ContractPath }
                 })}
             >
                 <View style={styles.cardMainRow}>
@@ -102,14 +182,20 @@ export default function ContractsScreen() {
                         <View style={styles.actionButtons}>
                             <TouchableOpacity
                                 style={styles.viewBtn}
-                                onPress={() => router.push("/contract-content")}
+                                onPress={() => router.push({
+                                    pathname: "/contract-content",
+                                    params: { id: item.id, name: item.title, path: item.originalData.ContractPath }
+                                })}
                             >
                                 <MaterialCommunityIcons name="file-eye-outline" size={16} color="#5C6BC0" />
                                 <ThemedText style={styles.viewBtnText}>Xem</ThemedText>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.quickSignBtn}
-                                onPress={() => router.push("/sign-contract")}
+                                onPress={() => router.push({
+                                    pathname: "/sign-contract",
+                                    params: { id: item.id, name: item.title, path: item.originalData.ContractPath }
+                                })}
                             >
                                 <MaterialCommunityIcons name="pen" size={16} color="#FFF" />
                                 <ThemedText style={styles.quickSignText}>Ký ngay</ThemedText>
@@ -202,19 +288,25 @@ export default function ContractsScreen() {
                 </View>
             )}
 
-            <FlatList
-                data={filteredContracts}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    <View style={styles.empty}>
-                        <MaterialCommunityIcons name="file-search-outline" size={60} color={isDark ? "#1D3D47" : "#DDD"} />
-                        <ThemedText style={styles.emptyText}>Không tìm thấy hợp đồng</ThemedText>
-                    </View>
-                }
-            />
+            {isLoading ? (
+                <View style={[styles.empty, { flex: 1 }]}>
+                    <ThemedText style={{ color: isDark ? "#FFF" : "#666" }}>Đang tải danh sách hợp đồng...</ThemedText>
+                </View>
+            ) : (
+                <FlatList
+                    data={filteredContracts}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <View style={styles.empty}>
+                            <MaterialCommunityIcons name="file-search-outline" size={60} color={isDark ? "#1D3D47" : "#DDD"} />
+                            <ThemedText style={styles.emptyText}>Không tìm thấy hợp đồng</ThemedText>
+                        </View>
+                    }
+                />
+            )}
         </SafeAreaView>
     );
 }

@@ -1,7 +1,8 @@
-import axios from "axios";
 import * as FileSystem from "expo-file-system/legacy";
+import apiClient from "./apiClient";
 
-export const API_BASE_URL = "http://192.168.1.86:5000";
+export const API_BASE_URL = "http://192.168.1.82:5000";
+export const API_BASE_URL_PRODUCT = "https://contract.officeai.vn";
 
 /**
  * Helper function to convert relative path to full URL
@@ -13,7 +14,8 @@ export const getFullUrl = (path: string): string => {
 };
 
 export interface Contract {
-  ContractId: string;
+  id?: string;
+  Id?: string;
   ContractName: string;
   ContractPath: string;
   ContractDate: string;
@@ -29,9 +31,8 @@ export interface ContractApiResponse {
 export const getContracts = async (accountId: string): Promise<Contract[]> => {
   try {
     const url = `${API_BASE_URL}/api/contracts?accountId=${accountId}`;
-    const response = await axios.get(url);
+    const response = await apiClient.get(url);
 
-    // Xử lý cả 2 trường hợp: API trả về array trực tiếp hoặc { data: [...] }
     const result = response.data;
     if (Array.isArray(result)) {
       return result;
@@ -57,9 +58,6 @@ export interface FdfData {
 export const parseFdfData = (fdfContent: string): FdfData => {
   const data: FdfData = {};
 
-  // FDF format typically looks like:
-  // /T (FieldName) /V (Field Value)
-  // This regex extracts field names and values
   const fieldRegex = /\/T\s*\(\s*([^)]+)\s*\)\s*\/V\s*\(\s*([^)]*)\s*\)/g;
 
   let match;
@@ -79,7 +77,7 @@ export const fetchContractFdf = async (
 ): Promise<string> => {
   try {
     const url = `${API_BASE_URL}/api/contracts/${contractId}/fdf?accountId=${accountId}`;
-    const response = await axios.get(url, {
+    const response = await apiClient.get(url, {
       headers: {
         Accept: "application/x-fdf",
         "Content-Type": "application/x-fdf",
@@ -100,7 +98,7 @@ export const fetchFdfByUrl = async (fdfUrl: string): Promise<string> => {
       ? fdfUrl
       : `${API_BASE_URL}${fdfUrl}`;
 
-    const response = await axios.get(fullUrl, {
+    const response = await apiClient.get(fullUrl, {
       responseType: "text",
     });
 
@@ -117,11 +115,9 @@ export const fetchContractWithFdf = async (
   accountId: string,
 ): Promise<{ contractDetails: any; fdfData: FdfData }> => {
   try {
-    // Fetch contract details
     const contractUrl = `${API_BASE_URL}/api/contracts/${contractId}?accountId=${accountId}`;
-    const contractResponse = await axios.get(contractUrl);
+    const contractResponse = await apiClient.get(contractUrl);
 
-    // Fetch FDF data if available
     let fdfData: FdfData = {};
     if (contractResponse.data.fdfPath) {
       const fdfContent = await fetchFdfByUrl(contractResponse.data.fdfPath);
@@ -145,19 +141,16 @@ export const fetchContractWithFdf = async (
 export const getFileContract = async (contractId: string): Promise<string> => {
   const url = `${API_BASE_URL}/api/file-contract?ContractId=${contractId}`;
 
-  // Tạo tên file tạm trong cache
   const cacheDir = (FileSystem as any).cacheDirectory as string;
   if (!cacheDir) throw new Error("Không thể xác định thư mục cache.");
 
   const localUri = `${cacheDir}contract_${contractId}.pdf`;
 
-  // Kiểm tra nếu file đã cache thì dùng luôn
   const fileInfo = await (FileSystem as any).getInfoAsync(localUri);
   if (fileInfo.exists) {
     return localUri;
   }
 
-  // Download file từ server
   const result = await (FileSystem as any).downloadAsync(url, localUri);
   if (result.status !== 200) {
     throw new Error(`Tải file hợp đồng thất bại (HTTP ${result.status})`);
@@ -170,7 +163,6 @@ export interface CheckCaResponse {
   Success?: boolean;
   Message?: string;
   Data?: boolean;
-  // Cả trường hợp camelCase
   success?: boolean;
   message?: string;
   data?: boolean;
@@ -179,7 +171,7 @@ export interface CheckCaResponse {
 export const checkCaStatus = async (accountId: string): Promise<CheckCaResponse> => {
   try {
     const url = `${API_BASE_URL}/api/check-ca?accountId=${accountId}`;
-    const response = await axios.get(url);
+    const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
     console.log("Error checking CA status:", error);
@@ -190,7 +182,7 @@ export const checkCaStatus = async (accountId: string): Promise<CheckCaResponse>
 export const submitKycInfo = async (accountId: string, model: any) => {
   try {
     const url = `${API_BASE_URL}/api/infoid?accountId=${accountId}`;
-    const response = await axios.post(url, model);
+    const response = await apiClient.post(url, model);
     return response.data;
   } catch (error) {
     console.log("Error submitting KYC info:", error);
@@ -202,7 +194,6 @@ export interface NormalizeAddressResponse {
   Success?: boolean;
   Message?: string;
   Data?: any;
-  // camelCase fallback
   success?: boolean;
   message?: string;
   data?: any;
@@ -211,13 +202,12 @@ export interface NormalizeAddressResponse {
 export const normalizeAddress = async (accountId: string): Promise<NormalizeAddressResponse> => {
   try {
     const url = `${API_BASE_URL}/api/customer/address?accountId=${accountId}`;
-    const response = await axios.post(url, {});
+    const response = await apiClient.post(url, {});
     return response.data;
   } catch (error: any) {
-    // Nếu 405 thì thử lại với GET
     if (error?.response?.status === 405) {
       const url = `${API_BASE_URL}/api/customer/address?accountId=${accountId}`;
-      const retry = await axios.get(url);
+      const retry = await apiClient.get(url);
       return retry.data;
     }
     console.log("Error normalizing address:", error);
@@ -229,7 +219,6 @@ export interface OrderCAResponse {
   Success?: boolean;
   Message?: string;
   Data?: any;
-  // camelCase fallback
   success?: boolean;
   message?: string;
   data?: any;
@@ -238,10 +227,9 @@ export interface OrderCAResponse {
 export const orderCA = async (accountId: string): Promise<OrderCAResponse> => {
   try {
     const url = `${API_BASE_URL}/api/order-ca?accountId=${accountId}`;
-    const response = await axios.post(url, {});
+    const response = await apiClient.post(url, {});
     const result = response.data;
 
-    // Nếu thành công thì gọi ngầm viewOrder
     if (result.Success || result.success) {
       viewOrder(accountId).catch((err) =>
         console.warn("Lỗi gọi ngầm viewOrder:", err)
@@ -261,7 +249,6 @@ export interface OrderInfoData {
   Gender?: string;
   PermanentAddress?: string;
   OrderID?: string;
-  // camelCase fallback
   fullName?: string;
   dateOfBirth?: string;
   gender?: string;
@@ -281,13 +268,12 @@ export interface OrderInfoResponse {
 export const getOrderInfo = async (accountId: string): Promise<OrderInfoResponse> => {
   try {
     const url = `${API_BASE_URL}/api/order/customer?accountId=${accountId}`;
-    const response = await axios.post(url, {});   // POST theo backend [HttpPost]
+    const response = await apiClient.post(url, {});
     return response.data;
   } catch (error: any) {
-    // Nếu 405 thì thử lại với GET
     if (error?.response?.status === 405) {
       const url = `${API_BASE_URL}/api/order/customer?accountId=${accountId}`;
-      const retry = await axios.get(url);
+      const retry = await apiClient.get(url);
       return retry.data;
     }
     console.log("Error fetching order info:", error);
@@ -298,7 +284,7 @@ export const getOrderInfo = async (accountId: string): Promise<OrderInfoResponse
 export const approveHandOver = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/approve-handover?accountId=${accountId}`;
-    const response = await axios.post(url, {});
+    const response = await apiClient.post(url, {});
     return response.data;
   } catch (error) {
     console.log("Error approve handover:", error);
@@ -309,7 +295,7 @@ export const approveHandOver = async (accountId: string) => {
 export const viewOrder = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/view-order?accountId=${accountId}`;
-    const response = await axios.post(url, {});
+    const response = await apiClient.post(url, {});
     return response.data;
   } catch (error) {
     console.log("Error view order:", error);
@@ -326,8 +312,6 @@ export interface CertificateCloudCaInfo {
   serialNumber?: string;
   subject?: string;
   createdDate?: string;
-
-  // PascalCase fallback for direct API mappings
   FromDate?: string;
   ToDate?: string;
   Issuer?: string;
@@ -335,12 +319,10 @@ export interface CertificateCloudCaInfo {
   Subject?: string;
 }
 
-
-
 export const getCloudCaInfo = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/cloud-ca-info?accountId=${accountId}`;
-    const response = await axios.get(url);
+    const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
     console.log("Error get cloud ca info:", error);
@@ -348,7 +330,6 @@ export const getCloudCaInfo = async (accountId: string) => {
   }
 };
 
-/* ─── Cert Info (api/cert-info) ─────────────────────────────── */
 export interface CertInfo {
   id?: number;
   requestId?: string;
@@ -361,7 +342,6 @@ export interface CertInfo {
   serialNumber?: string;
   validFrom?: string;
   validTo?: string;
-  // PascalCase fallback
   CredentialId?: string;
   SubscriberId?: string;
   PhoneNumber?: string;
@@ -382,11 +362,10 @@ export interface CertInfoResponse {
   Data?: CertInfo;
 }
 
-/** POST api/import-cert?accountId=<id> – không truyền userId */
 export const importCertificate = async (accountId: string): Promise<CertInfoResponse> => {
   try {
     const url = `${API_BASE_URL}/api/import-cert?accountId=${accountId}`;
-    const response = await axios.post(url, {});
+    const response = await apiClient.post(url, {});
     return response.data;
   } catch (error) {
     console.log("Error import certificate:", error);
@@ -394,11 +373,10 @@ export const importCertificate = async (accountId: string): Promise<CertInfoResp
   }
 };
 
-/** GET api/cert-info?accountId=<id> – lấy thông tin chứng thư số đã import */
 export const getCertInfo = async (accountId: string): Promise<CertInfoResponse> => {
   try {
     const url = `${API_BASE_URL}/api/cert-info?accountId=${accountId}`;
-    const response = await axios.get(url);
+    const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
     console.log("Error get cert info:", error);
@@ -406,12 +384,10 @@ export const getCertInfo = async (accountId: string): Promise<CertInfoResponse> 
   }
 };
 
-
-
 export const confirmSign = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/confirm-sign?accountId=${accountId}`;
-    const response = await axios.post(url, {});
+    const response = await apiClient.post(url, {});
     return response.data;
   } catch (error) {
     console.log("Error confirm sign:", error);
@@ -422,7 +398,7 @@ export const confirmSign = async (accountId: string) => {
 export const resendOtp = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/resend-otp?accountId=${accountId}`;
-    const response = await axios.post(url, {});
+    const response = await apiClient.post(url, {});
     return response.data;
   } catch (error) {
     console.log("Error resend otp:", error);
@@ -433,7 +409,7 @@ export const resendOtp = async (accountId: string) => {
 export const confirmOtp = async (accountId: string, otpCode: string) => {
   try {
     const url = `${API_BASE_URL}/api/confirm-otp?accountId=${accountId}&otpCode=${otpCode}`;
-    const response = await axios.post(url, {});
+    const response = await apiClient.post(url, {});
     return response.data;
   } catch (error) {
     console.log("Error confirm otp:", error);
@@ -441,12 +417,10 @@ export const confirmOtp = async (accountId: string, otpCode: string) => {
   }
 };
 
-
-
 export const submitKycImages = async (accountId: string, formData: FormData) => {
   try {
     const url = `${API_BASE_URL}/api/imageid?accountId=${accountId}`;
-    const response = await axios.post(url, formData, {
+    const response = await apiClient.post(url, formData, {
       headers: { "Content-Type": "multipart/form-data" }
     });
     return response.data;
@@ -466,7 +440,7 @@ export interface CustomerRequestDTO {
 export const checkCustomerExist = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/check-customer-exist?accountId=${accountId}`;
-    const response = await axios.get(url);
+    const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
     console.log("Error check customer exist:", error);
@@ -477,10 +451,21 @@ export const checkCustomerExist = async (accountId: string) => {
 export const addOrUpdateCustomer = async (accountId: string, model: CustomerRequestDTO) => {
   try {
     const url = `${API_BASE_URL}/api/customer?accountId=${accountId}`;
-    const response = await axios.post(url, model);
+    const response = await apiClient.post(url, model);
     return response.data;
   } catch (error) {
     console.log("Error add or update customer:", error);
+    throw error;
+  }
+};
+
+export const executeExternalSignContract = async (accountId: string, contractId: string) => {
+  try {
+    const url = `http://192.168.1.82:5000/api/sign-contract?accountId=${accountId}&contractId=${contractId}`;
+    const response = await apiClient.post(url, {}, { timeout: 100000 });
+    return response.data;
+  } catch (error) {
+    console.log("Error execute external sign contract:", error);
     throw error;
   }
 };
