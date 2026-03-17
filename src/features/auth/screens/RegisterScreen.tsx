@@ -168,7 +168,7 @@ export default function RegisterScreen() {
                                     <ActivityIndicator color="#FFF" />
                                 ) : (
                                     <>
-                                        <ThemedText style={styles.registerButtonText}>Đăng ký ngay</ThemedText>
+                                        <ThemedText style={styles.registerButtonText}>Đăng ký ngay </ThemedText>
                                         <MaterialCommunityIcons name="chevron-right" size={20} color="#FFF" style={{ marginLeft: 4 }} />
                                     </>
                                 )}
@@ -190,6 +190,8 @@ export default function RegisterScreen() {
 
 function InputField({ label, icon, isDark, ...props }: any) {
     const [isFocused, setIsFocused] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const isPasswordField = props.secureTextEntry !== undefined;
 
     return (
         <View style={styles.inputWrapper}>
@@ -221,7 +223,20 @@ function InputField({ label, icon, isDark, ...props }: any) {
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
                     {...props}
+                    secureTextEntry={isPasswordField ? !showPassword : props.secureTextEntry}
                 />
+                {isPasswordField && (
+                    <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={{ paddingRight: 12 }}
+                    >
+                        <MaterialCommunityIcons
+                            name={showPassword ? "eye-off-outline" : "eye-outline"}
+                            size={20}
+                            color={isFocused ? "#2092EC" : (isDark ? "#64748B" : "#94A3B8")}
+                        />
+                    </TouchableOpacity>
+                )}
             </View>
         </View>
     );

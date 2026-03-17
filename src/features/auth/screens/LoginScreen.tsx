@@ -28,6 +28,7 @@ export default function LoginScreen() {
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     const [showCustomerModal, setShowCustomerModal] = useState(false);
     const [tempAuthData, setTempAuthData] = useState<any>(null);
@@ -217,10 +218,20 @@ export default function LoginScreen() {
                             style={[styles.input, { color: isDark ? "#FFF" : "#333" }]}
                             placeholder="Nhập mật khẩu"
                             placeholderTextColor={isDark ? "#666" : "#AAA"}
-                            secureTextEntry
+                            secureTextEntry={!showPassword}
                             value={password}
                             onChangeText={setPassword}
                         />
+                        <TouchableOpacity
+                            onPress={() => setShowPassword(!showPassword)}
+                            style={{ padding: 4 }}
+                        >
+                            <MaterialCommunityIcons
+                                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                size={20}
+                                color={isDark ? "#AAA" : "#666"}
+                            />
+                        </TouchableOpacity>
                     </View>
 
                     {errorMessage ? (
