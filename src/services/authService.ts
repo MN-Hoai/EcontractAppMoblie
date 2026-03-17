@@ -51,7 +51,7 @@ export interface LoginResponse {
 
 export const registerAccount = async (payload: RegisterRequest): Promise<RegisterResponse> => {
     try {
-        const url = `${API_BASE_URL}/auth/register`;
+        const url = `https://officeai.vn/v1/auth/register`;
         const response = await axios.post<RegisterResponse>(url, payload);
         return response.data;
     } catch (error) {

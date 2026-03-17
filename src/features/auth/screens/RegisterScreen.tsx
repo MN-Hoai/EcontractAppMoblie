@@ -55,7 +55,14 @@ export default function RegisterScreen() {
                 { text: "OK", onPress: () => router.replace("/login") }
             ]);
         } catch (error: any) {
-            Alert.alert("Lỗi đăng ký", error?.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại.");
+            console.log("Register error:", error?.response?.data || error.message);
+            let errorMsg = error?.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại.";
+            if (Array.isArray(errorMsg)) {
+                errorMsg = errorMsg.join("\n");
+            } else if (typeof errorMsg === "object") {
+                errorMsg = JSON.stringify(errorMsg);
+            }
+            Alert.alert("Lỗi đăng ký", String(errorMsg));
         } finally {
             setIsLoading(false);
         }
