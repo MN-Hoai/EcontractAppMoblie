@@ -88,7 +88,7 @@ export default function LoginScreen() {
                             console.log("Lỗi khi kiểm tra/tạo thông tin khách hàng:", err);
                             // Fallback - still log in even if customer check fails, Or keep it strictly
                         }
-                        
+
                         router.replace("/(tabs)");
                     } else {
                         // Fallback fallback
