@@ -1,11 +1,13 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { registerAccount } from "@/services/authService";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -29,12 +31,34 @@ export default function RegisterScreen() {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleRegister = async () => {
-        // Simplified for UI demo, assuming validation passes
+        if (!formData.email || !formData.password) {
+            Alert.alert("Lỗi", "Vui lòng nhập email và mật khẩu");
+            return;
+        }
+
         setIsLoading(true);
-        setTimeout(() => {
+        try {
+            const nameParts = formData.name.trim().split(" ");
+            const lastName = nameParts.length > 1 ? nameParts[0] : "";
+            const firstName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : formData.name;
+
+            await registerAccount({
+                email: formData.email,
+                password: formData.password,
+                username: formData.email,
+                first_name: firstName,
+                last_name: lastName,
+                avatar: ""
+            });
+
+            Alert.alert("Thành công", "Đăng ký tài khoản thành công", [
+                { text: "OK", onPress: () => router.replace("/login") }
+            ]);
+        } catch (error: any) {
+            Alert.alert("Lỗi đăng ký", error?.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại.");
+        } finally {
             setIsLoading(false);
-            router.replace("/login");
-        }, 1500);
+        }
     };
 
     return (

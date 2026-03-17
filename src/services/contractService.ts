@@ -1,7 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import apiClient from "./apiClient";
 
-export const API_BASE_URL = "http://192.168.1.82:5000";
+export const API_BASE_URL = "http://192.168.1.87:5000";
 export const API_BASE_URL_PRODUCT = "https://contract.officeai.vn";
 
 /**
