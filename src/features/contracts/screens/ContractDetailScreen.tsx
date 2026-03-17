@@ -25,11 +25,7 @@ const CONTRACT_INFO = [
     { label: "Loại hợp đồng", value: "Hợp đồng nội bộ" },
 ];
 
-const SIGN_STEPS = [
-    { name: "Phòng HR", role: "Giám đốc nhân sự", status: "signed" },
-    { name: "Ban Kinh doanh", role: "Trưởng phòng", status: "waiting" },
-    { name: "Tổng giám đốc", role: "CEO", status: "pending" },
-];
+
 
 export default function ContractDetailScreen() {
     const colorScheme = useColorScheme();
@@ -58,11 +54,7 @@ export default function ContractDetailScreen() {
         return () => clearTimeout(t);
     }, [showProcessing, countdown]);
 
-    const getStepStyle = (status: string) => {
-        if (status === "signed") return { dot: "#4CAF50", label: "Đã ký", color: "#4CAF50" };
-        if (status === "waiting") return { dot: "#FBC02D", label: "Chờ ký", color: "#FBC02D" };
-        return { dot: "#9E9E9E", label: "Chưa đến lượt", color: "#9E9E9E" };
-    };
+
 
     const handleSign = async () => {
         try {
@@ -146,14 +138,25 @@ export default function ContractDetailScreen() {
 
                     <View style={styles.bannerActionRow}>
                         <View style={styles.statusBadge}>
-                            <View style={styles.statusDot} />
-                            <ThemedText style={styles.statusText}>Chờ duyệt</ThemedText>
+                            <View style={[
+                                styles.statusDot, 
+                                { 
+                                    backgroundColor: params.status === '1' ? "#fcb628" : 
+                                                    params.status === '2' ? "#72e028" : 
+                                                    params.status === '0' ? "#484848" : "#ff4d4a" 
+                                }
+                            ]} />
+                            <ThemedText style={styles.statusText}>
+                                {params.status === '1' ? "Chờ ký" : 
+                                 params.status === '2' ? "Đã ký " : 
+                                 params.status === '0' ? "Nháp" : "Hủy"}
+                            </ThemedText>
                         </View>
                         <TouchableOpacity
                             style={styles.bannerViewBtn}
                             onPress={() => router.push({
                                 pathname: "/contract-content",
-                                params: { id: params.id, name: params.name, path: params.path }
+                                params: { id: params.id, name: params.name, path: params.path, status: params.status }
                             })}
                         >
                             <MaterialCommunityIcons name="file-eye-outline" size={18} color="#FFF" />
@@ -178,56 +181,35 @@ export default function ContractDetailScreen() {
                     ))}
                 </View>
 
-                {/* Sign Flow */}
-                <View style={[styles.card, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
-                    <ThemedText style={styles.cardTitle}>Luồng ký duyệt</ThemedText>
-                    {SIGN_STEPS.map((step, idx) => {
-                        const s = getStepStyle(step.status);
-                        return (
-                            <View key={idx} style={styles.stepRow}>
-                                <View style={styles.stepTrack}>
-                                    <View style={[styles.stepDot, { backgroundColor: s.dot }]}>
-                                        {step.status === "signed" && <MaterialCommunityIcons name="check" size={11} color="#FFF" />}
-                                    </View>
-                                    {idx < SIGN_STEPS.length - 1 && (
-                                        <View style={[styles.stepLine, { backgroundColor: idx === 0 ? "#4CAF50" : "rgba(0,0,0,0.07)" }]} />
-                                    )}
-                                </View>
-                                <View style={styles.stepInfo}>
-                                    <ThemedText style={styles.stepName}>{step.name}</ThemedText>
-                                    <ThemedText style={styles.stepRole}>{step.role}</ThemedText>
-                                    <ThemedText style={[styles.stepStatus, { color: s.color }]}>{s.label}</ThemedText>
-                                </View>
-                            </View>
-                        );
-                    })}
-                </View>
+
 
                 {/* Action Buttons */}
-                <View style={styles.actionRow}>
-                    <TouchableOpacity
-                        style={styles.rejectBtn}
-                        onPress={() => router.back()}
-                    >
-                        <MaterialCommunityIcons name="close-circle-outline" size={20} color="#64748B" />
-                        <ThemedText style={styles.rejectBtnText}>Từ chối</ThemedText>
-                    </TouchableOpacity>
+                {params.status === '1' && (
+                    <View style={styles.actionRow}>
+                        <TouchableOpacity
+                            style={styles.rejectBtn}
+                            onPress={() => router.back()}
+                        >
+                            <MaterialCommunityIcons name="close-circle-outline" size={20} color="#64748B" />
+                            <ThemedText style={styles.rejectBtnText}>Từ chối</ThemedText>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.signBtn}
-                        onPress={handleSign}
-                        disabled={loadingCa}
-                    >
-                        {loadingCa ? (
-                            <ActivityIndicator size="small" color="#FFF" />
-                        ) : (
-                            <MaterialCommunityIcons name="pen" size={20} color="#FFF" />
-                        )}
-                        <ThemedText style={styles.signBtnText}>
-                            {loadingCa ? "Đang kiểm tra..." : "Ký duyệt"}
-                        </ThemedText>
-                    </TouchableOpacity>
-                </View>
+                        <TouchableOpacity
+                            style={styles.signBtn}
+                            onPress={handleSign}
+                            disabled={loadingCa}
+                        >
+                            {loadingCa ? (
+                                <ActivityIndicator size="small" color="#FFF" />
+                            ) : (
+                                <MaterialCommunityIcons name="pen" size={20} color="#FFF" />
+                            )}
+                            <ThemedText style={styles.signBtnText}>
+                                {loadingCa ? "Đang kiểm tra..." : "Ký duyệt"}
+                            </ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                )}
             </ScrollView>
 
             {/* Custom Modal Chứng thư số */}

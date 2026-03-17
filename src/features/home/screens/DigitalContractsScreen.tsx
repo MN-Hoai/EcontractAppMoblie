@@ -6,7 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -14,15 +14,17 @@ import {
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    View
+    View,
 } from "react-native";
+import Animated, { FadeInDown, Layout } from "react-native-reanimated";
 
 const CONTRACT_TABS = [
-    { key: "waiting", label: "Chờ ký", color: "#FBC02D" },
-    { key: "my", label: "Tôi lập", color: "#9C27B0" },
-    { key: "completed", label: "Hoàn tất", color: "#2196F3" },
+    { key: "waiting", label: "Chờ ký", color: "#fcb628" },
+    { key: "my", label: "Tôi lập", color: "#796dffff" },
+    { key: "completed", label: "Hoàn tất", color: "#72e028" },
+    { key: "signed", label: "Đã ký ", color: "#72e028" },
     { key: "canceled", label: "Từ chối", color: "#E53935" },
-    { key: "signed", label: "Đã ký", color: "#4CAF50" },
+
 ];
 
 export default function DigitalContractsScreen() {
@@ -30,28 +32,91 @@ export default function DigitalContractsScreen() {
     const isDark = colorScheme === "dark";
     const router = useRouter();
     const { requestId } = useAuthStore();
+    const flatListRef = useRef<FlatList>(null);
 
     const [contracts, setContracts] = useState<DigitalContract[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const [pageSize, setPageSize] = useState(20);
+    const totalPages = Math.ceil(totalCount / pageSize) || 1;
+
     const [showSearch, setShowSearch] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
+    const [showPagination, setShowPagination] = useState(false);
     const [searchText, setSearchText] = useState("");
+    const [debouncedSearchText, setDebouncedSearchText] = useState("");
     const [activeTab, setActiveTab] = useState("waiting");
 
     useEffect(() => {
-        loadContracts();
-    }, [activeTab]);
+        const handler = setTimeout(() => {
+            setDebouncedSearchText(searchText);
+        }, 2000);
 
-    const loadContracts = async () => {
-        setIsLoading(true);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [searchText]);
+
+    useEffect(() => {
+        loadContracts(1);
+    }, [activeTab, debouncedSearchText, pageSize]);
+
+    const loadContracts = async (pageNumber: number, showRefreshing: boolean = false) => {
+        if (showRefreshing) setIsRefreshing(true);
+        else setIsLoading(true);
+
         try {
-            const data = await DigitalContractService.getContracts(activeTab, 1, 50, true);
+            const data = await DigitalContractService.getContracts(
+                activeTab,
+                pageNumber,
+                pageSize,
+                true,
+                debouncedSearchText
+            );
             setContracts(data?.Many || []);
+            setTotalCount(data?.Count || 0);
+            setPage(pageNumber);
+
+            // Tự động cuộn lên đầu khi sang trang mới
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
         } catch (error) {
             console.log("Lỗi tải danh sách hợp đồng:", error);
             setContracts([]);
         } finally {
             setIsLoading(false);
+            setIsRefreshing(false);
+        }
+    };
+
+    const handleRefresh = () => {
+        // Kéo lên (Pull to refresh) -> Giảm trang nếu đang ở trang > 1 để trở về trang trước
+        if (page > 1) {
+            loadContracts(page - 1, true);
+        } else {
+            loadContracts(1, true);
+        }
+    };
+
+    const handlePrevPage = () => {
+        if (page > 1) {
+            loadContracts(page - 1);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (page < totalPages) {
+            loadContracts(page + 1);
+        }
+    };
+
+
+
+    const handleLoadMore = () => {
+        // Tăng trang (đi tới trang tiếp) khi kéo xuống cuối
+        if (!isLoading && page < totalPages) {
+            handleNextPage();
         }
     };
 
@@ -64,30 +129,57 @@ export default function DigitalContractsScreen() {
         return new Date(dateString);
     };
 
-    const getStatusInfo = (status: number) => {
+    const getStatusInfo = (status: number, currentTab: string) => {
         switch (status) {
-            case 0: return { label: "Chờ ký", color: "#FBC02D", bg: isDark ? "#3E2723" : "#FFF9E6", type: "waiting" };
-            case 1: return { label: "Hoàn tất", color: "#2196F3", bg: isDark ? "#122A40" : "#E3F2FD", type: "completed" };
-            case 2: return { label: "Từ chối", color: "#E53935", bg: isDark ? "#4A1010" : "#FFEBEE", type: "canceled" };
-            case 3: return { label: "Đã ký", color: "#4CAF50", bg: isDark ? "#1B5E20" : "#E8F5E9", type: "signed" };
-            default: return { label: "Không xác định", color: "#9E9E9E", bg: isDark ? "#2A2A2A" : "#F5F5F5", type: "unknown" };
+            case 0:
+                return {
+                    label: "Nháp",
+                    color: "#484848",
+                    bg: isDark ? "#2A2A2A" : "#F5F5F5",
+                    icon: "file-edit-outline"
+                };
+            case 1:
+                return {
+                    label: "Chờ ký",
+                    color: "#fcb628",
+                    bg: isDark ? "#3E2723" : "#FFF9E6",
+                    icon: "pen-lock"
+                };
+            case 2:
+                return {
+                    label: "Đã ký",
+                    color: "#72e028",
+                    bg: isDark ? "#1B5E20" : "#E8F5E9",
+                    icon: "file-certificate-outline"
+                };
+            case -1:
+                return {
+                    label: "Hủy",
+                    color: "#ff4d4a",
+                    bg: isDark ? "#4A1010" : "#FFEBEE",
+                    icon: "file-cancel-outline"
+                };
+            default:
+                return {
+                    label: "Không xác định",
+                    color: "#9E9E9E",
+                    bg: isDark ? "#2A2A2A" : "#F5F5F5",
+                    icon: "file-question-outline"
+                };
         }
     };
 
-    const filteredContracts = contracts.filter((c) => {
-        const title = c.ContractName || c.Name || "";
-        const company = c.CompanyAName || "";
-        const matchSearch = title.toLowerCase().includes(searchText.toLowerCase()) ||
-            company.toLowerCase().includes(searchText.toLowerCase());
-        return matchSearch;
-    });
+
 
     const renderItem = ({ item }: { item: DigitalContract }) => {
-        const statusInfo = getStatusInfo(item.Status);
-        const isWaiting = item.Status === 0;
-        const isRejected = item.Status === 2;
+        const contractInfo = item.Contract;
+        if (!contractInfo) return null;
 
-        const parsedDate = parseDotNetDate(item.RequestSentDate || item.CreatedDate);
+        const statusInfo = getStatusInfo(contractInfo.Status, activeTab);
+        const isWaiting = contractInfo.Status === 0;
+        const isRejected = contractInfo.Status === 2;
+
+        const parsedDate = parseDotNetDate(contractInfo.RequestSentDate || contractInfo.CreatedDate);
         const displayDate = parsedDate
             ? parsedDate.toLocaleString("vi-VN", {
                 day: "2-digit",
@@ -96,60 +188,71 @@ export default function DigitalContractsScreen() {
             })
             : "N/A";
 
+        // Sử dụng Path thay cho FileFinalPath (Ưu tiên DocumentFinal)
+        const filePath = item.DocumentFinal?.Path || item.DocumentOriginal?.Path || contractInfo.FileFinalPath || "";
+
         return (
-            <TouchableOpacity
-                style={[
-                    styles.contractCard,
-                    {
-                        backgroundColor: isWaiting
-                            ? (isDark ? "#2D2418" : "#FFFBEB")
-                            : isRejected
-                                ? (isDark ? "#2C0A0A" : "#FFF5F5")
-                                : (isDark ? "#1D3D47" : "#FFF"),
-                        borderWidth: isWaiting || isRejected ? 1 : 0,
-                        borderColor: isWaiting ? "#FBC02D" : isRejected ? "#E53935" : "transparent",
-                    }
-                ]}
-                onPress={() => router.push({
-                    pathname: "/contract-detail",
-                    params: { id: item.Id, name: item.ContractName || item.Name, path: item.FileFinalPath || "" }
-                })}
+            <Animated.View
+                entering={FadeInDown.duration(400).delay(100)}
+                layout={Layout.springify()}
             >
-                <View style={styles.cardMainRow}>
-                    <View style={[styles.iconContainer, {
-                        backgroundColor: isRejected
-                            ? (isDark ? "#4A0E0E" : "#FFEBEE")
-                            : (isDark ? "#2C5364" : "#E3F2FD")
-                    }]}>
-                        <MaterialCommunityIcons
-                            name={isRejected ? "file-alert-outline" : "file-document-outline"}
-                            size={24}
-                            color={isRejected ? "#E53935" : "#2196F3"}
-                        />
-                    </View>
-                    <View style={styles.contentContainer}>
-                        <View style={styles.titleRow}>
-                            <ThemedText style={styles.contractTitle} numberOfLines={1}>
-                                {item.ContractName || item.Name}
-                            </ThemedText>
-                            <View style={[styles.statusBadgeSmall, { backgroundColor: statusInfo.bg }]}>
-                                <ThemedText style={[styles.statusTextSmall, { color: statusInfo.color }]}>
-                                    {statusInfo.label}
+                <TouchableOpacity
+                    style={[
+                        styles.contractCard,
+                        {
+                            backgroundColor: isDark ? "#1D3D47" : "#FFF",
+                            borderWidth: 0,
+                        }
+                    ]}
+                    onPress={() => router.push({
+                        pathname: "/contract-detail",
+                        params: {
+                            id: contractInfo.Id,
+                            name: contractInfo.ContractName || contractInfo.Name,
+                            path: filePath,
+                            status: contractInfo.Status
+                        }
+                    })}
+                >
+                    <View style={styles.cardMainRow}>
+                        <View style={[styles.iconContainer, { backgroundColor: statusInfo.bg }]}>
+                            <MaterialCommunityIcons
+                                name={statusInfo.icon as any}
+                                size={24}
+                                color={statusInfo.color}
+                            />
+                        </View>
+                        <View style={styles.contentContainer}>
+                            <View style={styles.titleRow}>
+                                <ThemedText style={styles.contractTitle} numberOfLines={1}>
+                                    {contractInfo.ContractName || contractInfo.Name}
                                 </ThemedText>
+                                <View style={[
+                                    styles.statusBadgeSmall,
+                                    {
+                                        backgroundColor: 'transparent',
+                                        borderWidth: 1,
+                                        borderColor: statusInfo.color,
+                                    }
+                                ]}>
+                                    <ThemedText style={[styles.statusTextSmall, { color: statusInfo.color }]}>
+                                        {statusInfo.label}
+                                    </ThemedText>
+                                </View>
+                            </View>
+
+                            <ThemedText style={styles.senderText} numberOfLines={1}>
+                                Người gửi: {contractInfo.CompanyAName || "Hệ thống"}
+                            </ThemedText>
+
+                            <View style={styles.dateRow}>
+                                <MaterialCommunityIcons name="calendar-outline" size={13} color="#9E9E9E" />
+                                <ThemedText style={styles.dateText}>{displayDate}</ThemedText>
                             </View>
                         </View>
-
-                        <ThemedText style={styles.senderText} numberOfLines={1}>
-                            Người gửi: {item.CompanyAName || "Hệ thống"}
-                        </ThemedText>
-
-                        <View style={styles.dateRow}>
-                            <MaterialCommunityIcons name="calendar-outline" size={13} color="#9E9E9E" />
-                            <ThemedText style={styles.dateText}>{displayDate}</ThemedText>
-                        </View>
                     </View>
-                </View>
-            </TouchableOpacity>
+                </TouchableOpacity>
+            </Animated.View>
         );
     };
 
@@ -168,14 +271,21 @@ export default function DigitalContractsScreen() {
                     </TouchableOpacity>
                     <View style={styles.headerTitleBlock}>
                         <ThemedText style={styles.headerTitle}>Ký số điện tử</ThemedText>
-                        <ThemedText style={styles.headerCount}>{filteredContracts.length} hợp đồng</ThemedText>
+                        <ThemedText style={styles.headerCount}>{totalCount} hợp đồng</ThemedText>
                     </View>
                     <View style={styles.headerBtns}>
                         <TouchableOpacity
                             style={[styles.headerIconBtn, showSearch && styles.headerIconBtnActive]}
-                            onPress={() => setShowSearch(!showSearch)}
+                            onPress={() => { setShowSearch(!showSearch); setShowFilter(false); }}
                         >
                             <MaterialCommunityIcons name="magnify" size={22} color="#FFF" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.headerIconBtn, showFilter && styles.headerIconBtnActive]}
+                            onPress={() => { setShowFilter(!showFilter); setShowSearch(false); }}
+                        >
+                            <MaterialCommunityIcons name="tune-variant" size={22} color="#FFF" />
+                            {(activeTab !== "waiting" || pageSize !== 20 || showPagination) && <View style={styles.filterDot} />}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -201,32 +311,84 @@ export default function DigitalContractsScreen() {
                 )}
             </LinearGradient>
 
-            {/* Horizontal Scrollable Tabs */}
-            <View style={[styles.tabsWrapper, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
-                <FlatList
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    data={CONTRACT_TABS}
-                    keyExtractor={(item) => item.key}
-                    contentContainerStyle={styles.tabsScroll}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            onPress={() => setActiveTab(item.key)}
-                            style={[
-                                styles.tabItem,
-                                activeTab === item.key && { borderBottomColor: item.color, borderBottomWidth: 3 }
-                            ]}
-                        >
-                            <ThemedText style={[
-                                styles.tabLabel,
-                                activeTab === item.key && { color: item.color, fontWeight: "700" }
-                            ]}>
-                                {item.label}
-                            </ThemedText>
-                        </TouchableOpacity>
-                    )}
-                />
-            </View>
+            {/* Filter Panel (Replaces permanent Tabs) */}
+            {showFilter && (
+                <View style={[styles.filterPanel, { backgroundColor: isDark ? "#122026" : "#FFF" }]}>
+                    <ThemedText style={styles.filterPanelTitle}>Lọc theo trạng thái</ThemedText>
+                    <View style={styles.filterChips}>
+                        {CONTRACT_TABS.map((item) => {
+                            const isActive = activeTab === item.key;
+                            return (
+                                <TouchableOpacity
+                                    key={item.key}
+                                    onPress={() => {
+                                        setActiveTab(item.key);
+                                        // Option: setShowFilter(false); // Close after select
+                                    }}
+                                    style={[
+                                        styles.chip,
+                                        isActive && { backgroundColor: item.color, borderColor: item.color }
+                                    ]}
+                                >
+                                    {isActive && (
+                                        <MaterialCommunityIcons name="check" size={14} color="#FFF" />
+                                    )}
+                                    <ThemedText style={[styles.chipText, isActive && { color: "#FFF" }]}>
+                                        {item.label}
+                                    </ThemedText>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    <View style={{ flexDirection: "row", marginTop: 12, gap: 16 }}>
+                        <View style={{ flex: 1 }}>
+                            <ThemedText style={styles.filterPanelTitle}>Phân trang</ThemedText>
+                            <TouchableOpacity
+                                onPress={() => setShowPagination(!showPagination)}
+                                style={[
+                                    styles.chip,
+                                    { marginBottom: 0 },
+                                    showPagination && { backgroundColor: "#00ACC1", borderColor: "#00ACC1" }
+                                ]}
+                            >
+                                <MaterialCommunityIcons
+                                    name={showPagination ? "numeric" : "numeric-off"}
+                                    size={16}
+                                    color={showPagination ? "#FFF" : isDark ? "#CCC" : "#444"}
+                                />
+                                <ThemedText style={[styles.chipText, showPagination && { color: "#FFF" }]}>
+                                    Bật
+                                </ThemedText>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{ flex: 2.2 }}>
+                            <ThemedText style={styles.filterPanelTitle}>Số dòng hiển thị</ThemedText>
+                            <View style={[styles.filterChips, { gap: 4 }]}>
+                                {[20, 50, 100].map((size) => {
+                                    const isActive = pageSize === size;
+                                    return (
+                                        <TouchableOpacity
+                                            key={size}
+                                            onPress={() => setPageSize(size)}
+                                            style={[
+                                                styles.chip,
+                                                { paddingHorizontal: 10, flex: 1, justifyContent: 'center', marginBottom: 0 },
+                                                isActive && { backgroundColor: "#00ACC1", borderColor: "#00ACC1" }
+                                            ]}
+                                        >
+                                            <ThemedText style={[styles.chipText, { fontSize: 12 }, isActive && { color: "#FFF" }]}>
+                                                {size}
+                                            </ThemedText>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        </View>
+                    </View>
+                </View>
+            )}
 
             {isLoading ? (
                 <View style={styles.loadingContainer}>
@@ -235,11 +397,16 @@ export default function DigitalContractsScreen() {
                 </View>
             ) : (
                 <FlatList
-                    data={filteredContracts}
+                    ref={flatListRef}
+                    data={contracts}
                     renderItem={renderItem}
-                    keyExtractor={(item) => item.Id}
+                    keyExtractor={(item) => item.Contract?.Id || Math.random().toString()}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
+                    onRefresh={handleRefresh}
+                    refreshing={isRefreshing}
+                    onEndReached={handleLoadMore}
+                    onEndReachedThreshold={0.5}
                     ListEmptyComponent={
                         <View style={styles.empty}>
                             <MaterialCommunityIcons name="file-search-outline" size={60} color={isDark ? "#1D3D47" : "#DDD"} />
@@ -248,6 +415,32 @@ export default function DigitalContractsScreen() {
                     }
                 />
             )}
+
+            {/* Pagination Controls */}
+            {showPagination && totalCount > 0 && (
+                <View style={[styles.paginationBar, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
+                    <TouchableOpacity
+                        onPress={handlePrevPage}
+                        disabled={page === 1}
+                        style={[styles.pageBtn, page === 1 && { opacity: 0.3 }]}
+                    >
+                        <MaterialCommunityIcons name="chevron-left" size={24} color={isDark ? "#FFF" : "#333"} />
+                    </TouchableOpacity>
+
+                    <ThemedText style={styles.pageInfo}>
+                        Trang {page} / {totalPages}
+                    </ThemedText>
+
+                    <TouchableOpacity
+                        onPress={handleNextPage}
+                        disabled={page === totalPages}
+                        style={[styles.pageBtn, page === totalPages && { opacity: 0.3 }]}
+                    >
+                        <MaterialCommunityIcons name="chevron-right" size={24} color={isDark ? "#FFF" : "#333"} />
+                    </TouchableOpacity>
+                </View>
+            )}
+
         </SafeAreaView>
     );
 }
@@ -321,7 +514,7 @@ const styles = StyleSheet.create({
     },
     filterPanel: {
         paddingHorizontal: 16,
-        paddingVertical: 14,
+        paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: "rgba(0,0,0,0.05)",
         elevation: 2,
@@ -331,12 +524,12 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
     },
     filterPanelTitle: {
-        fontSize: 12,
-        opacity: 0.5,
+        fontSize: 11,
+        opacity: 0.6,
         fontWeight: "700",
         textTransform: "uppercase",
         letterSpacing: 0.5,
-        marginBottom: 12,
+        marginBottom: 8,
     },
     filterChips: {
         flexDirection: "row",
@@ -346,16 +539,18 @@ const styles = StyleSheet.create({
     chip: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 5,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: 20,
-        borderWidth: 1.5,
+        borderWidth: 1.2,
         borderColor: "rgba(0,0,0,0.1)",
+        marginBottom: 4,
     },
     chipText: {
         fontSize: 13,
         fontWeight: "600",
+        color: "#444",
     },
     listContent: {
         padding: 16,
@@ -448,7 +643,6 @@ const styles = StyleSheet.create({
     statusTextSmall: {
         fontSize: 10,
         fontWeight: "800",
-        textTransform: "uppercase",
     },
     senderText: {
         fontSize: 13,
@@ -458,21 +652,28 @@ const styles = StyleSheet.create({
     dateRow: { flexDirection: "row", alignItems: "center", gap: 4 },
     dateText: { fontSize: 12, color: "#9E9E9E" },
     tabsWrapper: {
+        paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: "rgba(0,0,0,0.05)",
     },
     tabsScroll: {
         paddingHorizontal: 16,
+        gap: 8,
     },
     tabItem: {
         paddingHorizontal: 16,
-        paddingVertical: 14,
-        marginRight: 8,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        borderColor: "rgba(0,0,0,0.05)",
+        backgroundColor: "rgba(0,0,0,0.02)",
+        justifyContent: "center",
+        alignItems: "center",
     },
     tabLabel: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: "600",
-        color: "#999",
+        color: "#666",
     },
     empty: {
         alignItems: "center", justifyContent: "center",
@@ -488,5 +689,26 @@ const styles = StyleSheet.create({
     loadingText: {
         fontSize: 14,
         color: "#999",
+    },
+    paginationBar: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 12,
+        borderTopWidth: 1,
+        borderTopColor: "rgba(0,0,0,0.05)",
+        gap: 20,
+    },
+    pageBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: "rgba(0,0,0,0.03)",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    pageInfo: {
+        fontSize: 14,
+        fontWeight: "700",
     },
 });

@@ -175,27 +175,33 @@ export default function ContractContentScreen() {
             {/* Bottom Actions */}
             <View style={[styles.bottomBar, { backgroundColor: isDark ? "#0D1B23" : "#FFF" }]}>
                 <TouchableOpacity
-                    style={[styles.bottomBtn, { backgroundColor: isDark ? "#1D3D47" : "#F0F4F8" }]}
+                    style={[
+                        styles.bottomBtn, 
+                        { backgroundColor: isDark ? "#1D3D47" : "#F0F4F8" },
+                        params.status !== '1' && { flex: 1 } // Take full width if sign button is hidden
+                    ]}
                     onPress={() => router.back()}
                 >
                     <MaterialCommunityIcons name="close" size={20} color={isDark ? "#FFF" : "#333"} />
                     <ThemedText style={[styles.bottomBtnText, { color: isDark ? "#FFF" : "#333" }]}>Đóng</ThemedText>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={styles.signBtn}
-                    onPress={handleSign}
-                    disabled={loadingCa}
-                >
-                    {loadingCa ? (
-                        <ActivityIndicator size="small" color="#FFF" />
-                    ) : (
-                        <MaterialCommunityIcons name="pen" size={20} color="#FFF" />
-                    )}
-                    <ThemedText style={styles.signBtnText}>
-                        {loadingCa ? "Đang kiểm tra..." : "Ký hợp đồng"}
-                    </ThemedText>
-                </TouchableOpacity>
+                {params.status === '1' && (
+                    <TouchableOpacity
+                        style={styles.signBtn}
+                        onPress={handleSign}
+                        disabled={loadingCa}
+                    >
+                        {loadingCa ? (
+                            <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                            <MaterialCommunityIcons name="pen" size={20} color="#FFF" />
+                        )}
+                        <ThemedText style={styles.signBtnText}>
+                            {loadingCa ? "Đang kiểm tra..." : "Ký hợp đồng"}
+                        </ThemedText>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Custom Modal Chứng thư số */}
