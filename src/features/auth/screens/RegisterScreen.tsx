@@ -8,6 +8,7 @@ import { useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -38,9 +39,9 @@ export default function RegisterScreen() {
 
         setIsLoading(true);
         try {
-            const nameParts = formData.name.trim().split(" ");
-            const lastName = nameParts.length > 1 ? nameParts[0] : "";
-            const firstName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : formData.name;
+            const nameParts = formData.name.trim().split(/\s+/);
+            const firstName = nameParts[0] || "";
+            const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
 
             await registerAccount({
                 email: formData.email,
@@ -81,19 +82,31 @@ export default function RegisterScreen() {
                             <MaterialCommunityIcons name="arrow-left" size={24} color={isDark ? "#FFF" : "#1E293B"} />
                         </TouchableOpacity> */}
 
-                        <View style={styles.logoWrapper}>
-                            <LinearGradient
-                                colors={["#2092EC", "#1565C0"]}
-                                style={styles.logoCircle}
-                            >
-                                <MaterialCommunityIcons name="account-plus-outline" size={42} color="#FFF" />
-                            </LinearGradient>
-                            <View style={styles.logoBadge}>
-                                <MaterialCommunityIcons name="check-decagram" size={16} color="#FFF" />
+                        <View style={styles.logoRow}>
+                            {/* <View style={styles.logoWrapper}>
+                                <LinearGradient
+                                    colors={["#2092EC", "#1565C0"]}
+                                    style={styles.logoCircle}
+                                >
+                                    <MaterialCommunityIcons name="account-plus-outline" size={32} color="#FFF" />
+                                </LinearGradient>
+                                <View style={styles.logoBadge}>
+                                    <MaterialCommunityIcons name="check-decagram" size={12} color="#FFF" />
+                                </View>
                             </View>
+
+                            <View style={styles.exchangeIconWrapper}>
+                                <MaterialCommunityIcons name="swap-horizontal" size={28} color="#2092EC" />
+                            </View> */}
+
+                            <Image
+                                source={require("@/assets/images/logo-text-128x128.webp")}
+                                style={styles.logoTextImage}
+                                resizeMode="contain"
+                            />
                         </View>
 
-                        <ThemedText type="title" style={styles.title}>Đăng ký tài khoản</ThemedText>
+                        {/* <ThemedText type="title" style={styles.title}>Đăng ký tài khoản</ThemedText> */}
                         <ThemedText style={styles.subtitle}>
                             Bắt đầu trải nghiệm giải pháp ký số thông minh và bảo mật hàng đầu
                         </ThemedText>
@@ -155,7 +168,7 @@ export default function RegisterScreen() {
                                     <ActivityIndicator color="#FFF" />
                                 ) : (
                                     <>
-                                        <ThemedText style={styles.registerButtonText}>Tiếp tục đăng ký</ThemedText>
+                                        <ThemedText style={styles.registerButtonText}>Đăng ký ngay</ThemedText>
                                         <MaterialCommunityIcons name="chevron-right" size={20} color="#FFF" style={{ marginLeft: 4 }} />
                                     </>
                                 )}
@@ -237,14 +250,31 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         marginBottom: 20,
     },
+    logoRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 12,
+        marginTop: 12,
+    },
     logoWrapper: {
         position: "relative",
-        marginBottom: 24,
+
+    },
+    exchangeIconWrapper: {
+        marginHorizontal: 16,
+        backgroundColor: "rgba(32, 146, 236, 0.1)",
+        padding: 8,
+        borderRadius: 20,
+    },
+    logoTextImage: {
+        width: 120,
+        height: 120,
     },
     logoCircle: {
-        width: 86,
-        height: 86,
-        borderRadius: 43,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         alignItems: "center",
         justifyContent: "center",
         elevation: 12,
@@ -258,9 +288,9 @@ const styles = StyleSheet.create({
         bottom: 0,
         right: 0,
         backgroundColor: "#10B981",
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 2,

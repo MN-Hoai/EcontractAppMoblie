@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
     Alert,
+    Image,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
@@ -17,6 +18,11 @@ export default function HomeScreen() {
     const isDark = colorScheme === "dark";
     const router = useRouter();
     const logout = useAuthStore((state) => state.logout);
+    const user = useAuthStore((state) => state.user);
+
+    const displayName = user
+        ? `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || "NGƯỜI DÙNG"
+        : "NGƯỜI DÙNG";
 
     return (
         <ScrollView
@@ -35,8 +41,12 @@ export default function HomeScreen() {
             {/* Header Section */}
             <View style={styles.header}>
                 <View style={{ flex: 1 }}>
-                    <ThemedText style={styles.welcomeText}>Xin chào,</ThemedText>
-                    <ThemedText type="title" style={styles.userName}>MAI NHAT HOAI</ThemedText>
+                    <Image
+                        source={require("@/assets/images/logo-text-128x128.webp")}
+                        style={styles.logoTextImage}
+                        resizeMode="contain"
+                    />
+                   
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                     <TouchableOpacity style={styles.notificationBtn}>
@@ -67,8 +77,9 @@ export default function HomeScreen() {
                         <MaterialCommunityIcons name="logout" size={22} color={isDark ? "#FFAB91" : "#D32F2F"} />
                     </TouchableOpacity>
                 </View>
-            </View>
 
+            </View>
+            
             {/* Subscription Card */}
             <LinearGradient
                 colors={isDark ? ["#00c3ffff", "#0D1B23"] : ["#2092EC", "#054D8C"]}
@@ -76,28 +87,32 @@ export default function HomeScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.subscriptionCard}
             >
+                <View>
+                    <ThemedText style={styles.welcomeText}>Xin chào,</ThemedText>
+                    <ThemedText type="title" style={styles.userName} numberOfLines={1}>{displayName.toUpperCase()}</ThemedText>
+                </View>
+                
+                <ThemedText style={[styles.subCount, { color: "#FFF" }]}>Số serial: </ThemedText>
+                <ThemedText style={[styles.progressText1, { color: "rgba(255,255,255,0.8)" }]}>0123456789hehehaagdjs</ThemedText>
+               
+               
+               
+{/*                
                 <View style={styles.subHeader}>
+                    
                     <View>
                         <ThemedText style={[styles.subTitle, { color: "#FFF" }]}>Tổng lượt ký khả dụng</ThemedText>
-                        <ThemedText style={[styles.subDesc, { color: "rgba(255,255,255,0.7)" }]}>Bao gồm ký số & trình ký nội bộ</ThemedText>
+                        <ThemedText style={[styles.progressText, { color: "rgba(255,255,255,0.8)" }]}> 850 / 1.250 lượt</ThemedText>
                     </View>
                     <TouchableOpacity style={styles.buyBtn}>
-                        <ThemedText style={styles.buyBtnText}>Mua lượt</ThemedText>
+                        <ThemedText style={styles.buyBtnText}>Mua thêm</ThemedText>
                     </TouchableOpacity>
                 </View>
-
-                <ThemedText style={[styles.subCount, { color: "#FFF" }]}>1.250</ThemedText>
-
-                <View style={styles.progressContainer}>
-                    <View style={[styles.progressBarBg, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
-                        <View style={[styles.progressBarFill, { width: "68%", backgroundColor: "#FFF" }]} />
-                    </View>
-                    <ThemedText style={[styles.progressText, { color: "rgba(255,255,255,0.8)" }]}>Đã dùng 850 / 1.250 lượt</ThemedText>
-                </View>
+             */}
             </LinearGradient>
 
             {/* Reject Alert */}
-            <View style={[styles.alertCard, { backgroundColor: isDark ? "rgba(255, 82, 82, 0.1)" : "#FFF5F5" }]}>
+            {/* <View style={[styles.alertCard, { backgroundColor: isDark ? "rgba(255, 82, 82, 0.1)" : "#FFF5F5" }]}>
                 <View style={styles.alertContent}>
                     <ThemedText style={[styles.alertTitle, { color: isDark ? "#FFAB91" : "#D32F2F" }]}>2 tài liệu bị từ chối</ThemedText>
                     <ThemedText style={[styles.alertDesc, { color: isDark ? "rgba(255,255,255,0.5)" : "#666" }]}>Yêu cầu cập nhật chữ ký pháp lý.</ThemedText>
@@ -105,7 +120,7 @@ export default function HomeScreen() {
                 <TouchableOpacity style={[styles.actionBtn, { borderColor: isDark ? "#FFAB91" : "#EF5350" }]}>
                     <ThemedText numberOfLines={1} style={[styles.actionBtnText, { color: isDark ? "#FFAB91" : "#EF5350" }]}> Xử Lý</ThemedText>
                 </TouchableOpacity>
-            </View>
+            </View> */}
 
             {/* Main Signing Tasks (Signing Summary) */}
 
@@ -357,10 +372,12 @@ const styles = StyleSheet.create({
     welcomeText: {
         fontSize: 14,
         opacity: 0.6,
+        color: "#FFF",
     },
     userName: {
         fontSize: 22,
         fontWeight: "800",
+        color: "#FFF",
     },
     notificationBtn: {
         padding: 10,
@@ -395,16 +412,21 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "flex-start",
         marginBottom: 16,
+        marginTop: 20,
     },
     subTitle: {
-        fontSize: 15,
+        fontSize: 18,
         fontWeight: "600",
         opacity: 0.8,
     },
     subDesc: {
-        fontSize: 12,
+        fontSize: 15,
         opacity: 0.5,
         marginTop: 2,
+    },
+    logoTextImage: {
+        width: 50,
+        height: 50,
     },
     buyBtn: {
         backgroundColor: "rgba(255,255,255,0.2)",
@@ -420,9 +442,10 @@ const styles = StyleSheet.create({
         fontWeight: "700",
     },
     subCount: {
-        fontSize: 25,
-        fontWeight: "800",
-        marginBottom: 20,
+        fontSize: 18,
+        fontWeight: "500",
+        marginBottom: 5,
+        marginTop: 80,
     },
     progressContainer: {
         width: "100%",
@@ -440,8 +463,14 @@ const styles = StyleSheet.create({
         borderRadius: 3,
     },
     progressText: {
-        fontSize: 12,
+        fontSize: 15,
         opacity: 0.6,
+        
+    },
+     progressText1: {
+        fontSize: 15,
+        opacity: 0.6,
+        marginTop: 0,
     },
     alertCard: {
         marginHorizontal: 20,
