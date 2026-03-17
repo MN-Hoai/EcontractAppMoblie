@@ -6,8 +6,10 @@ import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+
 import {
     ActivityIndicator,
+    Image,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -163,12 +165,11 @@ export default function LoginScreen() {
         >
             <View style={styles.content}>
                 <View style={styles.logoContainer}>
-                    <View style={styles.logoCircle}>
-                        <MaterialCommunityIcons name="signature" size={60} color="#2092EC" />
-                    </View>
-                    <ThemedText type="title" style={styles.appName}>
+
+                    <Image source={require("@/assets/images/logo-text-128x128.webp")} style={{ width: 128, height: 128 }} resizeMode="contain" />
+                    {/* <ThemedText type="title" style={styles.appName}>
                         eContract
-                    </ThemedText>
+                    </ThemedText> */}
                     <ThemedText style={styles.tagline}>
                         Giải pháp ký số thông minh
                     </ThemedText>
@@ -518,3 +519,5 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
 });
+
+
