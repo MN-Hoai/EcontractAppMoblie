@@ -49,15 +49,6 @@ export default function LoginScreen() {
                 if (response.success && response.data) {
                     const reqId = response.data.user?.id;
                     if (reqId) {
-                        // SAVE IT NOW (Required by User for subsequent calls)
-                        setAuthData({
-                            accessToken: response.data.access_token,
-                            refreshToken: response.data.refresh_token!,
-                            expiresAt: response.data.expires_at || "",
-                            user: response.data.user!,
-                            requestId: reqId || ""
-                        });
-
                         try {
                             console.log("================================");
                             console.log("Account ID for CheckCustomerExist:", reqId);
@@ -68,33 +59,55 @@ export default function LoginScreen() {
                             const isExist = dataObj.exists === true || String(dataObj.exists).toLowerCase() === "true";
                             const hasEmailOrPhone = dataObj.hasEmailOrPhone === true || String(dataObj.hasEmailOrPhone).toLowerCase() === "true";
 
+                            // Theo yêu cầu: nếu Data: { exists: false, hasEmailOrPhone: false } thì hiện popup nhập liệu
+                            // Hoặc nếu chưa đủ thông tin bắt buộc (Email/SĐT)
                             if (!isExist || !hasEmailOrPhone) {
-                                const fullName = `${response.data.user?.first_name || ""} ${response.data.user?.last_name || ""}`.trim() || "";
-                                const emailToken = response.data.user?.email || "";
+                                console.log("New user detected or incomplete profile. Holding session in temporary state...");
+                                
+                                const defaultName = `${response.data.user?.first_name || ""} ${response.data.user?.last_name || ""}`.trim() || "";
+                                const defaultEmail = response.data.user?.email || "";
 
-                                setCustomerName(fullName);
-                                setCustomerEmail(emailToken);
-                                setCustomerPhone("");
+                                setCustomerName(defaultName);
+                                setCustomerEmail(defaultEmail);
+                                setCustomerPhone(""); 
                                 setCustomerError("");
+                                
                                 setTempAuthData({
                                     accessToken: response.data.access_token,
                                     refreshToken: response.data.refresh_token!,
-                                    expiresAt: response.data.expires_at,
+                                    expiresAt: response.data.expires_at || "",
                                     user: response.data.user!,
                                     requestId: reqId || ""
                                 });
+                                
                                 setShowCustomerModal(true);
                                 setIsLoading(false);
                                 return;
-                            }
+                            } 
+                            
+                            // Nếu đã tồn tại và đủ thông tin -> Lúc này mới ghi vào Store chính thức và chuyển trang
+                            setAuthData({
+                                accessToken: response.data.access_token,
+                                refreshToken: response.data.refresh_token!,
+                                expiresAt: response.data.expires_at || "",
+                                user: response.data.user!,
+                                requestId: reqId || ""
+                            });
+                            router.replace("/(tabs)");
                         } catch (err) {
-                            console.log("Lỗi khi kiểm tra/tạo thông tin khách hàng:", err);
-                            // Fallback - still log in even if customer check fails, Or keep it strictly
+                            console.log("Lỗi khi kiểm tra thông tin khách hàng:", err);
+                            // Fallback in case check fails but we have data
+                            setAuthData({
+                                accessToken: response.data.access_token,
+                                refreshToken: response.data.refresh_token!,
+                                expiresAt: response.data.expires_at || "",
+                                user: response.data.user!,
+                                requestId: reqId || ""
+                            });
+                            router.replace("/(tabs)");
                         }
-
-                        router.replace("/(tabs)");
                     } else {
-                        // Fallback fallback
+                        // No reqId found
                         setAuthData({
                             accessToken: response.data.access_token,
                             refreshToken: response.data.refresh_token!,

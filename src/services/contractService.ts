@@ -1,7 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import apiClient from "./apiClient";
 
-export const API_BASE_URL = "http://192.168.1.87:5000";
+export const API_BASE_URL = "http://192.168.1.82:5000";
 export const API_BASE_URL_PRODUCT = "https://contract.officeai.vn";
 
 /**
@@ -465,7 +465,7 @@ export const executeExternalSignContract = async (accountId: string, contractId:
     const response = await apiClient.post(url, {}, { timeout: 100000 });
     return response.data;
   } catch (error) {
-    
+
     console.log("Error execute external sign contract:", error);
     throw error;
   }
