@@ -41,7 +41,7 @@ export default function ContractDetailScreen() {
     // --- Sign Contract State ---
     const [showProcessing, setShowProcessing] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
-    const [countdown, setCountdown] = useState(100);
+    const [countdown, setCountdown] = useState(115);
     const [signError, setSignError] = useState<string | null>(null);
 
     // Countdown logic
@@ -86,9 +86,22 @@ export default function ContractDetailScreen() {
 
         setShowProcessing(true);
         setSignError(null);
-        setCountdown(100);
+        setCountdown(115);
 
         console.log("===> executeExternalSignContract params:", { accountId, contractId });
+
+        const handleError = (rawMsg: string) => {
+            let finalMsg = rawMsg;
+            try {
+                const startIdx = rawMsg.indexOf('{');
+                if (startIdx >= 0) {
+                    const jsonObj = JSON.parse(rawMsg.substring(startIdx));
+                    if (jsonObj.error_description) finalMsg = jsonObj.error_description;
+                }
+            } catch (e) {}
+            Alert.alert("Thông báo", finalMsg);
+            setSignError(finalMsg);
+        };
 
         try {
             const signResponse = await executeExternalSignContract(accountId, contractId) as any;
@@ -99,11 +112,12 @@ export default function ContractDetailScreen() {
                 setShowSuccess(true);
             } else {
                 setShowProcessing(false);
-                setSignError(signResponse.Message ?? signResponse.message ?? "Lỗi ký hợp đồng từ hệ thống.");
+                handleError(signResponse.Message ?? signResponse.message ?? "Lỗi ký hợp đồng từ hệ thống.");
             }
         } catch (err: any) {
             setShowProcessing(false);
-            setSignError(err?.message || "Lỗi gọi API sign-contract.");
+            const rawMsg = err?.response?.data?.Message || err?.response?.data?.message || err?.message || "Lỗi gọi API sign-contract.";
+            handleError(rawMsg);
         }
     };
 
@@ -257,40 +271,46 @@ export default function ContractDetailScreen() {
             <Modal visible={showProcessing} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
                     <View style={[styles.modalContent, { backgroundColor: isDark ? "#1D3D47" : "#FFF", alignItems: "center" }]}>
-                        <LinearGradient colors={["#1565C0", "#2092EC"]} style={{ width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                        <LinearGradient colors={["#1565C0", "#2092EC"]} style={{ width: 52, height: 52, borderRadius: 36, alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
                             <MaterialCommunityIcons name="timer-sand" size={36} color="#FFF" />
                         </LinearGradient>
-                        <ThemedText style={{ fontSize: 28, fontWeight: "900", color: "#1565C0", marginBottom: 6 }}>{countdown}s</ThemedText>
-                        <ThemedText style={{ fontSize: 17, fontWeight: "700", marginBottom: 10 }}>Đang chờ xác nhận</ThemedText>
+                        <ThemedText style={{ fontSize: 24, fontWeight: "900", color: "#1565C0", marginBottom: 6,  }}>{countdown}s</ThemedText>
+                        <ThemedText style={{ fontSize: 17, fontWeight: "700", marginBottom: 10 }}>Đang chờ xác nhận ký</ThemedText>
                         <ThemedText style={{ fontSize: 13, textAlign: "center", opacity: 0.7, marginBottom: 20 }}>Hệ thống đang xử lý yêu cầu ký hợp đồng. Vui lòng không đóng ứng dụng...</ThemedText>
-                        {signError && (
-                            <ThemedText style={{ color: "red", textAlign: "center", marginTop: 10 }}>{signError}</ThemedText>
-                        )}
-                        {signError && (
-                            <TouchableOpacity onPress={() => setShowProcessing(false)} style={{ marginTop: 20, padding: 10, backgroundColor: "#E0E0E0", borderRadius: 8 }}>
-                                <ThemedText style={{ color: "#333", fontWeight: "600" }}>Đóng</ThemedText>
-                            </TouchableOpacity>
-                        )}
                     </View>
                 </View>
             </Modal>
 
             {/* ── Success modal ── */}
-            <Modal visible={showSuccess} transparent animationType="fade">
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: isDark ? "#1D3D47" : "#FFF", alignItems: "center", paddingVertical: 32 }]}>
-                        <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#4CAF50", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                            <MaterialCommunityIcons name="check-bold" size={40} color="#FFF" />
-                        </View>
-                        <ThemedText style={{ fontSize: 22, fontWeight: "800", marginBottom: 10 }}>Ký số thành công!</ThemedText>
-                        <ThemedText style={{ fontSize: 13, textAlign: "center", opacity: 0.7, marginBottom: 24 }}>Quý khách đã thực hiện ký thành công hợp đồng này.</ThemedText>
-
-                        <TouchableOpacity style={{ backgroundColor: "#1565C0", borderRadius: 14, paddingVertical: 14, width: "100%", alignItems: "center", marginBottom: 10 }} onPress={() => { setShowSuccess(false); router.replace("/(tabs)" as any); }}>
-                            <ThemedText style={{ color: "#FFF", fontWeight: "700", fontSize: 15 }}>Về trang chủ</ThemedText>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
+                        < Modal visible={showSuccess} transparent animationType="fade" >
+                            <View style={styles.modalOverlay}>
+                                <View style={[styles.modalContent, { backgroundColor: isDark ? "#1D3D47" : "#FFF", alignItems: "center", paddingVertical: 32 }]}>
+                                    <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#4CAF50", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                                        <MaterialCommunityIcons name="check-bold" size={40} color="#FFF" />
+                                    </View>
+                                    <ThemedText style={{ fontSize: 22, fontWeight: "800", marginBottom: 10 }}>Ký số thành công!</ThemedText>
+                                    <ThemedText style={{ fontSize: 13, textAlign: "center", opacity: 0.7, marginBottom: 24 }}>Quý khách đã thực hiện ký thành công.</ThemedText>
+            
+                                    <View style={{ flexDirection: "row", width: "100%", gap: 12 }}>
+                                        <TouchableOpacity 
+                                            style={{ flex: 1, backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#F0F4F8", borderRadius: 14, paddingVertical: 14, alignItems: "center", marginBottom: 10 }} 
+                                            onPress={() => { 
+                                                setShowSuccess(false); 
+                                                router.push({
+                                                    pathname: "/contract-content",
+                                                    params: { id: params.id, name: params.name, path: params.path, status: '2' }
+                                                });
+                                            }}
+                                        >
+                                            <ThemedText style={{ color: isDark ? "#FFF" : "#333", fontWeight: "700", fontSize: 15 }}>Xem lại hợp đồng</ThemedText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={{ flex: 1, backgroundColor: "#1565C0", borderRadius: 14, paddingVertical: 14, alignItems: "center", marginBottom: 10 }} onPress={() => { setShowSuccess(false); router.replace("/(tabs)" as any); }}>
+                                            <ThemedText style={{ color: "#FFF", fontWeight: "700", fontSize: 15 }}>Về trang chủ</ThemedText>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </View>
+                        </Modal >
 
         </SafeAreaView>
     );

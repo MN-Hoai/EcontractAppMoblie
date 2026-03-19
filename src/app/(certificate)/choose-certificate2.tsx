@@ -220,7 +220,7 @@ export default function ChooseCertificate2Screen() {
 
         {/* ── Certificate List Section ── */}
         <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-          <Text style={styles.sectionTitle}>DANH SÁCH CHỨNG THƯ SỐ</Text>
+          <Text style={styles.sectionTitle}>CHỨNG THƯ SỐ:</Text>
         </View>
 
         <TouchableOpacity

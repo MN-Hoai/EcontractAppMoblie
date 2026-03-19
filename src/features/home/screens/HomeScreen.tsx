@@ -12,6 +12,8 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
+import { useEffect, useState } from "react";
+import { getCertInfo, CertInfo } from "@/services/contractService";
 
 export default function HomeScreen() {
     const colorScheme = useColorScheme();
@@ -19,10 +21,39 @@ export default function HomeScreen() {
     const router = useRouter();
     const logout = useAuthStore((state) => state.logout);
     const user = useAuthStore((state) => state.user);
+    const requestId = useAuthStore((state) => state.requestId);
+
+    const [certInfo, setCertInfo] = useState<CertInfo | null>(null);
+
+    useEffect(() => {
+        if (requestId) {
+            getCertInfo(requestId)
+                .then((res) => {
+                    if (res.Success || res.success) {
+                        setCertInfo(res.Data || res.data || null);
+                    }
+                })
+                .catch((err) => console.log("HomeScreen: Error fetching cert info", err));
+        }
+    }, [requestId]);
 
     const displayName = user
         ? `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || "NGƯỜI DÙNG"
         : "NGƯỜI DÙNG";
+
+    const formatDate = (dateStr?: string) => {
+        if (!dateStr) return "Chưa có";
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString("vi-VN");
+        } catch {
+            return dateStr;
+        }
+    };
+
+    const serialDisplay = certInfo?.SerialNumber || certInfo?.serialNumber || "Chưa có";
+    const validityDisplay = certInfo?.ValidTo || certInfo?.validTo ? formatDate(certInfo?.ValidTo || certInfo?.validTo) : "Chưa có";
 
     return (
         <ScrollView
@@ -93,22 +124,20 @@ export default function HomeScreen() {
                 </View>
                 
                 <ThemedText style={[styles.subCount, { color: "#FFF" }]}>Số serial: </ThemedText>
-                <ThemedText style={[styles.progressText1, { color: "rgba(255,255,255,0.8)" }]}>0123456789hehehaagdjs</ThemedText>
+                <ThemedText style={[styles.progressText1, { color: "rgba(255,255,255,0.8)" }]}>{serialDisplay}</ThemedText>
                
-               
-               
-{/*                
+            
                 <View style={styles.subHeader}>
                     
                     <View>
-                        <ThemedText style={[styles.subTitle, { color: "#FFF" }]}>Tổng lượt ký khả dụng</ThemedText>
-                        <ThemedText style={[styles.progressText, { color: "rgba(255,255,255,0.8)" }]}> 850 / 1.250 lượt</ThemedText>
+                        <ThemedText style={[styles.subTitle, { color: "#FFF" }]}>Hiệu lực:</ThemedText>
+                        <ThemedText style={[styles.progressText, { color: "rgba(255,255,255,0.8)" }]}>{validityDisplay}</ThemedText>
                     </View>
-                    <TouchableOpacity style={styles.buyBtn}>
-                        <ThemedText style={styles.buyBtnText}>Mua thêm</ThemedText>
+                    <TouchableOpacity style={styles.buyBtn} onPress={() => router.push("/certificate-info")}>
+                        <ThemedText style={styles.buyBtnText}>Xem chi tiết</ThemedText>
                     </TouchableOpacity>
                 </View>
-             */}
+
             </LinearGradient>
 
             {/* Reject Alert */}

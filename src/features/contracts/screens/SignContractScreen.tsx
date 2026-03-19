@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -179,6 +180,19 @@ export default function SignContractScreen() {
 
       console.log("===> executeExternalSignContract params:", { accountId, contractId });
 
+      const handleError = (rawMsg: string) => {
+        let finalMsg = rawMsg;
+        try {
+          const startIdx = rawMsg.indexOf('{');
+          if (startIdx >= 0) {
+            const jsonObj = JSON.parse(rawMsg.substring(startIdx));
+            if (jsonObj.error_description) finalMsg = jsonObj.error_description;
+          }
+        } catch (e) {}
+        Alert.alert("Thông báo", finalMsg);
+        setOtpError(finalMsg);
+      };
+
       try {
         const signResponse = await executeExternalSignContract(accountId, contractId) as any;
         const signSuccess = signResponse.Success ?? signResponse.success;
@@ -188,11 +202,12 @@ export default function SignContractScreen() {
           setShowSuccess(true);
         } else {
           setShowProcessing(false);
-          setOtpError(signResponse.Message ?? signResponse.message ?? "Lỗi ký hợp đồng từ hệ thống.");
+          handleError(signResponse.Message ?? signResponse.message ?? "Lỗi ký hợp đồng từ hệ thống.");
         }
       } catch (err: any) {
         setShowProcessing(false);
-        setOtpError(err?.message || "Lỗi gọi API sign-contract.");
+        const rawMsg = err?.response?.data?.Message || err?.response?.data?.message || err?.message || "Lỗi gọi API sign-contract.";
+        handleError(rawMsg);
       }
     } catch (error: any) {
       setShowProcessing(false);
@@ -679,7 +694,7 @@ const styles = StyleSheet.create({
     width: 72, height: 72, borderRadius: 36,
     alignItems: "center", justifyContent: "center", marginBottom: 12,
   },
-  modalCountdown: { fontSize: 28, fontWeight: "900", color: "#1565C0", marginBottom: 6 },
+  modalCountdown: { fontSize: 24, fontWeight: "900", color: "#1565C0", marginBottom: 6, marginTop: 20 },
   modalTitle: { fontSize: 17, fontWeight: "700", color: "#1A1A1A", marginBottom: 10 },
   modalMsg: { fontSize: 13, color: "#777", textAlign: "center", lineHeight: 20, marginBottom: 20 },
   processingDots: { flexDirection: "row", gap: 8 },

@@ -461,7 +461,7 @@ export const addOrUpdateCustomer = async (accountId: string, model: CustomerRequ
 
 export const executeExternalSignContract = async (accountId: string, contractId: string) => {
   try {
-    const url = `http://192.168.1.87:5000/api/sign-contract?accountId=${accountId}&contractId=${contractId}`;
+    const url = `http://192.168.1.82:5000/api/sign-contract?accountId=${accountId}&contractId=${contractId}`;
     const response = await apiClient.post(url, {}, { timeout: 100000 });
     return response.data;
   } catch (error) {

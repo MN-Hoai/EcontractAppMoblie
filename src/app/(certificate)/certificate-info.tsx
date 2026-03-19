@@ -1,8 +1,11 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  Clipboard,
   Modal,
   Platform,
   ScrollView,
@@ -11,6 +14,46 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useAuthStore } from "@/store/authStore";
+import { getCertInfo, CertInfo } from "@/services/contractService";
+
+/* ─── Copy Row ─────────────────────────────────────────────── */
+function CopyRow({ label, value, canCopy = false }: { label: string; value: string; canCopy?: boolean }) {
+  const handleCopy = () => {
+    Clipboard.setString(value);
+    Alert.alert("Đã sao chép", `${label} đã được sao chép vào clipboard.`);
+  };
+
+  return (
+    <View style={detailStyles.row}>
+      <View style={detailStyles.rowContent}>
+        <Text style={detailStyles.rowLabel}>{label}</Text>
+        <Text style={detailStyles.rowValue}>{value}</Text>
+      </View>
+      {canCopy && value !== "—" && (
+        <TouchableOpacity onPress={handleCopy} style={detailStyles.copyBtn} activeOpacity={0.7}>
+          <MaterialCommunityIcons name="content-copy" size={18} color="#9BA8B5" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+/* ─── Status Badge ─────────────────────────────────────────── */
+function StatusBadge({ status }: { status: string }) {
+  const isValid = status.toLowerCase() === "valid" || status === "Đang hoạt động";
+  const label = isValid ? "Đang hoạt động" : status;
+  return (
+    <View style={detailStyles.row}>
+      <View style={detailStyles.rowContent}>
+        <Text style={detailStyles.rowLabel}>Trạng thái</Text>
+        <Text style={[detailStyles.rowValue, isValid ? detailStyles.statusActive : detailStyles.statusInactive]}>
+          {label}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 /* ─── Question Card Component ───────────────────────────────── */
 function QuestionCard({
@@ -38,15 +81,89 @@ function QuestionCard({
 /* ─── Main Screen ───────────────────────────────────────────── */
 export default function CertificateInfoScreen() {
   const router = useRouter();
-  const [showPopup, setShowPopup] = useState(true);
+  const { requestId } = useAuthStore();
+  
+  const [showPopup, setShowPopup] = useState(false);
+  const [certInfo, setCertInfo] = useState<CertInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Helper date formatter dd/MM/yyyy
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = d.getFullYear();
+    return `${dd}/${mm}/${yy}`;
+  };
+
+  // Parse CN from subjectDN
+  const getSubjectName = (info: CertInfo | null) =>
+    (info?.subjectDN || info?.SubjectDN || "")?.match(/CN=([^,]+)/)?.[1] || (info?.subjectDN || info?.SubjectDN || "—");
+
+  // Parse certStatus label
+  const getCertStatusLabel = (info: CertInfo | null) => {
+    const s = info?.certStatus || info?.CertStatus || "";
+    if (!s) return "—";
+    if (s.toLowerCase() === "valid") return "Đang hoạt động";
+    if (s.toLowerCase() === "revoked") return "Đã thu hồi";
+    if (s.toLowerCase() === "expired") return "Đã hết hạn";
+    return s;
+  };
+
+  useEffect(() => {
+    setIsLoading(true);
+    getCertInfo(requestId || "")
+      .then((res) => {
+        const d = res.Data || res.data;
+        if (d) {
+          setCertInfo(d);
+          setShowPopup(false);
+        } else {
+          setShowPopup(true);
+        }
+      })
+      .catch((err) => {
+        console.warn("cert load err:", err);
+        setShowPopup(true);
+      })
+      .finally(() => setIsLoading(false));
+  }, [requestId]);
 
   const handleContinue = () => {
     router.push("/choose-certificate");
   };
 
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color="#2092EC" />
+        <Text style={{ marginTop: 12, color: "#666" }}>Đang tải dữ liệu...</Text>
+      </View>
+    );
+  }
+
+  // Derived values for details
+  const serialNo = certInfo?.serialNumber || certInfo?.SerialNumber || "—";
+  const credId = certInfo?.credentialId || certInfo?.CredentialId || "—";
+  const issuerDN = certInfo?.issuerDN || certInfo?.IssuerDN || "—";
+  const expireDate = formatDate(certInfo?.validTo || certInfo?.ValidTo);
+  const startDate = formatDate(certInfo?.validFrom || certInfo?.ValidFrom);
+  const subjectDN = certInfo?.subjectDN || certInfo?.SubjectDN || "—";
+  const subscriberId = certInfo?.subscriberId || certInfo?.SubscriberId || "—";
+  const subjectName = getSubjectName(certInfo);
+  const statusLabel = getCertStatusLabel(certInfo);
+  const certPackage = (() => {
+    const sid = subscriberId;
+    if (!sid || sid === "—") return "—";
+    const match = sid.match(/^CA_([A-Z_]+)/);
+    return match ? match[1] + "_APP" : sid;
+  })();
+
   return (
     <View style={styles.container}>
-      {/* ── Popup Modal ── */}
+      {/* ── Popup Modal (Only show if NO certInfo) ── */}
       <Modal
         visible={showPopup}
         transparent={true}
@@ -71,7 +188,10 @@ export default function CertificateInfoScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnConfirm]}
-                onPress={() => setShowPopup(false)}
+                onPress={() => {
+                   setShowPopup(false); 
+                   router.push("/identity-verification" as any);
+                }}
               >
                 <Text style={styles.modalBtnConfirmText}>Đăng ký ngay</Text>
               </TouchableOpacity>
@@ -79,6 +199,7 @@ export default function CertificateInfoScreen() {
           </View>
         </View>
       </Modal>
+
       {/* ── Gradient Header ── */}
       <LinearGradient
         colors={["#1565C0", "#2092EC"]}
@@ -90,8 +211,8 @@ export default function CertificateInfoScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Chứng thư số</Text>
-          <Text style={styles.headerSub}>Kiến thức cơ bản về chữ ký số</Text>
+          <Text style={styles.headerTitle}>{certInfo ? "Chi tiết chứng thư số" : "Chứng thư số"}</Text>
+          <Text style={styles.headerSub}>{certInfo ? "Thông tin định danh điện tử" : "Kiến thức cơ bản về chữ ký số"}</Text>
         </View>
         <View style={{ width: 40 }} />
       </LinearGradient>
@@ -101,84 +222,149 @@ export default function CertificateInfoScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Hero section ── */}
-        <View style={styles.heroSection}>
-          <View style={styles.heroCircles}>
-            <View style={styles.outerCircle}>
-              <View style={styles.innerCircle}>
-                <MaterialCommunityIcons
-                  name="shield-check"
-                  size={60}
-                  color="#FFF"
-                />
-              </View>
-            </View>
-            {/* Decors */}
-            <View style={[styles.miniDot, { top: 0, right: 10, width: 12, height: 12 }]} />
-            <View style={[styles.miniDot, { bottom: 15, left: -5, backgroundColor: "#4CAF50" }]} />
+        {certInfo ? (
+          /* ── Case: Has Certificate Details (Dống trag choose-certificate2 Modal) ── */
+          <View style={detailStyles.card}>
+            <CopyRow label="Chủ thể" value={subjectName} />
+            <View style={detailStyles.divider} />
+
+            <CopyRow label="Mã chứng thư số" value={credId} canCopy />
+            <View style={detailStyles.divider} />
+
+            <CopyRow label="Số thuê bao" value={subscriberId} canCopy />
+            <View style={detailStyles.divider} />
+
+            <CopyRow label="Số serial" value={serialNo} canCopy />
+            <View style={detailStyles.divider} />
+
+            <CopyRow label="Tổ chức phát hành" value={issuerDN} />
+            <View style={detailStyles.divider} />
+
+            <CopyRow label="Thông tin thuê bao" value={subjectDN} />
+            <View style={detailStyles.divider} />
+
+            <StatusBadge status={statusLabel} />
+            <View style={detailStyles.divider} />
+
+            <CopyRow
+              label="Ngày bắt đầu - Ngày kết thúc"
+              value={`${startDate} - ${expireDate}`}
+            />
+            <View style={detailStyles.divider} />
+
+            <CopyRow label="Gói chứng thư số" value={certPackage} />
           </View>
-          <Text style={styles.heroTitle}>Xác thực & Bảo mật</Text>
-          <Text style={styles.heroDesc}>
-            Chứng thư số là nền tảng cốt lõi giúp giao kết hợp đồng điện tử an toàn và có giá trị pháp lý.
-          </Text>
-        </View>
-
-        {/* ── FAQ Section ── */}
-        <QuestionCard
-          icon="help-circle-outline"
-          title="Chứng thư số là gì?"
-          answer="Là một loại chứng thư điện tử được cấp bởi tổ chức chứng thực (CA) nhằm định danh một cá nhân/tổ chức trên môi trường số."
-        />
-
-        <QuestionCard
-          icon="signature-freehand"
-          title="Chữ ký số là gì?"
-          answer="Là một cặp khóa mã hóa dùng để xác nhận giao kết văn bản điện tử, có giá trị pháp lý tương đương chữ ký tay và con dấu."
-        />
-
-        {/* ── Benefits Section ── */}
-        <View style={styles.benefitsCard}>
-          <Text style={styles.sectionTitle}>LỢI ÍCH CỦA CHỨNG THƯ SỐ</Text>
-
-          {[
-            { icon: "lock-check-outline", text: "Bảo mật thông tin tuyệt đối" },
-            { icon: "gavel", text: "Đầy đủ giá trị pháp lý" },
-            { icon: "account-check-outline", text: "Xác thực danh tính chính xác" },
-            { icon: "clock-fast", text: "Tiết kiệm thời gian & chi phí" },
-          ].map((item, idx) => (
-            <View key={idx} style={styles.benefitRow}>
-              <MaterialCommunityIcons
-                name={item.icon as any}
-                size={20}
-                color="#4CAF50"
-              />
-              <Text style={styles.benefitText}>{item.text}</Text>
+        ) : (
+          /* ── Case: No Certificate (Educational View) ── */
+          <>
+            <View style={styles.heroSection}>
+              <View style={styles.heroCircles}>
+                <View style={styles.outerCircle}>
+                  <View style={styles.innerCircle}>
+                    <MaterialCommunityIcons
+                      name="shield-check"
+                      size={60}
+                      color="#FFF"
+                    />
+                  </View>
+                </View>
+                {/* Decors */}
+                <View style={[styles.miniDot, { top: 0, right: 10, width: 12, height: 12 }]} />
+                <View style={[styles.miniDot, { bottom: 15, left: -5, backgroundColor: "#4CAF50" }]} />
+              </View>
+              <Text style={styles.heroTitle}>Xác thực & Bảo mật</Text>
+              <Text style={styles.heroDesc}>
+                Chứng thư số là nền tảng cốt lõi giúp giao kết hợp đồng điện tử an toàn và có giá trị pháp lý.
+              </Text>
             </View>
-          ))}
-        </View>
 
-        <View style={styles.warningBox}>
-          <MaterialCommunityIcons name="information-outline" size={18} color="#FFB300" />
-          <Text style={styles.warningText}>
-            Sử dụng chứng thư số của các nhà cung cấp uy tín (CA) để được bảo hộ pháp lý tốt nhất.
-          </Text>
-        </View>
+            <QuestionCard
+              icon="help-circle-outline"
+              title="Chứng thư số là gì?"
+              answer="Là một loại chứng thư điện tử được cấp bởi tổ chức chứng thực (CA) nhằm định danh một cá nhân/tổ chức trên môi trường số."
+            />
+
+            <QuestionCard
+              icon="signature-freehand"
+              title="Chữ ký số là gì?"
+              answer="Là một cặp khóa mã hóa dùng để xác nhận giao kết văn bản điện tử, có giá trị pháp lý tương đương chữ ký tay và con dấu."
+            />
+
+            <View style={styles.benefitsCard}>
+              <Text style={styles.sectionTitle}>LỢI ÍCH CỦA CHỨNG THƯ SỐ</Text>
+
+              {[
+                { icon: "lock-check-outline", text: "Bảo mật thông tin tuyệt đối" },
+                { icon: "gavel", text: "Đầy đủ giá trị pháp lý" },
+                { icon: "account-check-outline", text: "Xác thực danh tính chính xác" },
+                { icon: "clock-fast", text: "Tiết kiệm thời gian & chi phí" },
+              ].map((item, idx) => (
+                <View key={idx} style={styles.benefitRow}>
+                  <MaterialCommunityIcons
+                    name={item.icon as any}
+                    size={20}
+                    color="#4CAF50"
+                  />
+                  <Text style={styles.benefitText}>{item.text}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.warningBox}>
+              <MaterialCommunityIcons name="information-outline" size={18} color="#FFB300" />
+              <Text style={styles.warningText}>
+                Sử dụng chứng thư số của các nhà cung cấp uy tín (CA) để được bảo hộ pháp lý tốt nhất.
+              </Text>
+            </View>
+          </>
+        )}
       </ScrollView>
 
       {/* ── Bottom Action ── */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.startBtn}
-          onPress={handleContinue}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.startBtnText}>Tiếp tục đăng ký</Text>
-          <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
-        </TouchableOpacity>
-      </View>
+      {!certInfo && (
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.startBtn}
+            onPress={() => router.push("/identity-verification")}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.startBtnText}>Tiếp tục đăng ký</Text>
+            <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
+
+const detailStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E8EDF2",
+    overflow: "hidden",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  rowContent: { flex: 1 },
+  rowLabel: { fontSize: 13, color: "#8E9BAA", fontWeight: "500", marginBottom: 4 },
+  rowValue: { fontSize: 14, color: "#0F172A", fontWeight: "600", lineHeight: 20 },
+  copyBtn: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  divider: { height: 1, backgroundColor: "#F1F5F9", marginHorizontal: 0 },
+  statusActive: { color: "#1B8B2E", fontWeight: "700" },
+  statusInactive: { color: "#D32F2F", fontWeight: "700" },
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F0F4F8" },
@@ -356,7 +542,7 @@ warningBox: {
   /* Modal */
   modalOverlay: {
     flex: 1,
-    backgroundColor: "#929292", // Xám đục (opaque gray)
+    backgroundColor: "rgba(0,0,0,0.5)", // Changed to rgba for better overlay effect
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
