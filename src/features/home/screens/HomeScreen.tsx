@@ -1,3 +1,4 @@
+import React from "react";
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/store/authStore";
@@ -10,8 +11,14 @@ import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
+    Modal,
+    Text
 } from "react-native";
+import MyNativeView from "@/components/MyNativeView";
+import MySignService from "@/services/MySignService";
+
+
 
 export default function HomeScreen() {
     const colorScheme = useColorScheme();
@@ -19,6 +26,8 @@ export default function HomeScreen() {
     const router = useRouter();
     const logout = useAuthStore((state) => state.logout);
     const user = useAuthStore((state) => state.user);
+
+    const [showNativeView, setShowNativeView] = React.useState(false);
 
     const displayName = user
         ? `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || "NGƯỜI DÙNG"
@@ -329,14 +338,35 @@ export default function HomeScreen() {
                         { icon: "history", label: "4 xác thực thông tin để mua , truoc buoc nghiem thu", route: "/sign-contract", color: "#795548" },
                         { icon: "history", label: "5 Chứng thư số", route: "/(certificate)/choose-certificate2", color: "#795548" },
                         { icon: "history", label: "6 Chứng thư số", route: "/(contract)/sign-val", color: "#795548" },
+                        { 
+                          icon: "android", 
+                          label: "Native View Demo", 
+                          action: () => setShowNativeView(true), 
+                          color: "#4CAF50" 
+                        },
+                        { 
+                          icon: "shield-key-outline", 
+                          label: "Test MySign SDK", 
+                          action: async () => {
+                            try {
+                              const res = await MySignService.registerDevice("test_token_123");
+                              Alert.alert("MySign SDK Success", res);
+                            } catch (e: any) {
+                              Alert.alert("MySign SDK Error", e.message || "Unknown error");
+                            }
+                          }, 
+                          color: "#9C27B0" 
+                        },
+
 
 
                     ].map((item, index) => (
                         <TouchableOpacity
                             key={index}
                             style={[styles.gridItem, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}
-                            onPress={() => router.push(item.route as any)}
+                            onPress={() => item.action ? item.action() : router.push(item.route as any)}
                         >
+
                             <View style={[styles.iconCircle, { backgroundColor: item.color + "20" }]}>
                                 <MaterialCommunityIcons name={item.icon as any} size={28} color={item.color} />
                             </View>
@@ -346,9 +376,38 @@ export default function HomeScreen() {
                 </View>
             </View>
 
+            {/* Native View Modal */}
+            <Modal
+                visible={showNativeView}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowNativeView(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: isDark ? "#1A2E38" : "#FFF" }]}>
+                        <View style={styles.modalHeader}>
+                            <ThemedText type="subtitle">Native Kotlin View Bridge</ThemedText>
+                            <TouchableOpacity onPress={() => setShowNativeView(false)}>
+                                <MaterialCommunityIcons name="close" size={24} color={isDark ? "#FFF" : "#333"} />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <MyNativeView style={styles.nativeViewStyle} />
+
+                        <TouchableOpacity 
+                            style={[styles.closeBtn, { backgroundColor: "#2092EC" }]}
+                            onPress={() => setShowNativeView(false)}
+                        >
+                            <ThemedText style={{ color: '#FFF', fontWeight: 'bold' }}>Quay lại</ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
         </ScrollView>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: {
@@ -873,5 +932,38 @@ const styles = StyleSheet.create({
     progressFill: {
         height: "100%",
         borderRadius: 4,
+    },
+    // ─── Modal & Native View Styles ────────────────────────────────────────
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        width: '100%',
+        borderRadius: 20,
+        padding: 20,
+        elevation: 10,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    nativeViewStyle: {
+        width: '100%',
+        height: 300,
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginBottom: 20,
+    },
+    closeBtn: {
+        paddingVertical: 12,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });
