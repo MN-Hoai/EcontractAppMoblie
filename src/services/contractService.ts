@@ -1,4 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy";
+import { handleApiError } from "../utils/errorUtils";
 import apiClient from "./apiClient";
 
 export const API_BASE_URL = "http://192.168.1.82:5000";
@@ -41,10 +42,11 @@ export const getContracts = async (accountId: string): Promise<Contract[]> => {
       return result.data;
     }
 
-    console.warn("getContracts: định dạng response không xác định", result);
+    console.log("getContracts: định dạng response không xác định", result);
     return [];
   } catch (error) {
-    console.log("Error fetching contracts:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -86,7 +88,8 @@ export const fetchContractFdf = async (
 
     return response.data;
   } catch (error) {
-    console.log("Error fetching FDF:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -104,7 +107,8 @@ export const fetchFdfByUrl = async (fdfUrl: string): Promise<string> => {
 
     return response.data;
   } catch (error) {
-    console.log("Error fetching FDF by URL:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -129,7 +133,8 @@ export const fetchContractWithFdf = async (
       fdfData,
     };
   } catch (error) {
-    console.log("Error fetching contract with FDF:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -151,12 +156,33 @@ export const getFileContract = async (contractId: string): Promise<string> => {
     return localUri;
   }
 
-  const result = await (FileSystem as any).downloadAsync(url, localUri);
-  if (result.status !== 200) {
-    throw new Error(`Tải file hợp đồng thất bại (HTTP ${result.status})`);
-  }
+  try {
+    const response = await apiClient.get(url, {
+      responseType: "blob",
+    });
 
-  return result.uri as string;
+    const reader = new FileReader();
+    const base64Promise = new Promise<string>((resolve, reject) => {
+      reader.onloadend = () => {
+        const base64data = (reader.result as string).split(",")[1];
+        resolve(base64data);
+      };
+      reader.onerror = reject;
+    });
+
+    reader.readAsDataURL(response.data);
+    const base64 = await base64Promise;
+
+    await (FileSystem as any).writeAsStringAsync(localUri, base64, {
+      encoding: (FileSystem as any).EncodingType.Base64,
+    });
+
+    return localUri;
+  } catch (error) {
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
+    throw error;
+  }
 };
 
 export interface CheckCaResponse {
@@ -174,7 +200,8 @@ export const checkCaStatus = async (accountId: string): Promise<CheckCaResponse>
     const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
-    console.log("Error checking CA status:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -185,7 +212,8 @@ export const submitKycInfo = async (accountId: string, model: any) => {
     const response = await apiClient.post(url, model);
     return response.data;
   } catch (error) {
-    console.log("Error submitting KYC info:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -210,7 +238,8 @@ export const normalizeAddress = async (accountId: string): Promise<NormalizeAddr
       const retry = await apiClient.get(url);
       return retry.data;
     }
-    console.log("Error normalizing address:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -232,13 +261,14 @@ export const orderCA = async (accountId: string): Promise<OrderCAResponse> => {
 
     if (result.Success || result.success) {
       viewOrder(accountId).catch((err) =>
-        console.warn("Lỗi gọi ngầm viewOrder:", err)
+        console.log("Lỗi gọi ngầm viewOrder:", err)
       );
     }
 
     return result;
   } catch (error) {
-    console.log("Error creating CA order:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -276,7 +306,8 @@ export const getOrderInfo = async (accountId: string): Promise<OrderInfoResponse
       const retry = await apiClient.get(url);
       return retry.data;
     }
-    console.log("Error fetching order info:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -287,18 +318,20 @@ export const approveHandOver = async (accountId: string) => {
     const response = await apiClient.post(url, {});
     return response.data;
   } catch (error) {
-    console.log("Error approve handover:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
 
 export const viewOrder = async (accountId: string) => {
   try {
-    const url = `${API_BASE_URL}/api/view-order?accountId=${accountId}`;
-    const response = await apiClient.post(url, {});
+    const url = `${API_BASE_URL}/api/view-order`;
+    const response = await apiClient.post(url, { accountId }, { _skipAlert: true });
     return response.data;
   } catch (error) {
-    console.log("Error view order:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -325,7 +358,8 @@ export const getCloudCaInfo = async (accountId: string) => {
     const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
-    console.log("Error get cloud ca info:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -351,15 +385,16 @@ export interface CertInfo {
   SerialNumber?: string;
   ValidFrom?: string;
   ValidTo?: string;
+  Id?: number;
 }
 
 export interface CertInfoResponse {
   success?: boolean;
   message?: string;
-  data?: CertInfo;
+  data?: CertInfo[];
   Success?: boolean;
   Message?: string;
-  Data?: CertInfo;
+  Data?: CertInfo[];
 }
 
 export const importCertificate = async (accountId: string): Promise<CertInfoResponse> => {
@@ -368,18 +403,35 @@ export const importCertificate = async (accountId: string): Promise<CertInfoResp
     const response = await apiClient.post(url, {});
     return response.data;
   } catch (error) {
-    console.log("Error import certificate:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
 
-export const getCertInfo = async (accountId: string): Promise<CertInfoResponse> => {
+export const getCertInfo = async (accountId: string, validFrom?: string): Promise<CertInfoResponse> => {
   try {
-    const url = `${API_BASE_URL}/api/cert-info?accountId=${accountId}`;
+    let url = `${API_BASE_URL}/api/cert-info?accountId=${accountId}`;
+    if (validFrom) {
+      url += `&validFrom=${encodeURIComponent(validFrom)}`;
+    }
     const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
-    console.log("Error get cert info:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
+    throw error;
+  }
+};
+
+export const getCertificateDetail = async (accountId: string, id: number): Promise<CertInfoResponse> => {
+  try {
+    const url = `${API_BASE_URL}/api/cert-info-detail?accountId=${accountId}&id=${id}`;
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error) {
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -387,10 +439,11 @@ export const getCertInfo = async (accountId: string): Promise<CertInfoResponse> 
 export const confirmSign = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/confirm-sign?accountId=${accountId}`;
-    const response = await apiClient.post(url, {});
+    const response = await apiClient.post(url, {}, { _skipAlert: true });
     return response.data;
   } catch (error) {
-    console.log("Error confirm sign:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -401,7 +454,8 @@ export const resendOtp = async (accountId: string) => {
     const response = await apiClient.post(url, {});
     return response.data;
   } catch (error) {
-    console.log("Error resend otp:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -412,7 +466,8 @@ export const confirmOtp = async (accountId: string, otpCode: string) => {
     const response = await apiClient.post(url, {});
     return response.data;
   } catch (error) {
-    console.log("Error confirm otp:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -425,7 +480,8 @@ export const submitKycImages = async (accountId: string, formData: FormData) => 
     });
     return response.data;
   } catch (error) {
-    console.log("Error submitting KYC images:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -443,7 +499,8 @@ export const checkCustomerExist = async (accountId: string) => {
     const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
-    console.log("Error check customer exist:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
@@ -454,19 +511,21 @@ export const addOrUpdateCustomer = async (accountId: string, model: CustomerRequ
     const response = await apiClient.post(url, model);
     return response.data;
   } catch (error) {
-    console.log("Error add or update customer:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
 
 export const executeExternalSignContract = async (accountId: string, contractId: string) => {
+  console.log("!!! API SIGN CALLED FROM SERVICE !!! params:", { accountId, contractId });
   try {
-    const url = `http://192.168.1.87:5000/api/sign-contract?accountId=${accountId}&contractId=${contractId}`;
+    const url = `http://192.168.1.82:5000/api/sign-contract?accountId=${accountId}&contractId=${contractId}`;
     const response = await apiClient.post(url, {}, { timeout: 100000 });
     return response.data;
   } catch (error) {
-
-    console.log("Error execute external sign contract:", error);
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };

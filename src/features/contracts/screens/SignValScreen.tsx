@@ -51,107 +51,142 @@ export default function SignValScreen() {
     const loadData = async () => {
       try {
         setIsLoading(true);
+        console.log("[VAL Debug] - Bắt đầu quá trình nghiệm thu & lấy chứng thư...");
+        console.log("[VAL Debug] - requestId:", requestId);
 
         // --- Bước 1: Gọi nghiệm thu ---
+        console.log("[VAL Debug] - (1) Đang gọi 'approveHandOver'...");
         let approveRes;
         try {
           approveRes = await approveHandOver(requestId || "");
-          console.log("Approve Handover:", approveRes);
+          console.log("[VAL Debug] - Kết quả 'approveHandOver':", JSON.stringify(approveRes, null, 2));
 
           const isSuccessObj = approveRes && (approveRes.Success === true || approveRes.success === true);
           const dataStatus = approveRes?.Data?.Status || approveRes?.data?.status;
 
-          if (!isSuccessObj || (dataStatus && dataStatus !== "SUCCESS")) {
-            if (isMounted) {
-              const friendlyMsg = (approveRes?.Message || approveRes?.message || "Xác nhận nghiệm thu thất bại.")
-                .replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", "");
-              Alert.alert("Thông báo", friendlyMsg, [{ text: "Đóng", style: "cancel" }]);
-            }
+          if (!isSuccessObj) {
+            const msg = (approveRes?.Message || approveRes?.message || "Xác nhận nghiệm thu thất bại.");
+            console.error("[VAL Debug] - Nghiệm thu thất bại:", msg);
+            if (isMounted) Alert.alert("Lỗi nghiệm thu", msg.replace("Lỗi hệ thống: ", ""), [{ text: "Đóng", style: "cancel" }]);
             return;
           }
         } catch (err: any) {
-          console.log("Lỗi gọi API approve-handover:", err);
-          if (isMounted) Alert.alert("Thông báo", "Đã có sự cố ngoài ý muốn xảy ra.", [{ text: "Đóng", style: "cancel" }]);
+          console.error("[VAL Debug] - Lỗi hệ thống khi gọi 'approveHandOver':", err);
+          if (err.response) console.error("[VAL Debug] - Server Error Data:", err.response.data);
+          if (isMounted) Alert.alert("Lỗi hệ thống", "Không thể thực hiện nghiệm thu. Vui lòng thử lại.");
           return;
         }
 
-        // --- Bước 2: Gọi viewOrder ---
+        // --- Bước 2: Gọi viewOrder (Âm thầm) ---
+        console.log("[VAL Debug] - (2) Đang gọi 'viewOrder'...");
         let viewRes;
         try {
           viewRes = await viewOrder(requestId || "");
-          console.log("View Order:", viewRes);
-          if (!viewRes || viewRes.Success === false || viewRes.success === false) {
-            if (isMounted) {
-              const friendlyMsg = (viewRes?.Message || viewRes?.message || "Không thể tải thông tin đơn hàng.")
-                .replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", "");
-              Alert.alert("Thông báo", friendlyMsg, [{ text: "Đóng", style: "cancel" }]);
-            }
+          console.log("[VAL Debug] - Kết quả 'viewOrder':", JSON.stringify(viewRes, null, 2));
+          
+          const isSuccess = viewRes && (viewRes.Success === true || viewRes.success === true);
+          
+          if (!isSuccess) {
+            const msg = (viewRes?.Message || viewRes?.message || "Không thể tải thông tin đơn hàng.");
+            console.error("[VAL Debug] - Tải đơn hàng thất bại (Thất bại thật sự):", msg);
+            // Chỉ Alert khi Success thực sự là False
+            if (isMounted) Alert.alert("Lỗi tải đơn", msg.replace("Lỗi hệ thống: ", ""), [{ text: "Đóng", style: "cancel" }]);
             return;
+          } else {
+            console.log("[VAL Debug] - Tải đơn hàng thành công (Success: true). Tiếp tục luồng...");
           }
         } catch (err: any) {
-          console.log("Lỗi gọi API view-order:", err);
-          if (isMounted) Alert.alert("Thông báo", "Đã có sự cố ngoài ý muốn xảy ra.", [{ text: "Đóng", style: "cancel" }]);
-          return;
+          console.error("[VAL Debug] - Lỗi hệ thống khi gọi 'viewOrder':", err);
+          // Không hiện Alert ở đây theo yêu cầu log ngầm, cho phép chạy tiếp hoặc dừng lại tùy thuộc vào mức độ quan trọng
+          // Ở đây tôi chọn cho chạy tiếp bước 3 vì bạn muốn log ngầm
         }
 
         // --- Bước 3: Import certificate ---
+        console.log("[VAL Debug] - (3) Đang gọi 'importCertificate'...");
         let importRes;
         try {
           importRes = await importCertificate(requestId || "");
-          console.log("Import Certificate:", importRes);
-          if (!importRes || importRes.Success === false || importRes.success === false) {
-            if (isMounted) {
-              const friendlyMsg = (importRes?.Message || importRes?.message || "Import chứng thư số thất bại.")
-                .replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", "");
-              Alert.alert("Thông báo", friendlyMsg, [{ text: "Đóng", style: "cancel" }]);
-            }
+          console.log("[VAL Debug] - Kết quả 'importCertificate':", JSON.stringify(importRes, null, 2));
+
+          const isSuccess = importRes && (importRes.Success !== false && importRes.success !== false);
+          if (!isSuccess) {
+            const msg = (importRes?.Message || importRes?.message || "Import chứng thư số thất bại.");
+            console.error("[VAL Debug] - Import chứng thư thất bại:", msg);
+            if (isMounted) Alert.alert("Lỗi Import Cert", msg.replace("Lỗi hệ thống: ", ""), [{ text: "Đóng", style: "cancel" }]);
             return;
           }
         } catch (err: any) {
-          console.log("Lỗi gọi API import-cert:", err);
-          if (isMounted) Alert.alert("Thông báo", "Đã có sự cố ngoài ý muốn xảy ra.", [{ text: "Đóng", style: "cancel" }]);
+          console.error("[VAL Debug] - Lỗi hệ thống khi gọi 'importCertificate':", err);
+          if (isMounted) Alert.alert("Lỗi hệ thống", "Không thể nhập chứng thư số.");
           return;
         }
 
         // --- Bước 4: Lấy thông tin chứng thư ---
+        console.log("[VAL Debug] - (4) Đang gọi 'getCertInfo'...");
+        
+        // Tạo chuỗi thời gian định dạng YYYY-MM-DD HH:mm:ss.0000000
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        const formattedValidFrom = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}.0000000`;
+        
+        console.log("[VAL Debug] - validFrom truyền đi:", formattedValidFrom);
+
         try {
-          const certRes = await getCertInfo(requestId || "");
-          if (!certRes || certRes.Success === false || certRes.success === false) {
-            if (isMounted) {
-              const friendlyMsg = (certRes?.Message || certRes?.message || "Cập nhật thông tin chứng thư thất bại.")
-                .replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", "");
-              Alert.alert("Thông báo", friendlyMsg, [{ text: "Đóng", style: "cancel" }]);
-            }
+          const certRes = await getCertInfo(requestId || "", formattedValidFrom);
+          console.log("[VAL Debug] - Kết quả 'getCertInfo':", JSON.stringify(certRes, null, 2));
+
+          const isSuccess = certRes && (certRes.Success !== false && certRes.success !== false);
+          if (!isSuccess) {
+            const msg = (certRes?.Message || certRes?.message || "Lấy thông tin chứng thư số thất bại.");
+            console.error("[VAL Debug] - Lấy thông tin chứng thư thất bại:", msg);
+            if (isMounted) Alert.alert("Lỗi thông tin Cert", msg.replace("Lỗi hệ thống: ", ""), [{ text: "Đóng", style: "cancel" }]);
             return;
           }
 
-          const certData = certRes.Data || certRes.data;
+          const rawData = certRes.Data || certRes.data;
+          // Nếu data là mảng, lấy phần tử đầu tiên (thường là mới nhất)
+          const certData = Array.isArray(rawData) ? rawData[0] : rawData;
+          
+          console.log("[VAL Debug] - ==> Dữ liệu Cert sẵn sàng:", certData?.SerialNumber);
+          if (Array.isArray(rawData)) {
+            console.log(`[VAL Debug] - Tìm thấy ${rawData.length} chứng thư trong danh sách.`);
+          }
+
           if (isMounted && certData) {
             setCertInfo(certData);
           }
         } catch (err: any) {
-          console.log("Lỗi gọi API cert-info:", err);
-          if (isMounted) Alert.alert("Thông báo", "Đã có sự cố ngoài ý muốn xảy ra.", [{ text: "Đóng", style: "cancel" }]);
+          console.error("[VAL Debug] - Lỗi hệ thống khi gọi 'getCertInfo':", err);
+          if (isMounted) Alert.alert("Lỗi hệ thống", "Không thể lấy thông tin chứng thư số.");
           return;
         }
 
       } catch (err: any) {
-        console.log("Lỗi không xác định:", err);
-        if (isMounted) Alert.alert("Thông báo", "Đã có sự cố ngoài ý muốn xảy ra.", [{ text: "Đóng", style: "cancel" }]);
+        console.error("[VAL Debug] - Lỗi không xác định:", err);
       } finally {
+        console.log("[VAL Debug] - Kết thúc quá trình.");
         if (isMounted) setIsLoading(false);
       }
     };
 
-    loadData();
+    const timer = setTimeout(() => {
+      if (isMounted) loadData();
+    }, 500); // Chờ 500ms để hiệu ứng chuyển trang hoàn tất
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
   }, [requestId]);
 
   const handleConfirm = () => {
-    router.push("/(certificate)/choose-certificate2");
+    // Hoàn tất quá trình, quay về trang chủ
+    router.replace("/(tabs)");
   };
 
   // Helpers string -> dd/MM/yyyy

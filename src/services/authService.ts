@@ -1,4 +1,6 @@
+import apiClient from "./apiClient";
 import axios from "axios";
+import { handleApiError } from "../utils/errorUtils";
 
 const API_BASE_URL = "https://api.officeai.vn/v1";
 
@@ -49,35 +51,57 @@ export interface LoginResponse {
     success: boolean;
 }
 
+/**
+ * Đăng ký tài khoản mới.
+ * _skipAlert = true: màn hình Register tự xử lý hiển thị lỗi.
+ */
 export const registerAccount = async (payload: RegisterRequest): Promise<RegisterResponse> => {
     try {
-        const url = `${API_BASE_URL}/auth/register`;
-        const response = await axios.post<RegisterResponse>(url, payload);
+        const response = await apiClient.post<RegisterResponse>(
+            `${API_BASE_URL}/auth/register`,
+            payload,
+            { _skipAlert: true } as any
+        );
         return response.data;
     } catch (error) {
-        console.log("Error during registration:", error);
+        const message = handleApiError(error);
+        if (message) throw new Error(message);
         throw error;
     }
 };
 
+/**
+ * Đăng nhập.
+ * _skipAlert = true: màn hình Login sẽ tự hiển thị inline error, không cần Alert popup.
+ */
 export const login = async (payload: LoginRequest): Promise<LoginResponse> => {
     try {
-        const url = `${API_BASE_URL}/auth/login`;
-        const response = await axios.post<LoginResponse>(url, payload);
+        const response = await apiClient.post<LoginResponse>(
+            `${API_BASE_URL}/auth/login`,
+            payload,
+            { _skipAlert: true } as any
+        );
         return response.data;
     } catch (error) {
-        console.log("Error during login:", error);
+        const message = handleApiError(error);
+        if (message) throw new Error(message);
         throw error;
     }
 };
 
+/**
+ * Làm mới access token bằng refresh token.
+ * Dùng axios trực tiếp (không qua interceptor) để tránh vòng lặp vô hạn.
+ */
 export const refreshAccessToken = async (refreshToken: string): Promise<LoginResponse> => {
     try {
-        const url = `${API_BASE_URL}/auth/refresh-token`; // Fallback to refresh-token endpoint
-        const response = await axios.post<LoginResponse>(url, { refresh_token: refreshToken });
+        const response = await axios.post<LoginResponse>(
+            `${API_BASE_URL}/auth/refresh-token`,
+            { refresh_token: refreshToken }
+        );
         return response.data;
     } catch (error) {
-        console.log("Error during token refresh:", error);
+        if (__DEV__) console.log("[Auth] Token refresh failed:", error);
         throw error;
     }
 };

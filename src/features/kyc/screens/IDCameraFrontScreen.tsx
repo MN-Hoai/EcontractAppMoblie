@@ -6,7 +6,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
-    Animated,
     Image,
     SafeAreaView,
     StatusBar,
@@ -25,9 +24,6 @@ export default function IDCameraFrontScreen() {
     const [isCapturing, setIsCapturing] = useState(false);
     const cameraRef = useRef<CameraView>(null);
 
-    // Scan line animation
-    const scanAnim = useRef(new Animated.Value(0)).current;
-
     useEffect(() => {
         if (permission && !permission.granted) {
             requestPermission();
@@ -42,27 +38,6 @@ export default function IDCameraFrontScreen() {
             }
         }, [])
     );
-
-    useEffect(() => {
-        if (!capturedUri) {
-            const loop = Animated.loop(
-                Animated.sequence([
-                    Animated.timing(scanAnim, {
-                        toValue: 1,
-                        duration: 2000,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(scanAnim, {
-                        toValue: 0,
-                        duration: 2000,
-                        useNativeDriver: true,
-                    }),
-                ])
-            );
-            loop.start();
-            return () => loop.stop();
-        }
-    }, [capturedUri]);
 
     const handleCapture = async () => {
         if (!cameraRef.current || isCapturing) return;
@@ -109,12 +84,6 @@ export default function IDCameraFrontScreen() {
             </SafeAreaView>
         );
     }
-
-    // Scan line translateY interpolation over card height (~380px)
-    const scanTranslateY = scanAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, CARD_HEIGHT - 2],
-    });
 
     return (
         <View style={styles.container}>
@@ -171,10 +140,6 @@ export default function IDCameraFrontScreen() {
                                     <View style={styles.cornerTR} />
                                     <View style={styles.cornerBL} />
                                     <View style={styles.cornerBR} />
-                                    {/* Animated scan line */}
-                                    <Animated.View
-                                        style={[styles.scanLine, { transform: [{ translateY: scanTranslateY }] }]}
-                                    />
                                 </View>
                             </CameraView>
                         )}
@@ -191,7 +156,7 @@ export default function IDCameraFrontScreen() {
 
                 {/* Hint text */}
                 {!capturedUri && (
-                    <Text style={styles.hintText}>📱 Giữ điện thoại thẳng đứng • Căn thẻ vào trong khung</Text>
+                    <Text style={styles.hintText}>Giữ điện thoại thẳng đứng • Căn thẻ vào trong khung</Text>
                 )}
             </View>
 
@@ -321,19 +286,6 @@ const styles = StyleSheet.create({
     cornerTR: { position: "absolute", top: 12, right: 12, width: CORNER_SIZE, height: CORNER_SIZE, borderTopWidth: CORNER_THICK, borderRightWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderTopRightRadius: CORNER_RADIUS },
     cornerBL: { position: "absolute", bottom: 12, left: 12, width: CORNER_SIZE, height: CORNER_SIZE, borderBottomWidth: CORNER_THICK, borderLeftWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderBottomLeftRadius: CORNER_RADIUS },
     cornerBR: { position: "absolute", bottom: 12, right: 12, width: CORNER_SIZE, height: CORNER_SIZE, borderBottomWidth: CORNER_THICK, borderRightWidth: CORNER_THICK, borderColor: CORNER_COLOR, borderBottomRightRadius: CORNER_RADIUS },
-
-    scanLine: {
-        position: "absolute",
-        left: 12,
-        right: 12,
-        height: 2,
-        borderRadius: 1,
-        backgroundColor: "rgba(21, 101, 192, 0.75)",
-        shadowColor: "#1565C0",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 6,
-    },
 
     capturedBadge: {
         position: "absolute",

@@ -24,7 +24,7 @@ class MySignService {
       }
       return await MySignModule.registerDevice(token);
     } catch (error: any) {
-      console.error('[MySignService] registerDevice Error:', error);
+      console.log('[MySignService] registerDevice Error:', error);
       throw error;
     }
   }

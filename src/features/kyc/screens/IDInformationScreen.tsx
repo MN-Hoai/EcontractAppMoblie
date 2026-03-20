@@ -242,118 +242,119 @@ export default function IDInformationScreen() {
         setErrors({});
         setCountdown(80);
         setIsSubmitting(true);
+        console.log("[ORDER Debug] - Bắt đầu luồng xác thực và tạo đơn...");
+        console.log("[ORDER Debug] - requestId:", requestId);
+
         try {
             const model = {
                 IdNumber: idInfo.idNumber,
                 FullName: idInfo.fullName,
-                DateOfBirth: dateOfBirthStr!,   // dd/MM/yyyy
+                DateOfBirth: dateOfBirthStr!,
                 Gender: idInfo.gender,
-                IssueDate: issueDateStr!,        // dd/MM/yyyy
+                IssueDate: issueDateStr!,
                 IssuePlace: idInfo.placeOfIssue,
                 PermanentAddress: idInfo.address,
                 PhoneNumber: idInfo.phoneNumber,
                 Email: idInfo.email,
             };
 
-            console.log("▶ [submitKycInfo] model:", JSON.stringify(model, null, 2));
+            console.log("[ORDER Debug] - (1) Đang gọi 'submitKycInfo'...");
+            console.log("[ORDER Debug] - Payload:", JSON.stringify(model, null, 2));
 
             const serviceResponse = await submitKycInfo(requestId || "", model) as any;
+            console.log("[ORDER Debug] - Kết quả 'submitKycInfo':", JSON.stringify(serviceResponse, null, 2));
+
             const isSuccess = serviceResponse.success ?? serviceResponse.Success;
             const rawMessage = serviceResponse.message ?? serviceResponse.Message;
-            const friendlyMessage = rawMessage?.replace("Lỗi hệ thống: ", "") || "Thông tin không hợp lệ hoặc lỗi xác thực. Vui lòng thử lại.";
 
             if (!isSuccess) {
-                Alert.alert(
-                    "Thông báo",
-                    friendlyMessage,
-                    [{ text: "Đóng", style: "cancel" }]
-                );
+                const friendlyMessage = rawMessage?.replace("Lỗi hệ thống: ", "") || "Thông tin không hợp lệ. Vui lòng kiểm tra lại.";
+                console.error("[ORDER Debug] - 'submitKycInfo' thất bại:", friendlyMessage);
+                Alert.alert("Thông báo", friendlyMessage, [{ text: "Đóng", style: "cancel" }]);
+                setIsSubmitting(false);
                 return;
             }
 
             // ── Bước 4: Chuẩn hóa địa chỉ ─────────────────────────
+            console.log("[ORDER Debug] - (2) Đang gọi 'normalizeAddress'...");
             const addressResponse = await normalizeAddress(requestId || "");
-            const addressSuccess = addressResponse.success ?? addressResponse.Success;
-            const addressMessage = addressResponse.message ?? addressResponse.Message;
+            console.log("[ORDER Debug] - Kết quả 'normalizeAddress':", JSON.stringify(addressResponse, null, 2));
 
+            const addressSuccess = addressResponse.success ?? addressResponse.Success;
             if (!addressSuccess) {
-                Alert.alert(
-                    "Thông báo",
-                    addressMessage?.replace("Lỗi hệ thống: ", "") || "Không thể chuẩn hóa địa chỉ. Vui lòng thử lại."
-                );
+                const addressMessage = addressResponse.message ?? addressResponse.Message;
+                console.error("[ORDER Debug] - 'normalizeAddress' thất bại:", addressMessage);
+                Alert.alert("Thông báo", addressMessage || "Lỗi chuẩn hóa địa chỉ.", [{ text: "Đóng", style: "cancel" }]);
+                setIsSubmitting(false);
                 return;
             }
 
             // ── Bước 5: Tạo đơn hàng CA ──────────────────────────
+            console.log("[ORDER Debug] - (3) Đang gọi 'orderCA' (Tạo đơn hàng)...");
             const orderResponse = await orderCA(requestId || "");
-            const orderSuccess = orderResponse.success ?? orderResponse.Success;
-            const orderMessage = orderResponse.message ?? orderResponse.Message;
+            console.log("[ORDER Debug] - Kết quả 'orderCA':", JSON.stringify(orderResponse, null, 2));
 
+            const orderSuccess = orderResponse.success ?? orderResponse.Success;
             if (!orderSuccess) {
-                Alert.alert(
-                    "Thông báo",
-                    (orderMessage || "Không thể tạo đơn hàng CA. Vui lòng thử lại.")
-                        .replace("Lỗi hệ thống: ", "").replace("Lỗi nội bộ: ", ""),
-                    [{ text: "Đóng", style: "cancel" }]
-                );
+                const orderMessage = orderResponse.message ?? orderResponse.Message;
+                console.error("[ORDER Debug] - 'orderCA' thất bại:", orderMessage);
+                Alert.alert("Lỗi tạo đơn hàng", orderMessage || "Không thể tạo đơn hàng CA. Vui lòng thử lại.", [{ text: "Đóng", style: "cancel" }]);
+                setIsSubmitting(false);
                 return;
             }
 
-            // ── Bước 6: Lấy thông tin đơn hàng để hiển thị ───────
-            // Non-fatal: nếu API này lỗi thì vẫn navigate, chỉ thiếu data hiển thị
-            let infoData = null;
-            try {
-                const infoResponse = await getOrderInfo(requestId || "");
-                infoData = infoResponse.data ?? infoResponse.Data ?? null;
-            } catch (infoErr: any) {
-                console.warn("getOrderInfo lỗi, navigate với data rỗng:", infoErr?.response?.status ?? infoErr?.message);
+            // ── Bước 6: Lấy thông tin đơn hàng và mã OrderID ───────
+            console.log("[ORDER Debug] - (4) Đang gọi 'getOrderInfo' để lấy mã đơn hàng...");
+            const infoResponse = await getOrderInfo(requestId || "");
+            console.log("[ORDER Debug] - Kết quả 'getOrderInfo':", JSON.stringify(infoResponse, null, 2));
+
+            const infoData = infoResponse.data ?? infoResponse.Data;
+            const orderId = infoData?.OrderID ?? infoData?.orderId;
+
+            console.log("[ORDER Debug] - ==> MÃ ĐƠN HÀNG (OrderID):", orderId);
+
+            if (!orderId) {
+                console.warn("[ORDER Debug] - Không tìm thấy OrderID trong phản hồi.");
+                Alert.alert("Lỗi dữ liệu", "Hệ thống không tìm thấy mã đơn hàng vừa tạo. Vui lòng liên hệ quản trị viên.", [{ text: "Đóng", style: "cancel" }]);
+                setIsSubmitting(false);
+                return;
             }
 
+            console.log("[ORDER Debug] - Hoàn tất luồng. Đang chuyển sang trang nhập OTP (SignContract).");
             router.push({
                 pathname: "/sign-contract",
                 params: {
-                    fullName: infoData?.FullName ?? infoData?.fullName ?? "",
-                    dateOfBirth: infoData?.DateOfBirth ?? infoData?.dateOfBirth ?? "",
-                    gender: infoData?.Gender ?? infoData?.gender ?? "",
-                    permanentAddress: infoData?.PermanentAddress ?? infoData?.permanentAddress ?? "",
-                    orderId: infoData?.OrderID ?? infoData?.orderId ?? "",
+                    fullName: infoData?.FullName ?? infoData?.fullName ?? idInfo.fullName,
+                    dateOfBirth: infoData?.DateOfBirth ?? infoData?.dateOfBirth ?? idInfo.dateOfBirth,
+                    gender: infoData?.Gender ?? infoData?.gender ?? idInfo.gender,
+                    permanentAddress: infoData?.PermanentAddress ?? infoData?.permanentAddress ?? idInfo.address,
+                    orderId: orderId ?? "",
+                    phoneNumber: idInfo.phoneNumber || "03*****193",
+                    accountNumber: orderId || "Đang khởi tạo",
                 },
             });
 
         } catch (error: any) {
-            // Log nội bộ để debug, không dùng console.error để tránh hiện LogBox trên màn hình người dùng
-            console.log("✖ [submitKycInfo]:", error.response?.data ?? error.message);
+            console.error("[ORDER Debug] - LỖI HỆ THỐNG TRONG LUỒNG TẠO ĐƠN:", error);
+            if (error.response) {
+                console.error("[ORDER Debug] - Server Error Data:", JSON.stringify(error.response.data, null, 2));
+                console.error("[ORDER Debug] - Server Status:", error.response.status);
+            }
 
-            let title = "Thông báo";
-            let desc = "Không thể gửi thông tin. Vui lòng thử lại.";
+            let title = "Lỗi xử lý";
+            let desc = "Đã có lỗi xảy ra trong quá trình xác thực. Vui lòng thử lại.";
 
             if (error.message === "Network Error") {
                 title = "Lỗi kết nối";
-                desc = "Không thể kết nối đến máy chủ. Kiểm tra lại mạng và thử lại.";
-            } else if (error.response) {
-                const sData = error.response.data;
-                if (sData?.Message || sData?.message) {
-                    desc = (sData.Message || sData.message).replace("Lỗi hệ thống: ", "");
-                } else if (sData?.errors) {
-                    desc = Object.entries(sData.errors as Record<string, string[]>)
-                        .map(([f, msgs]) => `${f}: ${msgs.join(", ")}`)
-                        .join("\n");
-                } else {
-                    desc = `Lỗi máy chủ (${error.response.status}). Vui lòng thử lại.`;
-                }
+                desc = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng.";
+            } else if (error.response?.data?.message) {
+                desc = error.response.data.message;
             }
 
-            if (error.response && error.response.status !== 500 && error.message !== "Network Error") {
-                Alert.alert(
-                    title,
-                    desc,
-                    [{ text: "Đóng", style: "cancel" }]
-                );
-                return;
-            }
-            Alert.alert(title, desc);
+            Alert.alert(title, desc.replace("Lỗi hệ thống: ", ""), [{ text: "Đóng", style: "cancel" }]);
         } finally {
             setIsSubmitting(false);
+            console.log("[ORDER Debug] - Kết thúc luồng API.");
         }
     };
 

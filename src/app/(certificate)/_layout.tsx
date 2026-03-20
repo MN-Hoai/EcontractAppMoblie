@@ -6,6 +6,7 @@ export default function CertificateLayout() {
             <Stack.Screen name="certificate-info" />
             <Stack.Screen name="choose-certificate" />
             <Stack.Screen name="choose-certificate2" />
+            <Stack.Screen name="certificate-detail" />
         </Stack>
     );
 }

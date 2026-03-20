@@ -1,4 +1,5 @@
 import apiClient from "./apiClient";
+import { handleApiError } from "../utils/errorUtils";
 
 export interface DigitalContract {
     Contract: {
@@ -68,10 +69,8 @@ export class DigitalContractService {
             });
             return response.data;
         } catch (error: any) {
-            console.error(`Error fetching contracts for tab ${tab}:`, error.message || error);
-            if (error.response && error.response.data) {
-                console.error("API Error Response JSON:", JSON.stringify(error.response.data, null, 2));
-            }
+            const message = handleApiError(error);
+            if (message) throw new Error(message);
             throw error;
         }
     }

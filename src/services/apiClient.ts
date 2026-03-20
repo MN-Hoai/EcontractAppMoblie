@@ -1,157 +1,181 @@
 import { useAuthStore } from "@/store/authStore";
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { Alert } from "react-native";
+import { handleApiError } from "../utils/errorUtils";
+import { getTokens, saveTokens } from "./secureStorage";
 import { refreshAccessToken } from "./authService";
 
+// Extend AxiosRequestConfig to support _skipAlert flag
+declare module "axios" {
+    interface InternalAxiosRequestConfig {
+        _skipAlert?: boolean;
+        _retry?: boolean;
+    }
+    interface AxiosRequestConfig {
+        _skipAlert?: boolean;
+    }
+}
+
 const apiClient = axios.create({
-    baseURL: "https://contract.officeai.vn", // Base for product /contract/api/list
+    baseURL: "https://contract.officeai.vn",
     timeout: 15000,
 });
 
-// Request Interceptor: Add access token to headers
+// ─── Request Interceptor: Attach access token from SecureStore ─────────────
 apiClient.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        const { accessToken } = useAuthStore.getState();
-        if (accessToken && config.headers) {
-            config.headers.Authorization = `Bearer ${accessToken}`;
+    async (config: InternalAxiosRequestConfig) => {
+        try {
+            const { accessToken } = useAuthStore.getState();
+            // Use in-memory token first (faster), fallback to SecureStore
+            const token = accessToken || (await getTokens()).accessToken;
+            if (token && config.headers) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+        } catch {
+            // Silent fail - request proceeds without token
         }
         return config;
     },
-    (error: AxiosError) => {
-        return Promise.reject(error);
-    }
+    (error: AxiosError) => Promise.reject(error)
 );
 
-// Helper to handle multiple requests failing at the same time and refreshing once
+// ─── Token refresh queue ───────────────────────────────────────────────────
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
 
 const processQueue = (error: any, token: string | null = null) => {
     failedQueue.forEach((prom) => {
-        if (error) {
-            prom.reject(error);
-        } else {
-            prom.resolve(token);
-        }
+        if (error) prom.reject(error);
+        else prom.resolve(token!);
     });
     failedQueue = [];
 };
 
-// Response Interceptor: Handle token expiration
-apiClient.interceptors.response.use(
-    (response) => {
-        // According to user: if response.data.success is false and contains the expired token message
-        if (
-            response.data &&
-            response.data.success === false &&
-            response.data.message === "Token không hợp lệ hoặc đã hết hạn. Vui lòng refresh token qua Server A."
-        ) {
-            console.log("Centralized Interceptor: Detected token expired message in success response.");
-            return handleTokenRefresh(response.config);
-        }
-        return response;
-    },
-    async (error: AxiosError) => {
-        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-        const responseData: any = error.response?.data;
-
-        // Requirement 6: Log explicit JSON error response from API
-        if (responseData) {
-            console.error("API Error Response JSON:", JSON.stringify(responseData, null, 2));
-        } else {
-            console.error("API Network Error:", error.message);
-        }
-
-        // Also check if the error response is 401 or contains the specific message
-        if (
-            error.response?.status === 401 ||
-            (responseData &&
-                responseData.success === false &&
-                responseData.message === "Token không hợp lệ hoặc đã hết hạn. Vui lòng refresh token qua Server A.")
-        ) {
-            if (!originalRequest._retry) {
-                originalRequest._retry = true;
-                console.log("Centralized Interceptor: Detected 401 or token expired message in error response (Status: " + error.response?.status + ").");
-                return handleTokenRefresh(originalRequest);
-            }
-        }
-
-        return Promise.reject(error);
-    }
-);
-
-async function handleTokenRefresh(originalRequest: InternalAxiosRequestConfig & { _retry?: boolean }) {
+async function handleTokenRefresh(originalRequest: InternalAxiosRequestConfig) {
+    // Queue subsequent requests while refreshing
     if (isRefreshing) {
-        console.log("Centralized Interceptor: Already refreshing, queuing request.");
-        return new Promise(function (resolve, reject) {
+        return new Promise<string>((resolve, reject) => {
             failedQueue.push({ resolve, reject });
-        })
-            .then((token) => {
-                if (originalRequest.headers) {
-                    originalRequest.headers.Authorization = "Bearer " + token;
-                }
-                return apiClient(originalRequest);
-            })
-            .catch((err) => {
-                return Promise.reject(err);
-            });
+        }).then((token) => {
+            if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+            }
+            return apiClient(originalRequest);
+        });
     }
 
     isRefreshing = true;
-    console.log("Centralized Interceptor: Starting token refresh process...");
 
     try {
-        const { refreshToken, setAuthData, user, requestId, expiresAt, logout } = useAuthStore.getState();
+        const { refreshToken, setAuthData, user, requestId, expiresAt, logout } =
+            useAuthStore.getState();
+        const storedRefreshToken = refreshToken || (await getTokens()).refreshToken;
 
-        if (!refreshToken) {
-            console.error("Centralized Interceptor: No refresh token found, logging out.");
-            logout();
-            isRefreshing = false;
-            return Promise.reject(new Error("No refresh token available"));
+        if (!storedRefreshToken) {
+            await logout();
+            return Promise.reject(new Error("No refresh token"));
         }
 
-        const authResponse = await refreshAccessToken(refreshToken);
+        const authResponse = await refreshAccessToken(storedRefreshToken);
 
-        if (authResponse && authResponse.success && authResponse.data) {
-            console.log("Centralized Interceptor: Token refreshed successfully. Updating store and retrying...");
-
+        if (authResponse?.success && authResponse.data) {
             const newAccessToken = authResponse.data.access_token;
-            const newRefreshToken = authResponse.data.refresh_token || refreshToken;
+            const newRefreshToken = authResponse.data.refresh_token || storedRefreshToken;
             const newExpiresAt = authResponse.data.expires_at || expiresAt || "";
             const newUser = authResponse.data.user || user;
 
-            // Ghi lại thông tin đăng nhập mới (Required by User)
             if (newUser && (requestId || newUser.id)) {
-                setAuthData({
+                await setAuthData({
                     accessToken: newAccessToken,
                     refreshToken: newRefreshToken,
                     expiresAt: newExpiresAt,
                     user: newUser,
                     requestId: requestId || newUser.id,
                 });
+            } else {
+                // Just update tokens in SecureStore if user info not returned
+                await saveTokens(newAccessToken, newRefreshToken);
+                useAuthStore.setState({ accessToken: newAccessToken, refreshToken: newRefreshToken });
             }
 
-            // Apply NEW token to the failed request
             if (originalRequest.headers) {
-                originalRequest.headers.Authorization = "Bearer " + newAccessToken;
+                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             }
 
             processQueue(null, newAccessToken);
             return apiClient(originalRequest);
         } else {
-            console.error("Centralized Interceptor: Refresh API failed, logging out.");
-            logout();
+            const { logout: doLogout, isAuthenticated } = useAuthStore.getState();
+            if (isAuthenticated) {
+                Alert.alert("Thông báo", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+                await doLogout();
+            }
             processQueue(new Error("Refresh token expired"), null);
-            return Promise.reject(new Error("Refresh token failed"));
+            return Promise.reject(new Error("Refresh failed"));
         }
     } catch (err) {
-        console.error("Centralized Interceptor: Error during refresh process:", err);
-        const { logout } = useAuthStore.getState();
-        logout();
+        const { logout: doLogout, isAuthenticated } = useAuthStore.getState();
+        if (isAuthenticated) {
+            Alert.alert("Thông báo", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+            await doLogout();
+        }
         processQueue(err, null);
         return Promise.reject(err);
     } finally {
         isRefreshing = false;
     }
 }
+
+// ─── Response Interceptor ─────────────────────────────────────────────────
+apiClient.interceptors.response.use(
+    (response) => {
+        // Handle token expired message returned as 200 OK
+        if (
+            response.data?.success === false &&
+            response.data?.message === "Token không hợp lệ hoặc đã hết hạn. Vui lòng refresh token qua Server A."
+        ) {
+            return handleTokenRefresh(response.config);
+        }
+        return response;
+    },
+    async (error: AxiosError) => {
+        const originalRequest = error.config as InternalAxiosRequestConfig;
+        const responseData: any = error.response?.data;
+
+        // Debug log only in dev
+        if (__DEV__) {
+            if (responseData) {
+                console.log("[API Debug] Error response:", JSON.stringify(responseData));
+            } else {
+                console.log("[API Debug] Network error:", error.message);
+            }
+        }
+
+        const isTokenExpired =
+            error.response?.status === 401 ||
+            (responseData?.success === false &&
+                responseData?.message === "Token không hợp lệ hoặc đã hết hạn. Vui lòng refresh token qua Server A.");
+
+        if (isTokenExpired && !originalRequest._retry) {
+            originalRequest._retry = true;
+            return handleTokenRefresh(originalRequest);
+        }
+
+        // Show user-friendly dialog only for non-token errors
+        // AND only if the caller hasn't set _skipAlert
+        // We also skip alerts for auth-related paths as they handle their own errors inline
+        const isAuthPath = originalRequest?.url?.includes("/auth/") || false;
+        const skipAlert = originalRequest?._skipAlert === true || isAuthPath;
+
+        if (!isTokenExpired && !skipAlert) {
+            const message = handleApiError(error);
+            if (message) {
+                Alert.alert("Thông báo", message);
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 export default apiClient;

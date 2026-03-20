@@ -8,7 +8,6 @@ import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    Animated,
     Image,
     SafeAreaView,
     StatusBar,
@@ -27,35 +26,11 @@ export default function IDCameraBackScreen() {
     const [isCapturing, setIsCapturing] = useState(false);
     const cameraRef = useRef<CameraView>(null);
 
-    // Scan line animation
-    const scanAnim = useRef(new Animated.Value(0)).current;
-
     useEffect(() => {
         if (permission && !permission.granted) {
             requestPermission();
         }
     }, [permission]);
-
-    useEffect(() => {
-        if (!capturedUri) {
-            const loop = Animated.loop(
-                Animated.sequence([
-                    Animated.timing(scanAnim, {
-                        toValue: 1,
-                        duration: 2000,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(scanAnim, {
-                        toValue: 0,
-                        duration: 2000,
-                        useNativeDriver: true,
-                    }),
-                ])
-            );
-            loop.start();
-            return () => loop.stop();
-        }
-    }, [capturedUri]);
 
     const handleCapture = async () => {
         if (!cameraRef.current || isCapturing) return;
@@ -121,11 +96,6 @@ export default function IDCameraBackScreen() {
         );
     }
 
-    const scanTranslateY = scanAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, CARD_HEIGHT - 2],
-    });
-
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#F5F7FA" />
@@ -180,15 +150,7 @@ export default function IDCameraBackScreen() {
                                     <View style={styles.cornerTR} />
                                     <View style={styles.cornerBL} />
                                     <View style={styles.cornerBR} />
-                                    {/* Barcode zone hint */}
-                                    <View style={styles.barcodeHint}>
-                                        <MaterialCommunityIcons name="barcode-scan" size={20} color="rgba(255,255,255,0.6)" />
-                                        <Text style={styles.barcodeHintText}>Mã vạch</Text>
-                                    </View>
-                                    {/* Animated scan line */}
-                                    <Animated.View
-                                        style={[styles.scanLine, { transform: [{ translateY: scanTranslateY }] }]}
-                                    />
+
                                 </View>
                             </CameraView>
                         )}
@@ -203,7 +165,7 @@ export default function IDCameraBackScreen() {
                 </View>
 
                 {!capturedUri && (
-                    <Text style={styles.hintText}>📱 Giữ điện thoại thẳng đứng • Căn thẻ vào trong khung</Text>
+                    <Text style={styles.hintText}>Giữ điện thoại thẳng đứng • Căn thẻ vào trong khung</Text>
                 )}
             </View>
 
@@ -354,19 +316,6 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     barcodeHintText: { color: "rgba(255,255,255,0.6)", fontSize: 11 },
-
-    scanLine: {
-        position: "absolute",
-        left: 12,
-        right: 12,
-        height: 2,
-        borderRadius: 1,
-        backgroundColor: "rgba(21, 101, 192, 0.75)",
-        shadowColor: "#1565C0",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 6,
-    },
 
     capturedBadge: {
         position: "absolute",

@@ -1,4 +1,4 @@
-import { confirmOtp, confirmSign, executeExternalSignContract, resendOtp } from "@/services/contractService";
+import { confirmOtp, confirmSign, resendOtp } from "@/services/contractService";
 import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -131,7 +131,7 @@ export default function SignContractScreen() {
   /* Gọi ngầm API confirm-sign khi vừa vào màn hình */
   useEffect(() => {
     confirmSign(requestId || "").catch((e) => {
-      console.warn("Lỗi gọi ngầm confirmSign:", e?.response?.data || e.message);
+      console.log("Lỗi gọi ngầm confirmSign:", e?.response?.data || e.message);
     });
   }, []);
 
@@ -170,30 +170,11 @@ export default function SignContractScreen() {
         return;
       }
 
-      // We set countdown to 100s as requested
-      const accountId = user?.id || "";
-      const contractId = params.orderId || ""; // Using orderId as contractId based on routing params availability
-
+      // THÀNH CÔNG OTP: Chuyển sang bước Nghiệm thu (Bỏ qua ký hợp đồng)
+      console.log("[OTP Debug] [CLEAN VERSION] - Xác thực OTP thành công. Chuyển sang Nghiệm thu.");
+      setShowProcessing(false);
       setIsSuccessOtp(true);
-      setCountdown(100);
-
-      console.log("===> executeExternalSignContract params:", { accountId, contractId });
-
-      try {
-        const signResponse = await executeExternalSignContract(accountId, contractId) as any;
-        const signSuccess = signResponse.Success ?? signResponse.success;
-
-        if (signSuccess) {
-          setShowProcessing(false);
-          setShowSuccess(true);
-        } else {
-          setShowProcessing(false);
-          setOtpError(signResponse.Message ?? signResponse.message ?? "Lỗi ký hợp đồng từ hệ thống.");
-        }
-      } catch (err: any) {
-        setShowProcessing(false);
-        setOtpError(err?.message || "Lỗi gọi API sign-contract.");
-      }
+      setShowSuccess(true);
     } catch (error: any) {
       setShowProcessing(false);
       const rawMsg = error?.response?.data?.Message || error?.message || "Lỗi kết nối hoặc hệ thống. Vui lòng thử lại.";
@@ -440,7 +421,7 @@ export default function SignContractScreen() {
         </View>
       </View>
 
-      {/* ── Processing modal ── */}
+      {/* ── Processing modal (Đơn giản hóa) ── */}
       <Modal visible={showProcessing} transparent animationType="fade" onRequestClose={() => { }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -448,18 +429,12 @@ export default function SignContractScreen() {
               colors={["#1565C0", "#2092EC"]}
               style={styles.modalIconCircle}
             >
-              <MaterialCommunityIcons name="timer-sand" size={36} color="#FFF" />
+              <MaterialCommunityIcons name="shield-check-outline" size={36} color="#FFF" />
             </LinearGradient>
-            <Text style={styles.modalCountdown}>{countdown}s</Text>
-            <Text style={styles.modalTitle}>Đang chờ xác nhận</Text>
+            <Text style={styles.modalTitle}>Đang xác thực OTP</Text>
             <Text style={styles.modalMsg}>
-              Hệ thống đang xử lý yêu cầu ký hợp đồng. Vui lòng không đóng ứng dụng...
+              Vui lòng chờ trong giây lát...
             </Text>
-            <View style={styles.processingDots}>
-              {[0, 1, 2].map((i) => (
-                <View key={i} style={[styles.dot, { opacity: 0.3 + i * 0.35 }]} />
-              ))}
-            </View>
           </View>
         </View>
       </Modal>
@@ -471,9 +446,9 @@ export default function SignContractScreen() {
             <View style={styles.successCircle}>
               <MaterialCommunityIcons name="check-bold" size={40} color="#FFF" />
             </View>
-            <Text style={styles.successTitle}>Đăng ký thành công!</Text>
+            <Text style={styles.successTitle}>Xác thực thành công!</Text>
             <Text style={styles.successMsg}>
-              Quý khách đã đăng ký thành công và được cấp Chứng thư số.
+              Mã OTP hợp lệ. Chúc mừng bạn đã hoàn tất bước xác thực thông tin.
             </Text>
             <TouchableOpacity
               style={styles.successBtn}
