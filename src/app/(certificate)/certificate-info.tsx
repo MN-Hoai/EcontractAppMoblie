@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
   Modal,
@@ -38,7 +38,8 @@ function QuestionCard({
 /* ─── Main Screen ───────────────────────────────────────────── */
 export default function CertificateInfoScreen() {
   const router = useRouter();
-  const [showPopup, setShowPopup] = useState(true);
+  const params = useLocalSearchParams();
+  const [showPopup, setShowPopup] = useState(params.fromHome !== "true");
 
   const handleContinue = () => {
     router.push("/choose-certificate");
@@ -181,7 +182,8 @@ export default function CertificateInfoScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F0F4F8" },
+  container: { paddingTop: 45,
+    flex: 1, backgroundColor: "#F0F4F8" },
   scrollView: { flex: 1 },
 
   /* Header */

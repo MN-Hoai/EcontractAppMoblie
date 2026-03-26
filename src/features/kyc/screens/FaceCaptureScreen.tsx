@@ -310,7 +310,8 @@ export default function FaceCaptureScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#F5F7FA" },
+    container: { paddingTop: 45,
+    flex: 1, backgroundColor: "#F5F7FA" },
     center: { flex: 1, backgroundColor: "#F5F7FA", alignItems: "center", justifyContent: "center" },
 
     permCard: {

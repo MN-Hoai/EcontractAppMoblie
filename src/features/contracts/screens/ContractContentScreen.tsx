@@ -289,7 +289,8 @@ export default function ContractContentScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: { paddingTop: 45,
+    flex: 1 },
     header: {
         flexDirection: "row",
         alignItems: "center",

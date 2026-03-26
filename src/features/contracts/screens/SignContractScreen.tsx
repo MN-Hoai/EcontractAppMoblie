@@ -472,7 +472,8 @@ export default function SignContractScreen() {
 
 /* ─── Styles ─────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F0F4F8" },
+  container: { paddingTop: 45,
+    flex: 1, backgroundColor: "#F0F4F8" },
 
   /* Header */
   header: {

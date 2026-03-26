@@ -10,11 +10,10 @@ import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
-    SafeAreaView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import Animated, { FadeInDown, Layout } from "react-native-reanimated";
 
@@ -257,7 +256,7 @@ export default function DigitalContractsScreen() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: isDark ? "#0D1B23" : "#F0F4F8" }]}>
+        <View style={[styles.container, { backgroundColor: isDark ? "#0D1B23" : "#F0F4F8" }]}>
             {/* Gradient Header */}
             <LinearGradient
                 colors={["#00695C", "#00ACC1"]}
@@ -441,16 +440,20 @@ export default function DigitalContractsScreen() {
                 </View>
             )}
 
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: { paddingTop: 45,
+    flex: 1 },
     header: {
-        paddingTop: 12,
-        paddingHorizontal: 16,
-        paddingBottom: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingTop: 15,
+        paddingBottom: 15,
+        paddingHorizontal: 15,
+        gap: 12,
     },
     headerTop: {
         flexDirection: "row",

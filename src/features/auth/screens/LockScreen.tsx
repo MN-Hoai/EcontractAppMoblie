@@ -196,11 +196,11 @@ export default function LockScreen({ onSwitchAccount }: LockScreenProps) {
                 {showPasswordForm ? (
                     <View style={styles.passwordSection}>
                         <View style={styles.inputContainer}>
-                            <MaterialCommunityIcons name="lock-outline" size={20} color="rgba(255,255,255,0.6)" />
+                            <MaterialCommunityIcons name="lock-outline" size={20} color="#1565C0" />
                             <TextInput
                                 style={styles.passwordInput}
                                 placeholder="Nhập mật khẩu"
-                                placeholderTextColor="rgba(255,255,255,0.4)"
+                                placeholderTextColor="rgba(21, 101, 192, 0.4)"
                                 secureTextEntry={!showPassword}
                                 value={password}
                                 onChangeText={(t) => { setPassword(t); setErrorMsg(""); }}
@@ -212,7 +212,7 @@ export default function LockScreen({ onSwitchAccount }: LockScreenProps) {
                                 <MaterialCommunityIcons
                                     name={showPassword ? "eye-off-outline" : "eye-outline"}
                                     size={20}
-                                    color="rgba(255,255,255,0.6)"
+                                    color="#1565C0"
                                 />
                             </TouchableOpacity>
                         </View>
@@ -227,7 +227,7 @@ export default function LockScreen({ onSwitchAccount }: LockScreenProps) {
                             disabled={!password.trim() || isLoading}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color="#1565C0" />
+                                <ActivityIndicator color="#ffffffff" />
                             ) : (
                                 <>
                                     <MaterialCommunityIcons name="lock-open-outline" size={18} color="#1565C0" />
@@ -297,7 +297,8 @@ export default function LockScreen({ onSwitchAccount }: LockScreenProps) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: { paddingTop: 45,
+    flex: 1 },
     inner: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 32 },
     decorCircle: {
         position: "absolute",
@@ -344,16 +345,16 @@ const styles = StyleSheet.create({
     passwordSection: { width: "100%", gap: 12, marginBottom: 24 },
     inputContainer: {
         flexDirection: "row", alignItems: "center",
-        backgroundColor: "rgba(255,255,255,0.15)",
+        backgroundColor: "#FFFFFF",
         borderRadius: 16, paddingHorizontal: 16, height: 56,
         borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
         gap: 12,
     },
-    passwordInput: { flex: 1, color: "#FFF", fontSize: 15, fontWeight: "500" },
+    passwordInput: { flex: 1, color: "#1565C0", fontSize: 15, fontWeight: "500" },
     errorText: { color: "#FFB3B3", fontSize: 13, textAlign: "center" },
     unlockBtn: {
         flexDirection: "row", gap: 8,
-        backgroundColor: "#FFF", borderRadius: 16, height: 52,
+        backgroundColor: "#ffffffff", borderRadius: 16, height: 52,
         justifyContent: "center", alignItems: "center",
     },
     unlockBtnText: { fontSize: 15, fontWeight: "700", color: "#1565C0" },

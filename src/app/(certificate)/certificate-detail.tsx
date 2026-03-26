@@ -155,7 +155,7 @@ export default function CertificateDetailScreen() {
           </View>
 
           <View style={styles.safetyNotice}>
-            <MaterialCommunityIcons name="shield-lock-outline" size={20} color="#666" />
+            <MaterialCommunityIcons name="shield-lock-outline" size={20} color="#2092EC" />
             <Text style={styles.safetyText}>
               Chứng thư số của bạn được bảo mật và quản lý bởi Viettel-MySign. Đảm bảo an toàn tuyệt đối cho mọi giao dịch ký số.
             </Text>
@@ -167,13 +167,15 @@ export default function CertificateDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8FAFC" },
+  container: { paddingTop: 45,
+    flex: 1, backgroundColor: "#F8FAFC" },
   header: {
-    paddingTop: Platform.OS === "ios" ? 50 : 20,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-    flexDirection: "row",
+     flexDirection: "row",
     alignItems: "center",
+    paddingTop: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 15,
+    gap: 12,
   },
   backBtn: {
     width: 40,
@@ -234,11 +236,11 @@ const styles = StyleSheet.create({
   safetyNotice: {
     flexDirection: "row",
     marginTop: 24,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#BFDBFE",
     padding: 16,
     borderRadius: 16,
     gap: 12,
     alignItems: "center",
   },
-  safetyText: { flex: 1, fontSize: 12, color: "#64748B", lineHeight: 18 },
+  safetyText: { flex: 1, fontSize: 12, color: "#2092EC", lineHeight: 18 },
 });

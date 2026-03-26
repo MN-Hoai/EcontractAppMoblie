@@ -172,7 +172,8 @@ export default function IDPreviewScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#F5F7FA" },
+    container: { paddingTop: 45,
+    flex: 1, backgroundColor: "#F5F7FA" },
 
     header: {
         flexDirection: "row",

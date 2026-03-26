@@ -244,7 +244,8 @@ function InputField({ label, icon, isDark, ...props }: any) {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        paddingTop: 45,
+    flex: 1,
     },
     scrollContent: {
         paddingHorizontal: 28,

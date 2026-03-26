@@ -173,14 +173,16 @@ export default function RootLayout() {
 
     return (
         <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-            <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 45, backgroundColor: "#FFFFFF" } }}>
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="(kyc)" />
-                <Stack.Screen name="(contract)" />
-                <Stack.Screen name="(certificate)" />
-            </Stack>
-            <StatusBar style="auto" />
+            <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+                <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 0, backgroundColor: "transparent" } }}>
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="(kyc)" />
+                    <Stack.Screen name="(contract)" />
+                    <Stack.Screen name="(certificate)" />
+                </Stack>
+                <StatusBar style="auto" />
+            </View>
         </ThemeProvider>
     );
 }

@@ -95,7 +95,7 @@ export default function ChooseCertificateScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Chọn nhà cung cấp</Text>
+          <Text style={styles.headerTitle}> cấp</Text>
           <Text style={styles.headerSub}>Đăng ký chứng thư số từ xa</Text>
         </View>
         <View style={{ width: 40 }} />
@@ -177,6 +177,8 @@ export default function ChooseCertificateScreen() {
               <Text style={styles.modalText}>
                 1. Quyền và nghĩa vụ của khách hàng...
                 {"\n\n"}
+
+                
                 2. Cam kết bảo mật thông tin...
                 {"\n\n"}
                 3. Quy trình cấp và thu hồi chứng thư số...
@@ -198,7 +200,8 @@ export default function ChooseCertificateScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F0F4F8" },
+  container: { paddingTop: 45,
+    flex: 1, backgroundColor: "#F0F4F8" },
   scrollView: { flex: 1 },
 
   /* Header */

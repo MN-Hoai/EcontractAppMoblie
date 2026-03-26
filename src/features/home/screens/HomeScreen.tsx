@@ -163,25 +163,30 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={styles.subTopSection}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                        {/* User Avatar */}
-                        {avatarUrl ? (
-                            <Image source={{ uri: avatarUrl }} style={styles.homeAvatar} />
-                        ) : (
-                            <View style={[styles.homeAvatar, { backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" }]}>
-                                <MaterialCommunityIcons name="account" size={24} color="#FFF" />
-                            </View>
-                        )}
+                    <View style={styles.userInfoWrapper}>
+                        {/* User Avatar with Ring */}
+                        <View style={styles.avatarContainer}>
+                            {avatarUrl ? (
+                                <Image source={{ uri: avatarUrl }} style={styles.homeAvatar} />
+                            ) : (
+                                <View style={styles.avatarFallback}>
+                                    <MaterialCommunityIcons name="account" size={26} color="#FFF" />
+                                </View>
+                            )}
+                            <View style={styles.onlineBadge} />
+                        </View>
+                        
                         <View style={styles.subUserBox}>
                             <ThemedText style={styles.subWelcomeTitle}>Xin chào,</ThemedText>
                             <ThemedText type="title" style={styles.subUserNameText}>{displayName}</ThemedText>
                         </View>
                     </View>
+
                     {(isCertLoading || !isCA) && (
-                        <View style={[styles.subStatusBadge, { backgroundColor: "rgba(255, 152, 0, 0.25)" }]}>
-                            <View style={[styles.statusDot, { backgroundColor: "#FF9800" }]} />
-                            <ThemedText style={[styles.subStatusText, { color: "#FFCC80" }]}>
-                                {isCertLoading ? "Đang kiểm tra..." : "Chưa đăng ký"}
+                        <View style={[styles.subStatusBadge, { backgroundColor: "rgba(255, 255, 255, 0.15)" }]}>
+                            <View style={[styles.statusDot, { backgroundColor: isCertLoading ? "#60A5FA" : "#FBBF24" }]} />
+                            <ThemedText style={[styles.subStatusText, { color: "#FFF" }]}>
+                                {isCertLoading ? "Đang check" : "Chưa đăng ký"}
                             </ThemedText>
                         </View>
                     )}
@@ -235,19 +240,18 @@ export default function HomeScreen() {
                 ) : (
                     <TouchableOpacity
                         style={[styles.subContentCard, styles.noCertCardStyle]}
-                        onPress={() => router.push("/(certificate)/certificate-info")}
+                        onPress={() => router.push({ pathname: "/(certificate)/certificate-info", params: { fromHome: "true" } })}
                         activeOpacity={0.8}
                     >
                         <View style={styles.noCertInner}>
                             <View style={styles.noCertIconWrap}>
-                                <MaterialCommunityIcons name="certificate-outline" size={30} color="#FF9800" />
+                                <MaterialCommunityIcons name="certificate-outline" size={30} color="#FFF" />
                             </View>
                             <View style={styles.noCertTextBox}>
                                 <ThemedText style={styles.noCertTitleText}>Chưa có chứng thư số</ThemedText>
-                                <ThemedText style={styles.noCertSubText}>Đăng ký ngay để sử dụng đầy đủ tính năng ký số</ThemedText>
-                            </View>
-                            <View style={styles.noCertGoBtn}>
-                                <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
+                                <ThemedText style={styles.noCertSubText}>
+                                    <ThemedText style={styles.noCertHighlightText}>Đăng ký ngay</ThemedText> để sử dụng đầy đủ tính năng ký số.
+                                </ThemedText>
                             </View>
                         </View>
                     </TouchableOpacity>
@@ -566,7 +570,8 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        paddingTop: 45,
+    flex: 1,
     },
     topGradient: {
         position: "absolute",
@@ -635,18 +640,18 @@ const styles = StyleSheet.create({
     subTopSection: {
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "flex-start",
-        marginBottom: 24,
+        alignItems: "center",
+        marginBottom: 16,
     },
     subUserBox: {
         flex: 1,
     },
     homeAvatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 52,
+        height: 52,
+        borderRadius: 26,
         borderWidth: 2,
-        borderColor: "rgba(255,255,255,0.4)",
+        borderColor: "rgba(255,255,255,0.5)",
     },
     subWelcomeTitle: {
         fontSize: 14,
@@ -674,9 +679,39 @@ const styles = StyleSheet.create({
         borderRadius: 3,
     },
     subStatusText: {
-        fontSize: 11,
-        fontWeight: "700",
+        fontSize: 10,
+        fontWeight: "800",
         textTransform: "uppercase",
+        letterSpacing: 0.3,
+    },
+    userInfoWrapper: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 14,
+    },
+    avatarContainer: {
+        position: "relative",
+    },
+    avatarFallback: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        backgroundColor: "rgba(255,255,255,0.15)",
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 1.5,
+        borderColor: "rgba(255,255,255,0.3)",
+    },
+    onlineBadge: {
+        position: "absolute",
+        bottom: 2,
+        right: 2,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: "#10B981",
+        borderWidth: 2,
+        borderColor: "#1565C0", // Should match card or use parent color
     },
     subLoadingContainer: {
         flexDirection: "row",
@@ -742,8 +777,9 @@ const styles = StyleSheet.create({
         fontWeight: "500",
     },
     noCertCardStyle: {
-        backgroundColor: "rgba(255,152,0,0.1)",
-        borderColor: "rgba(255,152,0,0.3)",
+        backgroundColor: "rgba(255,255,255,0.12)",
+        borderColor: "rgba(255,255,255,0.2)",
+        borderWidth: 1,
     },
     noCertInner: {
         flexDirection: "row",
@@ -754,7 +790,7 @@ const styles = StyleSheet.create({
         width: 50,
         height: 50,
         borderRadius: 25,
-        backgroundColor: "rgba(255,152,0,0.15)",
+        backgroundColor: "rgba(255,255,255,0.2)",
         alignItems: "center",
         justifyContent: "center",
     },
@@ -768,19 +804,25 @@ const styles = StyleSheet.create({
     },
     noCertSubText: {
         fontSize: 12,
-        color: "rgba(255,255,255,0.6)",
-        marginTop: 2,
+        color: "rgba(255,255,255,0.7)",
+        marginTop: 4,
+        lineHeight: 18,
+    },
+    noCertHighlightText: {
+        color: "#FFF",
+        textDecorationLine: "underline",
+        fontStyle: "italic",
     },
     noCertGoBtn: {
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: "#FF9800",
+        backgroundColor: "#FFF",
         alignItems: "center",
         justifyContent: "center",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 4,
     },

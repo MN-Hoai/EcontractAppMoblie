@@ -302,6 +302,7 @@ export default function SignContractViewScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 45,
     flex: 1,
   },
   header: {

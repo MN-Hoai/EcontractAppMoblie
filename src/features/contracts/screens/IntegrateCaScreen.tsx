@@ -171,7 +171,8 @@ export default function IntegrateCaScreen() {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        paddingTop: 45,
+    flex: 1,
     },
     header: {
         flexDirection: "row",

@@ -223,7 +223,8 @@ const CORNER_RADIUS = 8;
 const CORNER_COLOR = "#1565C0";
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#F5F7FA" },
+    container: { paddingTop: 45,
+    flex: 1, backgroundColor: "#F5F7FA" },
     center: { flex: 1, backgroundColor: "#F5F7FA", alignItems: "center", justifyContent: "center" },
 
     permCard: {

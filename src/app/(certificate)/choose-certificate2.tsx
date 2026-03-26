@@ -131,7 +131,8 @@ export default function ChooseCertificate2Screen() {
   useEffect(() => {
     getCertInfo(requestId || "")
       .then((res) => {
-        const d = res.Data || res.data;
+        const rawData = res.Data || res.data;
+        const d = Array.isArray(rawData) ? rawData[0] : rawData;
         if (d) {
           setCertInfo(d);
           setSelectedCert(d.credentialId || d.CredentialId || d.serialNumber || d.SerialNumber || null);
@@ -145,7 +146,8 @@ export default function ChooseCertificate2Screen() {
       setShowDetail(true);
       setIsLoading(true);
       const res = await getCertInfo(requestId || "");
-      const d = res.Data || res.data;
+      const rawData = res.Data || res.data;
+      const d = Array.isArray(rawData) ? rawData[0] : rawData;
       if (d) {
         setCertInfo(d);
         setSelectedCert(d.credentialId || d.CredentialId || d.serialNumber || d.SerialNumber || null);
@@ -381,7 +383,8 @@ const detailStyles = StyleSheet.create({
 
 /* ─── Main Styles ─────────────────────────────────────────────── */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F0F4F8" },
+  container: { paddingTop: 45,
+    flex: 1, backgroundColor: "#F0F4F8" },
 
   /* Header */
   header: {
