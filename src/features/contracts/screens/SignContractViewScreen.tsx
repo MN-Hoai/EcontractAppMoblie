@@ -36,8 +36,6 @@ export default function SignContractViewScreen() {
   const contractName = params.contractName as string;
   const fdfPath = params.fdfPath as string;
 
-  // FilePath is now a full URL passed from sign-contract-preview
-  // e.g., "http://192.168.1.82:5000/media/upload/2026/01/27/cd849d7a.pdf"
 
 
   useEffect(() => {

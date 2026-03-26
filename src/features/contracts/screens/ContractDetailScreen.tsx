@@ -9,12 +9,14 @@ import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Linking,
     Modal,
     SafeAreaView,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
+    Platform
 } from "react-native";
 
 const CONTRACT_INFO = [
@@ -57,9 +59,11 @@ export default function ContractDetailScreen() {
 
 
     const handleSign = async () => {
+        console.log("====> START handleSign! User clicked 'Ký duyệt' <====");
         try {
             setLoadingCa(true);
             const res = await checkCaStatus(requestId || "");
+            console.log("====> checkCaStatus API result:", res);
 
             const isSuccess = res.Success ?? res.success;
             const data = res.Data ?? res.data;
@@ -67,8 +71,10 @@ export default function ContractDetailScreen() {
 
             if (isSuccess && data === true) {
                 // Have CA -> trigger sign contract directly
+                console.log("====> CA status is OK (data=true), calling handleProceedToSign()");
                 handleProceedToSign();
             } else {
+                console.log("====> CA status is NOT OK (data=" + data + "), showing CA Modal:", message);
                 setCaMessage(message);
                 setShowCaModal(true);
             }
@@ -81,6 +87,7 @@ export default function ContractDetailScreen() {
     };
 
     const handleProceedToSign = async () => {
+        console.log("====> START handleProceedToSign <====");
         const accountId = requestId || ""; // Or we might need user?.id if requestId is not right. Assuming requestId works for this screen context as per user implementation, but SignContractScreen used user?.id. Will use requestId as it was used in checkCaStatus here.
         const contractId = (params.contractId as string) || (params.id as string) || ""; // Adjust based on how contractId is passed
 
@@ -88,10 +95,36 @@ export default function ContractDetailScreen() {
         setSignError(null);
         setCountdown(100);
 
-        console.log("===> executeExternalSignContract params:", { accountId, contractId });
+        console.log("===> Gọi executeExternalSignContract params:", { accountId, contractId });
 
         try {
-            const signResponse = await executeExternalSignContract(accountId, contractId) as any;
+            console.log("===> Trang thái: Đang chờ phản hồi dài hạn (long polling) từ executeExternalSignContract...");
+
+            // 1. Kích hoạt gọi API ngay lập tức nhưng KHÔNG ĐỨNG CHỜ (không dùng await ở đây)
+            const signPromise = executeExternalSignContract(accountId, contractId);
+
+            // 2. TRONG LÚC API Backend ĐANG CHẠY VÀ ĐỢI BÊN KIA, ta bắn ứng dụng sang MySign luôn
+            const directMySignUrl = "mysign://mysignws/open_screen?name=register_account&agency=Office_AI_0318237748&idNo=096204001870&mainCode=MAINCODE&vasCode=VAS1&callBack=http://abc.com&deviceId=";
+            
+            console.log("===> GỌI THẲNG DEEPLINK NGAY LẬP TỨC:", directMySignUrl);
+            try {
+                // Bắn deeplink nhảy sang app MySign
+                await Linking.openURL(directMySignUrl);
+            } catch (e) {
+                console.log("Lỗi mở MySign (có thể app chưa cài đặt)", e);
+                if (Platform.OS === 'android') {
+                    Linking.openURL("https://play.google.com/store/apps/details?id=com.viettel.cloud.ca.mysign");
+                } else if (Platform.OS === 'ios') {
+                    Linking.openURL("https://apps.apple.com/vn/app/mysign/id1633019232?l=vi");
+                } else {
+                    Linking.openURL("https://viettel-ca.vn/trang-chu");
+                }
+            }
+
+            // 3. Bây giờ mới thực sự đứng await cái API ban nãy đến khi nó trả về kết quả
+            const signResponse = await signPromise as any;
+            console.log("===> Đã nhận phản hồi TỪ executeExternalSignContract!");
+
             const signSuccess = signResponse.Success ?? signResponse.success;
 
             if (signSuccess) {
@@ -139,17 +172,17 @@ export default function ContractDetailScreen() {
                     <View style={styles.bannerActionRow}>
                         <View style={styles.statusBadge}>
                             <View style={[
-                                styles.statusDot, 
-                                { 
-                                    backgroundColor: params.status === '1' ? "#fcb628" : 
-                                                    params.status === '2' ? "#72e028" : 
-                                                    params.status === '0' ? "#484848" : "#ff4d4a" 
+                                styles.statusDot,
+                                {
+                                    backgroundColor: params.status === '1' ? "#fcb628" :
+                                        params.status === '2' ? "#72e028" :
+                                            params.status === '0' ? "#484848" : "#ff4d4a"
                                 }
                             ]} />
                             <ThemedText style={styles.statusText}>
-                                {params.status === '1' ? "Chờ ký" : 
-                                 params.status === '2' ? "Đã ký " : 
-                                 params.status === '0' ? "Nháp" : "Hủy"}
+                                {params.status === '1' ? "Chờ ký" :
+                                    params.status === '2' ? "Đã ký " :
+                                        params.status === '0' ? "Nháp" : "Hủy"}
                             </ThemedText>
                         </View>
                         <TouchableOpacity
