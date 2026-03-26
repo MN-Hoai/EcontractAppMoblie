@@ -198,6 +198,7 @@ export const checkCaStatus = async (accountId: string): Promise<CheckCaResponse>
   try {
     const url = `${API_BASE_URL}/api/check-ca?accountId=${accountId}`;
     const response = await apiClient.get(url);
+    console.log("checkCaStatus: ", response.data);
     return response.data;
   } catch (error) {
     const message = handleApiError(error);
