@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { checkCaStatus, executeExternalSignContract } from "@/services/contractService";
+import { checkCaStatus, executeExternalSignContract, getIdNumber } from "@/services/contractService";
 import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -98,12 +98,27 @@ export default function ContractDetailScreen() {
         console.log("===> Gọi executeExternalSignContract params:", { accountId, contractId });
 
         try {
+            // ---> MỚI: Gọi API lấy CCCD động theo accountId trước
+            console.log("===> Đang lấy CCCD (idNo) từ API...");
+            const idNumberRes = await getIdNumber(accountId);
+            
+            // Xử lý đúng chuẩn { success: true, data: "0123456" }
+            const isSuccess = idNumberRes?.success ?? idNumberRes?.Success;
+            const idNo = idNumberRes?.data ?? idNumberRes?.Data; 
+
+            if (!isSuccess || !idNo) {
+                Alert.alert("Lỗi", "Không lấy được số CCCD từ hệ thống.");
+                setShowProcessing(false);
+                return;
+            }
+            console.log("===> CCCD lấy được là:", idNo);
+
             console.log("===> Trang thái: Đang chờ phản hồi dài hạn (long polling) từ executeExternalSignContract...");
 
             // --- BẮT ĐẦU: Gọi deeplink NGAY LẬP TỨC trong khi API backend đang chờ ---
             // Trỏ callBack chính xác về econtact:// để nó bật ứng dụng lên ngay sau khi ký bên MySign hoàn thành!
             const myCallBack = "econtact://";
-            const directMySignUrl = `mysign://mysignws/open_screen?name=register_account&agency=Office_AI_0318237748&idNo=096204001870&mainCode=MAINCODE&vasCode=VAS1&callBack=${encodeURIComponent(myCallBack)}&deviceId=`;
+            const directMySignUrl = `mysign://mysignws/open_screen?name=register_account&agency=Office_AI_0318237748&idNo=${idNo}&mainCode=MAINCODE&vasCode=VAS1&callBack=${encodeURIComponent(myCallBack)}&deviceId=`;
 
             // Dùng setTimeout 500ms để app lót kịp cái Processing Modal rồi mới nhảy ứng dụng
             setTimeout(async () => {

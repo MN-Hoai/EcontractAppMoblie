@@ -518,10 +518,22 @@ export const addOrUpdateCustomer = async (accountId: string, model: CustomerRequ
   }
 };
 
+export const getIdNumber = async (accountId: string) => {
+  try {
+    const url = `${API_BASE_URL}/api/id-number?accountId=${accountId}`;
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error) {
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
+    throw error;
+  }
+};
+
 export const executeExternalSignContract = async (accountId: string, contractId: string) => {
   console.log("!!! API SIGN CALLED FROM SERVICE !!! params:", { accountId, contractId });
   try {
-    const url = `http://192.168.1.82:5000/api/sign-contract?accountId=${accountId}&contractId=${contractId}`;
+    const url = `${API_BASE_URL}/api/sign-contract?accountId=${accountId}&contractId=${contractId}`;
     const response = await apiClient.post(url, {}, { timeout: 100000 });
     return response.data;
   } catch (error) {
