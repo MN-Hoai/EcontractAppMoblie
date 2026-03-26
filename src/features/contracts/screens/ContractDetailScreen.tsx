@@ -11,12 +11,12 @@ import {
     Alert,
     Linking,
     Modal,
+    Platform,
     SafeAreaView,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View,
-    Platform
+    View
 } from "react-native";
 
 const CONTRACT_INFO = [
@@ -100,29 +100,31 @@ export default function ContractDetailScreen() {
         try {
             console.log("===> Trang thái: Đang chờ phản hồi dài hạn (long polling) từ executeExternalSignContract...");
 
-            // 1. Kích hoạt gọi API ngay lập tức nhưng KHÔNG ĐỨNG CHỜ (không dùng await ở đây)
-            const signPromise = executeExternalSignContract(accountId, contractId);
+            // --- BẮT ĐẦU: Gọi deeplink NGAY LẬP TỨC trong khi API backend đang chờ ---
+            // Trỏ callBack chính xác về econtact:// để nó bật ứng dụng lên ngay sau khi ký bên MySign hoàn thành!
+            const myCallBack = "econtact://";
+            const directMySignUrl = `mysign://mysignws/open_screen?name=register_account&agency=Office_AI_0318237748&idNo=096204001870&mainCode=MAINCODE&vasCode=VAS1&callBack=${encodeURIComponent(myCallBack)}&deviceId=`;
 
-            // 2. TRONG LÚC API Backend ĐANG CHẠY VÀ ĐỢI BÊN KIA, ta bắn ứng dụng sang MySign luôn
-            const directMySignUrl = "mysign://mysignws/open_screen?name=register_account&agency=Office_AI_0318237748&idNo=096204001870&mainCode=MAINCODE&vasCode=VAS1&callBack=http://abc.com&deviceId=";
-            
-            console.log("===> GỌI THẲNG DEEPLINK NGAY LẬP TỨC:", directMySignUrl);
-            try {
-                // Bắn deeplink nhảy sang app MySign
-                await Linking.openURL(directMySignUrl);
-            } catch (e) {
-                console.log("Lỗi mở MySign (có thể app chưa cài đặt)", e);
-                if (Platform.OS === 'android') {
-                    Linking.openURL("https://play.google.com/store/apps/details?id=com.viettel.cloud.ca.mysign");
-                } else if (Platform.OS === 'ios') {
-                    Linking.openURL("https://apps.apple.com/vn/app/mysign/id1633019232?l=vi");
-                } else {
-                    Linking.openURL("https://viettel-ca.vn/trang-chu");
+            // Dùng setTimeout 500ms để app lót kịp cái Processing Modal rồi mới nhảy ứng dụng
+            setTimeout(async () => {
+                console.log("===> GỌI THẲNG DEEPLINK (Trong lúc API đang chờ):", directMySignUrl);
+                try {
+                    await Linking.openURL(directMySignUrl);
+                } catch (e) {
+                    console.log("Lỗi mở MySign (có thể app chưa cài đặt)", e);
+                    if (Platform.OS === 'android') {
+                        Linking.openURL("https://play.google.com/store/apps/details?id=com.viettel.cloud.ca.mysign");
+                    } else if (Platform.OS === 'ios') {
+                        Linking.openURL("https://apps.apple.com/vn/app/mysign/id1633019232?l=vi");
+                    } else {
+                        Linking.openURL("https://viettel-ca.vn/trang-chu");
+                    }
                 }
-            }
+            }, 500);
+            // --- KẾT THÚC ---
 
-            // 3. Bây giờ mới thực sự đứng await cái API ban nãy đến khi nó trả về kết quả
-            const signResponse = await signPromise as any;
+            // Ở DƯỚI NÀY VẪN LÀ AWAIT, NỘI BỘ APP SẼ BLOCK Ở ĐÂY CHO ĐẾN KHI USER KÝ TRONG MYSIGN XONG VÀ BACKEND TRẢ RESPONSE
+            const signResponse = await executeExternalSignContract(accountId, contractId) as any;
             console.log("===> Đã nhận phản hồi TỪ executeExternalSignContract!");
 
             const signSuccess = signResponse.Success ?? signResponse.success;

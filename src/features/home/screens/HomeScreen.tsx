@@ -1,14 +1,14 @@
 import MyNativeView from "@/components/MyNativeView";
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { CertInfo, checkCaStatus, getCertInfo } from "@/services/contractService";
 import { isBiometricAvailable } from "@/services/biometricService";
+import { CertInfo, checkCaStatus, getCertInfo } from "@/services/contractService";
 import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
     ActivityIndicator,
     Alert,
