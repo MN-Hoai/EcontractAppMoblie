@@ -340,7 +340,7 @@ export default function DigitalContractsScreen() {
                         })}
                     </View>
 
-                    <View style={{ flexDirection: "row", marginTop: 12, gap: 16 }}>
+                    {/* <View style={{ flexDirection: "row", marginTop: 12, gap: 16 }}>
                         <View style={{ flex: 1 }}>
                             <ThemedText style={styles.filterPanelTitle}>Phân trang</ThemedText>
                             <TouchableOpacity
@@ -385,7 +385,7 @@ export default function DigitalContractsScreen() {
                                 })}
                             </View>
                         </View>
-                    </View>
+                    </View> */}
                 </View>
             )}
 
