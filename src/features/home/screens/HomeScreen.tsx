@@ -272,9 +272,9 @@ export default function HomeScreen() {
             <View style={styles.modernSection}>
                 <View style={styles.sectionHeaderRow}>
                     <ThemedText style={styles.modernSectionTitle}>Trình ký tài liệu</ThemedText>
-                    <TouchableOpacity onPress={() => router.push("/contracts")}>
+                    {/* <TouchableOpacity onPress={() => router.push("/contracts")}>
                         <ThemedText style={styles.viewAllText}>Xem tất cả</ThemedText>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                 </View>
 
                 <View style={styles.summaryGrid}>
@@ -367,21 +367,9 @@ export default function HomeScreen() {
                 </View>
             </View>
 
-            {/* Tổng quan 6 tháng */}
-            <View style={[styles.section, { paddingHorizontal: 0 }]}>
-                <View style={[styles.cardBox, { backgroundColor: isDark ? "#1A2E38" : "#FFF" }]}>
-                    <View style={styles.cardBoxHeader}>
-                        <View>
-                            <ThemedText style={styles.cardBoxTitle}>Tổng quan 6 tháng</ThemedText>
-                            <ThemedText style={[styles.cardBoxSub, { color: isDark ? "rgba(255,255,255,0.4)" : "#999" }]}>Biểu đồ minh hoạ số lượt ký (demo data)</ThemedText>
-                        </View>
-                    </View>
-                    {/* Placeholder for Chart content if needed, but closing for now to fix JSX */}
-                </View>
-            </View>
 
             {/* Quick Actions Section */}
-            <View style={styles.modernSection}>
+            {/* <View style={styles.modernSection}>
                 <View style={styles.sectionHeaderRow}>
                     <ThemedText style={styles.modernSectionTitle}>Hành động nhanh</ThemedText>
                 </View>
@@ -408,7 +396,7 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     ))}
                 </View>
-            </View>
+            </View> */}
 
             {/* Native View Modal */}
             <Modal
