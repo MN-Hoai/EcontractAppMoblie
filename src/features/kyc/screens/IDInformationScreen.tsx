@@ -269,7 +269,7 @@ export default function IDInformationScreen() {
 
             if (!isSuccess) {
                 const friendlyMessage = rawMessage?.replace("Lỗi hệ thống: ", "") || "Thông tin không hợp lệ. Vui lòng kiểm tra lại.";
-                console.error("[ORDER Debug] - 'submitKycInfo' thất bại:", friendlyMessage);
+                console.log("[ORDER Debug] - 'submitKycInfo' thất bại:", friendlyMessage);
                 Alert.alert("Thông báo", friendlyMessage, [{ text: "Đóng", style: "cancel" }]);
                 setIsSubmitting(false);
                 return;
@@ -283,7 +283,7 @@ export default function IDInformationScreen() {
             const addressSuccess = addressResponse.success ?? addressResponse.Success;
             if (!addressSuccess) {
                 const addressMessage = addressResponse.message ?? addressResponse.Message;
-                console.error("[ORDER Debug] - 'normalizeAddress' thất bại:", addressMessage);
+                console.log("[ORDER Debug] - 'normalizeAddress' thất bại:", addressMessage);
                 Alert.alert("Thông báo", addressMessage || "Lỗi chuẩn hóa địa chỉ.", [{ text: "Đóng", style: "cancel" }]);
                 setIsSubmitting(false);
                 return;
@@ -297,8 +297,8 @@ export default function IDInformationScreen() {
             const orderSuccess = orderResponse.success ?? orderResponse.Success;
             if (!orderSuccess) {
                 const orderMessage = orderResponse.message ?? orderResponse.Message;
-                console.error("[ORDER Debug] - 'orderCA' thất bại:", orderMessage);
-                Alert.alert("Lỗi tạo đơn hàng", orderMessage || "Không thể tạo đơn hàng CA. Vui lòng thử lại.", [{ text: "Đóng", style: "cancel" }]);
+                console.log("[ORDER Debug] - 'orderCA' thất bại:", orderMessage);
+                Alert.alert("Lỗi tạo đơn hàng", "Tạo đơn không thành công, vui lòng thử lại.", [{ text: "Đóng", style: "cancel" }]);
                 setIsSubmitting(false);
                 return;
             }
@@ -335,23 +335,24 @@ export default function IDInformationScreen() {
             });
 
         } catch (error: any) {
-            console.error("[ORDER Debug] - LỖI HỆ THỐNG TRONG LUỒNG TẠO ĐƠN:", error);
+            console.log("[ORDER Debug] - LỖI HỆ THỐNG TRONG LUỒNG TẠO ĐƠN:", error);
             if (error.response) {
-                console.error("[ORDER Debug] - Server Error Data:", JSON.stringify(error.response.data, null, 2));
-                console.error("[ORDER Debug] - Server Status:", error.response.status);
+                console.log("[ORDER Debug] - Server Error Data:", JSON.stringify(error.response.data, null, 2));
+                console.log("[ORDER Debug] - Server Status:", error.response.status);
             }
 
             let title = "Lỗi xử lý";
-            let desc = "Đã có lỗi xảy ra trong quá trình xác thực. Vui lòng thử lại.";
+            let desc = "Tạo đơn không thành công, vui lòng thử lại.";
 
             if (error.message === "Network Error") {
                 title = "Lỗi kết nối";
                 desc = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng.";
             } else if (error.response?.data?.message) {
-                desc = error.response.data.message;
+                // Log the server error but don't show it to the user
+                console.log("[ORDER Debug] - Server message:", error.response.data.message);
             }
 
-            Alert.alert(title, desc.replace("Lỗi hệ thống: ", ""), [{ text: "Đóng", style: "cancel" }]);
+            Alert.alert(title, desc, [{ text: "Đóng", style: "cancel" }]);
         } finally {
             setIsSubmitting(false);
             console.log("[ORDER Debug] - Kết thúc luồng API.");

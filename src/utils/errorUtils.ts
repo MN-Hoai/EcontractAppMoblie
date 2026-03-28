@@ -6,38 +6,44 @@ import { AxiosError } from "axios";
  */
 export const handleApiError = (error: any): string | null => {
   // Log chi tiết lỗi ra terminal phục vụ debug
+  const status = error.response?.status;
+  const data = error.response?.data;
+  const config = error.config;
+
   console.log("[API Error Debug]:", {
-    status: error.response?.status,
-    data: error.response?.data,
+    status,
+    data,
     message: error.message,
-    url: error.config?.url,
-    method: error.config?.method,
-    // Hiển thị một phần token để bảo mật nhưng vẫn đủ để check
-    authHeader: error.config?.headers?.Authorization ? 
-      `${error.config.headers.Authorization.substring(0, 15)}...` : "None",
+    url: config?.url,
+    method: config?.method,
+    authHeader: config?.headers?.Authorization ? 
+      `${config.headers.Authorization.substring(0, 15)}...` : "None",
   });
 
-  // Kiểm tra nếu là lỗi Token (401 hoặc thông báo hết hạn cụ thể)
+  // Kiểm tra nếu là lỗi Token
   const isTokenError = 
-    error.response?.status === 401 || 
-    (error.response?.data && 
-     error.response.data.message === "Token không hợp lệ hoặc đã hết hạn. Vui lòng refresh token qua Server A.");
+    status === 401 || 
+    (data?.message === "Token không hợp lệ hoặc đã hết hạn. Vui lòng refresh token qua Server A.");
 
   if (isTokenError) {
-    console.log("Terminal: Lỗi Token đã được xử lý ngầm (Refresh/Logout).");
-    return null; // Không trả về lỗi để hiển thị cho người dùng
+    console.log("Terminal: Lỗi Token đã được xử lý ngầm.");
+    return null;
+  }
+
+  // Nếu server có trả về message cụ thể trong body, lấy nó ngay lập tức
+  const serverMsg = data?.message || data?.Message || (typeof data === 'string' ? data : null);
+  if (serverMsg) {
+    return serverMsg;
   }
 
   // Nếu là lỗi mạng không kết nối được
   if (!error.response) {
-    return "Không thể kết nối với máy chủ. Vui lòng kiểm tra lại mạng của bạn.";
+    return "Không thể kết nối với máy chủ. Vui lòng kiểm tra mạng.";
   }
 
-  // Phân loại mã trạng thái HTTP
-  const status = error.response.status;
-  
+  // Phân loại mã trạng thái HTTP nếu không có body message
   if (status >= 500) {
-    return "Máy chủ đang gặp sự cố. Vui lòng thử lại sau ít phút.";
+    return "Máy chủ đang gặp sự cố. Vui lòng thử lại sau.";
   }
 
   if (status === 404) {
@@ -46,11 +52,6 @@ export const handleApiError = (error: any): string | null => {
 
   if (status === 403) {
     return "Bạn không có quyền thực hiện hành động này.";
-  }
-
-  if (status === 400) {
-    // Trả về thông báo lỗi từ server nếu có
-    return error.response.data?.message || "Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin.";
   }
 
   // Mặc định trả về thông báo chung

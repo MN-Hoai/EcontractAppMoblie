@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { API_BASE_URL_PRODUCT, checkCaStatus, executeExternalSignContract, getIdNumber } from "@/services/contractService";
+import { API_BASE_URL_PRODUCT, checkCaStatus, getIdNumber, getCloudCaHash, getSignature, insertCloudCaSign } from "@/services/contractService";
 import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -50,6 +50,8 @@ export default function ContractDetailScreen() {
     const [showSuccess, setShowSuccess] = useState(false);
     const [countdown, setCountdown] = useState(100);
     const [signError, setSignError] = useState<string | null>(null);
+    const [signStatus, setSignStatus] = useState<string>("Đang khởi tạo...");
+    const [showError, setShowError] = useState(false);
 
     // Countdown logic
     useEffect(() => {
@@ -108,37 +110,73 @@ export default function ContractDetailScreen() {
         const accountId = requestId || ""; 
         const contractId = (params.contractId as string) || (params.id as string) || ""; 
 
-        // 1. Đóng gói dữ liệu chữ ký (Chứng thư số + Ảnh/Font chữ ký)
-        const signPayload = {
-            accountId: accountId,
-            contractId: contractId,
-            certificateId: signatureConfig?.selectedCertificate || "",
-            signatureType: signatureConfig?.type || 0, // 0: Ký số, 1: Ảnh, 2: Vẽ, 3: Font
-            // Nếu là ảnh/vẽ thì nó là uri base64, nếu không thì null
-            signatureImageBase64: (signatureConfig?.type === 1 || signatureConfig?.type === 2) ? signatureConfig?.imageUri : null,
-            fontId: signatureConfig?.type === 3 ? signatureConfig?.fontId : null,
-            displayInfos: signatureConfig?.infos || [],
-        };
-
-        console.log("📦 Dữ liệu đóng gói sẽ gửi lên API [FromBody]:", JSON.stringify(signPayload, null, 2));
-
         setShowProcessing(true);
         setSignError(null);
-        setCountdown(100);
+        setCountdown(120);
+        setSignStatus("Đang khởi tạo tiến trình ký...");
 
         try {
+            setSignStatus("Đang lấy thông tin định danh...");
             console.log("===> Lấy CCCD (idNo) từ API...");
             const idNumberRes = await getIdNumber(accountId);
-            const isSuccess = idNumberRes?.success ?? idNumberRes?.Success;
+            const isSuccessId = idNumberRes?.success ?? idNumberRes?.Success;
             const dataObj = idNumberRes?.data ?? idNumberRes?.Data;
             const idNo = dataObj?.IdNumber ?? dataObj?.idNumber;
 
-            if (!isSuccess || !idNo) {
+            if (!isSuccessId || !idNo) {
                 Alert.alert("Lỗi", "Không lấy được số CCCD từ hệ thống.");
                 setShowProcessing(false);
                 return;
             }
 
+            // --- 1. GỌI API cloudca-get-hash ---
+            setSignStatus("Đang tạo mã hash hợp đồng...");
+            let rawBase64 = signatureConfig?.imageBase64 || "";
+            if (rawBase64.includes("base64,")) {
+                rawBase64 = rawBase64.split("base64,")[1];
+            }
+            
+            const hashPayload = {
+                contractId: contractId,
+                signImageBase64: rawBase64,
+                certChainBase64: Array.isArray(signatureConfig?.certificateData) 
+                    ? signatureConfig.certificateData 
+                    : (signatureConfig?.certificateData ? [signatureConfig.certificateData] : [])
+            };
+            console.log("===> Gọi API cloudca-get-hash với payload (ẩn base64 dài):", JSON.stringify({ 
+                ...hashPayload, 
+                signImageBase64: rawBase64 ? `${rawBase64.substring(0, 50)}...` : "", 
+                certChainBase64: hashPayload.certChainBase64.length > 0 ? [`${hashPayload.certChainBase64[0].substring(0, 50)}...`, `(+${hashPayload.certChainBase64.length - 1} more)`] : [] 
+            }));
+            
+            const hashResult = await getCloudCaHash(hashPayload);
+            console.log("===> KẾT QUẢ API cloudca-get-hash:", JSON.stringify(hashResult, null, 2));
+
+            if (hashResult?.message || hashResult?.Message) {
+                setSignStatus(hashResult?.message || hashResult?.Message);
+            }
+
+            const isHashSuccess = hashResult?.success || hashResult?.Success;
+            if (!isHashSuccess) {
+                setShowProcessing(false);
+                setSignError(hashResult?.message || hashResult?.Message || "Tạo Hash thất bại.");
+                setShowError(true);
+                return;
+            }
+
+            const hashBase64 = hashResult?.hashBase64 || hashResult?.data?.hashBase64;
+            const fieldName = hashResult?.fieldName || hashResult?.data?.fieldName;
+            const certId = signatureConfig?.selectedCertificate || "";
+
+            if (!hashBase64 || !fieldName) {
+                setShowProcessing(false);
+                setSignError("Dữ liệu Hash trả về không hợp lệ.");
+                setShowError(true);
+                return;
+            }
+
+            // --- 2. GỌI DEEPLINK ĐỂ XÁC NHẬN APP MYSIGN ---
+            setSignStatus("Đang mở ứng dụng MySign để xác nhận...");
             const myCallBack = "econtact://";
             const directMySignUrl = `mysign://mysignws/open_screen?name=home&agency=Office_AI_0318237748&idNo=${idNo}&mainCode=MAINCODE&vasCode=VAS1&callBack=${encodeURIComponent(myCallBack)}&deviceId=`;
 
@@ -151,21 +189,66 @@ export default function ContractDetailScreen() {
                 }
             }, 500);
 
-            // GỌI API THEO DẠNG FROMBODY BẰNG CÁCH TRUYỀN RAW PAYLOAD
-            const signResponse = await executeExternalSignContract(signPayload) as any;
+            // --- 3. GỌI get-signature ĐỂ CHỜ LẤY KẾT QUẢ KÝ ---
+            setSignStatus("Vui lòng xác nhận trên app MySign...");
+            console.log("===> Đang chờ kết quả từ API get-signature với filename:", fieldName, "certificateId:", certId);
+            const sigResult = await getSignature(fieldName, certId, hashBase64, contractId, accountId);
+            console.log("===> KẾT QUẢ API get-signature:", JSON.stringify(sigResult, null, 2));
             
-            const signSuccess = signResponse.Success ?? signResponse.success;
+            if (sigResult?.message || sigResult?.Message) {
+                setSignStatus(sigResult?.message || sigResult?.Message);
+            }
 
-            if (signSuccess) {
+            const isSigSuccess = sigResult?.success ?? sigResult?.Success;
+            if (!isSigSuccess) {
+                setShowProcessing(false);
+                setSignError(sigResult?.message || sigResult?.Message || "Lấy signature thất bại.");
+                setShowError(true);
+                return;
+            }
+
+            const sigData = sigResult?.Data || sigResult?.data;
+            const cmsSignature = sigData?.signature;
+            const signFileName = sigData?.filename || fieldName;
+
+            if (!cmsSignature) {
+                setShowProcessing(false);
+                setSignError("Không trích xuất được signature từ kết quả trả về.");
+                setShowError(true);
+                return;
+            }
+
+            // --- 4. GỌI API cloudca-insert-sign ---
+            setSignStatus("Đang hoàn tất việc chèn chữ ký...");
+            console.log("===> Bắt đầu chèn chữ ký vào contract...");
+            const insertPayload = {
+                contractId: contractId,
+                fieldName: signFileName,
+                signatureBase64: cmsSignature
+            };
+
+            const insertResult = await insertCloudCaSign(insertPayload);
+            const isInsertSuccess = insertResult?.success ?? insertResult?.Success;
+
+            if (insertResult?.message || insertResult?.Message) {
+                setSignStatus(insertResult?.message || insertResult?.Message);
+            }
+
+            if (isInsertSuccess) {
                 setShowProcessing(false);
                 setShowSuccess(true);
             } else {
                 setShowProcessing(false);
-                setSignError(signResponse.Message ?? signResponse.message ?? "Lỗi ký hợp đồng từ hệ thống.");
+                setSignError(insertResult?.message || insertResult?.Message || "Lỗi insert chữ ký.");
+                setShowError(true);
             }
+
         } catch (err: any) {
             setShowProcessing(false);
-            setSignError(err?.message || "Lỗi gọi API sign-contract.");
+            // Ưu tiên lấy message từ server nếu có (đề phòng service chưa catch)
+            const errMsg = err.response?.data?.message || err.response?.data?.Message || err.message || "Lỗi tiến trình ký số.";
+            setSignError(errMsg);
+            setShowError(true);
         }
     };
 
@@ -323,16 +406,28 @@ export default function ContractDetailScreen() {
                             <MaterialCommunityIcons name="timer-sand" size={36} color="#FFF" />
                         </LinearGradient>
                         <ThemedText style={{ fontSize: 28, fontWeight: "900", color: "#1565C0", marginBottom: 6 }}>{countdown}s</ThemedText>
-                        <ThemedText style={{ fontSize: 17, fontWeight: "700", marginBottom: 10 }}>Đang chờ xác nhận</ThemedText>
-                        <ThemedText style={{ fontSize: 13, textAlign: "center", opacity: 0.7, marginBottom: 20 }}>Hệ thống đang xử lý yêu cầu ký hợp đồng. Vui lòng không đóng ứng dụng...</ThemedText>
-                        {signError && (
-                            <ThemedText style={{ color: "red", textAlign: "center", marginTop: 10 }}>{signError}</ThemedText>
-                        )}
-                        {signError && (
-                            <TouchableOpacity onPress={() => setShowProcessing(false)} style={{ marginTop: 20, padding: 10, backgroundColor: "#E0E0E0", borderRadius: 8 }}>
-                                <ThemedText style={{ color: "#333", fontWeight: "600" }}>Đóng</ThemedText>
-                            </TouchableOpacity>
-                        )}
+                        <ThemedText style={{ fontSize: 17, fontWeight: "700", marginBottom: 10 }}>{signStatus}</ThemedText>
+                        <ThemedText style={{ fontSize: 13, textAlign: "center", opacity: 0.7, marginBottom: 20 }}>Vui lòng không đóng ứng dụng trong lúc hệ thống đang thực hiện ký số.</ThemedText>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ── Error modal ── */}
+            <Modal visible={showError} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: isDark ? "#1D3D47" : "#FFF", alignItems: "center", paddingVertical: 32 }]}>
+                        <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#FF5252", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                            <MaterialCommunityIcons name="close-circle-outline" size={40} color="#FFF" />
+                        </View>
+                        <ThemedText style={{ fontSize: 20, fontWeight: "800", color: "#FF5252", marginBottom: 10, textAlign: 'center' }}>Ký số không thành công</ThemedText>
+                        <ThemedText style={{ fontSize: 14, textAlign: "center", opacity: 0.8, marginBottom: 24, lineHeight: 22 }}>{signError}</ThemedText>
+
+                        <TouchableOpacity 
+                            style={{ backgroundColor: "#1565C0", borderRadius: 14, paddingVertical: 14, width: "100%", alignItems: "center" }} 
+                            onPress={() => setShowError(false)}
+                        >
+                            <ThemedText style={{ color: "#FFF", fontWeight: "700", fontSize: 15 }}>Đóng</ThemedText>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>

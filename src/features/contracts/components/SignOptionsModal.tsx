@@ -5,8 +5,9 @@ import * as ImagePicker from "expo-image-picker";
 import React, { useRef, useState, useEffect } from "react";
 import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import SignatureScreen from "react-native-signature-canvas";
+import ViewShot, { captureRef } from "react-native-view-shot";
 import { useAuthStore } from "@/store/authStore";
-import { getCertInfo } from "@/services/contractService";
+import { getCertificates, CertificateItem } from "@/services/contractService";
 
 export const FONT_OPTIONS = [
     { id: 'f1', name: 'Roboto (Mặc định)', style: { fontFamily: 'Roboto_400Regular' } },
@@ -30,7 +31,7 @@ type SignOptionsModalProps = {
 
 export function SignOptionsModal({ visible, onClose, onConfirm, loading }: SignOptionsModalProps) {
     const isDark = useColorScheme() === "dark";
-    const [selectedSignature, setSelectedSignature] = useState("Chọn chứng thư số");
+    const [selectedSignature, setSelectedSignature] = useState<CertificateItem | null>(null);
     const [showSignatureDropdown, setShowSignatureDropdown] = useState(false);
     const [signatureSetupType, setSignatureSetupType] = useState<number>(0);
     const [isDefaultSignature, setIsDefaultSignature] = useState(false);
@@ -56,6 +57,38 @@ export function SignOptionsModal({ visible, onClose, onConfirm, loading }: SignO
     const [isHandDrawConfigured, setIsHandDrawConfigured] = useState(false);
     const [scrollEnabled, setScrollEnabled] = useState(true);
     const signatureRef = useRef<any>(null);
+    const signatureCaptureRef = useRef<any>(null);
+
+    const handleConfirm = async () => {
+        let finalBase64 = uploadedImageBase64; // fallback
+
+        if (signatureSetupType !== 0 && signatureCaptureRef.current) {
+            try {
+                const uri = await captureRef(signatureCaptureRef, {
+                    format: 'png',
+                    quality: 1,
+                    result: 'base64'
+                });
+                finalBase64 = uri;
+            } catch (err) {
+                console.log("Error capturing signature stamp:", err);
+            }
+        } else if (signatureSetupType === 0) {
+            finalBase64 = "";
+        } else if (signatureSetupType === 2) {
+            finalBase64 = handDrawUri; // fallback
+        }
+
+        onConfirm({ 
+            type: signatureSetupType, 
+            selectedCertificate: selectedSignature?.CredentialId || selectedSignature?.credentialId,
+            certificateData: selectedSignature?.CertificateData || selectedSignature?.certificateData,
+            imageUri: signatureSetupType === 2 ? handDrawUri : uploadedImageUri, 
+            imageBase64: finalBase64,
+            fontId: selectedFontId, 
+            infos: selectedDisplayInfos 
+        });
+    };
 
     const handleClearDraw = () => {
         signatureRef.current?.clearSignature();
@@ -108,7 +141,7 @@ export function SignOptionsModal({ visible, onClose, onConfirm, loading }: SignO
     };
 
     const { user } = useAuthStore();
-    const [signatures, setSignatures] = useState<string[]>([]);
+    const [signatures, setSignatures] = useState<CertificateItem[]>([]);
     const [isLoadingCerts, setIsLoadingCerts] = useState(false);
 
     useEffect(() => {
@@ -116,19 +149,18 @@ export function SignOptionsModal({ visible, onClose, onConfirm, loading }: SignO
             if (!user?.id) return;
             setIsLoadingCerts(true);
             try {
-                const res = await getCertInfo(user.id);
+                const res = await getCertificates(user.id);
                 const certData = res.data || res.Data || [];
                 if (certData.length > 0) {
-                    const certList = certData.map(c => c.credentialId || c.CredentialId || "Không có số chứng thư");
-                    setSignatures(certList);
-                    setSelectedSignature(certList[0]);
+                    setSignatures(certData);
+                    setSelectedSignature(certData[0]);
                 } else {
-                    setSelectedSignature("Không tìm thấy chứng thư");
+                    setSelectedSignature(null);
                     setSignatures([]);
                 }
             } catch (error) {
                 console.log("Lỗi tải chứng thư", error);
-                setSelectedSignature("Lỗi tải chứng thư");
+                setSelectedSignature(null);
                 setSignatures([]);
             } finally {
                 setIsLoadingCerts(false);
@@ -440,30 +472,34 @@ export function SignOptionsModal({ visible, onClose, onConfirm, loading }: SignO
                                         disabled={isLoadingCerts || signatures.length === 0}
                                     >
                                         <ThemedText style={[styles.dropdownText, { color: isDark ? "#FFF" : "#333" }]}>
-                                            {isLoadingCerts ? "Đang tải chứng thư..." : selectedSignature}
+                                            {isLoadingCerts ? "Đang tải chứng thư..." : (selectedSignature?.CredentialId || selectedSignature?.credentialId || "Không tìm thấy chứng thư")}
                                         </ThemedText>
                                         {isLoadingCerts ? (
                                             <ActivityIndicator size="small" color="#2092EC" />
                                         ) : (
-                                            <MaterialCommunityIcons name={showSignatureDropdown ? "chevron-up" : "chevron-down"} size={8} color={isDark ? "#A0AEC0" : "#64748B"} />
+                                            <MaterialCommunityIcons name={showSignatureDropdown ? "chevron-up" : "chevron-down"} size={18} color={isDark ? "#A0AEC0" : "#64748B"} />
                                         )}
                                     </TouchableOpacity>
 
                                     {showSignatureDropdown && (
                                         <View style={[styles.dropdownMenu, { backgroundColor: isDark ? "#2A4B56" : "#FFF", borderColor: isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0" }]}>
-                                            {signatures.map((sig, idx) => (
-                                                <TouchableOpacity
-                                                    key={idx}
-                                                    style={[styles.dropdownItem, idx < signatures.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9" }]}
-                                                    onPress={() => {
-                                                        setSelectedSignature(sig);
-                                                        setShowSignatureDropdown(false);
-                                                    }}
-                                                >
-                                                    <ThemedText style={{ color: selectedSignature === sig ? "#2092EC" : (isDark ? "#FFF" : "#333"), fontWeight: selectedSignature === sig ? "700" : "400", flex: 1 }}>{sig}</ThemedText>
-                                                    {selectedSignature === sig && <MaterialCommunityIcons name="check-circle" size={18} color="#2092EC" />}
-                                                </TouchableOpacity>
-                                            ))}
+                                            {signatures.map((sig, idx) => {
+                                                const displayId = sig.CredentialId || sig.credentialId || "Không rõ";
+                                                const isSelected = displayId === (selectedSignature?.CredentialId || selectedSignature?.credentialId);
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={idx}
+                                                        style={[styles.dropdownItem, idx < signatures.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9" }]}
+                                                        onPress={() => {
+                                                            setSelectedSignature(sig);
+                                                            setShowSignatureDropdown(false);
+                                                        }}
+                                                    >
+                                                        <ThemedText style={{ color: isSelected ? "#2092EC" : (isDark ? "#FFF" : "#333"), fontWeight: isSelected ? "700" : "400", flex: 1 }}>{displayId}</ThemedText>
+                                                        {isSelected && <MaterialCommunityIcons name="check-circle" size={18} color="#2092EC" />}
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
                                         </View>
                                     )}
 
@@ -541,6 +577,37 @@ export function SignOptionsModal({ visible, onClose, onConfirm, loading }: SignO
                                         })}
                                     </View>
                                 </View>
+
+                                {/* GOM TẤT CẢ THÀNH 1 ẢNH (VIEW_SHOT) ĐỂ LẤY BASE64 THEO Ý MUỐN */}
+                                {signatureSetupType !== 0 && (
+                                    <View style={styles.section}>
+                                        <ThemedText style={styles.sectionTitle}>3. Xem trước chữ ký lồng ghép (Sẽ được đóng gói PNG)</ThemedText>
+                                        <ViewShot 
+                                            ref={signatureCaptureRef} 
+                                            options={{ format: "png", quality: 1.0, result: "base64" }} 
+                                            style={{ backgroundColor: isDark ? "#1D3D47" : "#FFF", padding: 16, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', borderWidth: 1, borderColor: "rgba(0,0,0,0.1)", borderStyle: "dashed", borderRadius: 12, minWidth: 200 }}
+                                        >
+                                            {signatureSetupType === 1 && uploadedImageUri && (
+                                                <Image source={{ uri: uploadedImageUri }} style={{ width: 150, height: 100, backgroundColor: 'transparent' }} resizeMode="contain" />
+                                            )}
+                                            {signatureSetupType === 2 && handDrawUri && (
+                                                <Image source={{ uri: handDrawUri }} style={{ width: 150, height: 100, backgroundColor: 'transparent' }} resizeMode="contain" />
+                                            )}
+                                            {signatureSetupType === 3 && (
+                                                <ThemedText style={[{ fontSize: 32, color: isDark ? "#2092EC" : "#1565C0", textAlign: 'center', marginVertical: 10 }, FONT_OPTIONS.find(f => f.id === selectedFontId)?.style as any]}>Nguyễn Văn A</ThemedText>
+                                            )}
+
+                                            {selectedDisplayInfos.length > 0 && (
+                                                <View style={{ alignItems: 'center', marginTop: 10, gap: 2 }}>
+                                                    {selectedDisplayInfos.includes("name") && <ThemedText style={{ fontSize: 13, color: isDark ? "#E2E8F0" : "#475569", fontWeight: "600" }}>Nguyễn Văn A</ThemedText>}
+                                                    {selectedDisplayInfos.includes("email") && <ThemedText style={{ fontSize: 13, color: isDark ? "#E2E8F0" : "#475569", fontWeight: "600" }}>nguyenvana@gmail.com</ThemedText>}
+                                                    {selectedDisplayInfos.includes("phone") && <ThemedText style={{ fontSize: 13, color: isDark ? "#E2E8F0" : "#475569", fontWeight: "600" }}>0987654321</ThemedText>}
+                                                    {selectedDisplayInfos.includes("date") && <ThemedText style={{ fontSize: 13, color: isDark ? "#E2E8F0" : "#475569", fontWeight: "600" }}>28/03/2026</ThemedText>}
+                                                </View>
+                                            )}
+                                        </ViewShot>
+                                    </View>
+                                )}
                             </ScrollView>
 
                             <View style={[styles.footer, { borderTopColor: isDark ? "rgba(255,255,255,0.1)" : "#F1F5F9" }]}>
@@ -549,14 +616,7 @@ export function SignOptionsModal({ visible, onClose, onConfirm, loading }: SignO
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.footerBtn, styles.confirmBtn]}
-                                    onPress={() => onConfirm({ 
-                                        type: signatureSetupType, 
-                                        selectedCertificate: selectedSignature,
-                                        imageUri: signatureSetupType === 2 ? handDrawUri : uploadedImageUri, 
-                                        imageBase64: signatureSetupType === 2 ? handDrawUri : uploadedImageBase64,
-                                        fontId: selectedFontId, 
-                                        infos: selectedDisplayInfos 
-                                    })}
+                                    onPress={handleConfirm}
                                     disabled={loading}
                                 >
                                     {loading ? (

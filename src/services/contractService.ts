@@ -2,7 +2,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { handleApiError } from "../utils/errorUtils";
 import apiClient from "./apiClient";
 
-export const API_BASE_URL = "http://192.168.1.87:5000";
+export const API_BASE_URL = "http://192.168.1.42:5000";
 export const API_BASE_URL_PRODUCT = "https://contract.officeai.vn";
 
 /**
@@ -270,9 +270,9 @@ export const orderCA = async (accountId: string): Promise<OrderCAResponse> => {
         if (lastColonIndex !== -1) {
           description = description.substring(lastColonIndex + 1).trim();
         }
-        
+
         console.warn("[orderCA Debug] - Phát hiện lỗi Viettel trong XML:", description);
-        
+
         // Ghi đè trạng thái và message để các màn hình phía trên (như IDInformationScreen) hiển thị đúng lỗi
         result.Success = false;
         result.success = false;
@@ -448,6 +448,34 @@ export const getCertInfo = async (accountId: string, validFrom?: string): Promis
   }
 };
 
+export interface CertificateItem {
+  CredentialId?: string;
+  CertificateData?: string[];
+  credentialId?: string;
+  certificateData?: string[];
+}
+
+export interface CertificatesResponse {
+  Success?: boolean;
+  Message?: string;
+  Data?: CertificateItem[];
+  success?: boolean;
+  message?: string;
+  data?: CertificateItem[];
+}
+
+export const getCertificates = async (accountId: string): Promise<CertificatesResponse> => {
+  try {
+    const url = `${API_BASE_URL}/api/certificates?accountId=${accountId}`;
+    const response = await apiClient.get(url, { _skipAlert: true });
+    return response.data;
+  } catch (error) {
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
+    throw error;
+  }
+};
+
 export const getCertificateDetail = async (accountId: string, id: number): Promise<CertInfoResponse> => {
   try {
     const url = `${API_BASE_URL}/api/cert-info-detail?accountId=${accountId}&id=${id}`;
@@ -553,29 +581,50 @@ export const getIdNumber = async (accountId: string) => {
   }
 };
 
-export const executeExternalSignContract = async (payload: any, customPingCode?: string) => {
-  const accountId = payload?.accountId;
-  const contractId = payload?.contractId;
-  const pingCode = customPingCode || `PING_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  console.log("!!! API SIGN CALLED FROM SERVICE !!! params:", { accountId, contractId, pingCode });
+export interface CloudCaInsertSignPayload {
+  contractId: string;
+  fieldName: string;
+  signatureBase64: string;
+}
+
+export const insertCloudCaSign = async (payload: CloudCaInsertSignPayload) => {
   try {
-    const url = `${API_BASE_URL}/api/sign-contract?accountId=${accountId}&contractId=${contractId}&pingCode=${pingCode}`;
-    const response = await apiClient.post(url, payload, { timeout: 100000, _skipAlert: true });
-    return { ...response.data, pingCode };
+    const url = "https://contract.officeai.vn/contract/api/cloudca-insert-sign";
+    const response = await apiClient.post(url, payload, { _skipAlert: true });
+    return response.data;
   } catch (error) {
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
     throw error;
   }
 };
 
-export const checkSigningStatus = async (contractId: string, pingCode: string) => {
+export const getSignature = async (filename: string, certificateId: string, filehash: string, contractId: string, accountId: string) => {
   try {
-    console.log(`[POLLING PING] Đang gọi API kiểm tra trạng thái: /api/check-signing-status?contractId=${contractId}&pingCode=${pingCode}`);
-    const url = `${API_BASE_URL}/api/check-signing-status?contractId=${contractId}&pingCode=${pingCode}`;
-    const response = await apiClient.get(url, { _skipAlert: true });
-    console.log(`[POLLING PING] Kết quả:`, response.data);
+    const url = `${API_BASE_URL}/api/get-signature?filename=${encodeURIComponent(filename)}&certificateId=${encodeURIComponent(certificateId)}&filehash=${encodeURIComponent(filehash)}&contractId=${encodeURIComponent(contractId)}&accountId=${encodeURIComponent(accountId)}`;
+    const response = await apiClient.post(url, {}, { _skipAlert: true, timeout: 120000 });
     return response.data;
   } catch (error) {
-    console.log("checkSigningStatus error:", error);
-    return null;
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
+    throw error;
+  }
+};
+
+export interface CloudCaHashPayload {
+  contractId: string;
+  signImageBase64: string;
+  certChainBase64: string[];
+}
+
+export const getCloudCaHash = async (payload: CloudCaHashPayload) => {
+  try {
+    const url = "https://contract.officeai.vn/contract/api/cloudca-get-hash";
+    const response = await apiClient.post(url, payload, { _skipAlert: true });
+    return response.data;
+  } catch (error) {
+    const message = handleApiError(error);
+    if (message) throw new Error(message);
+    throw error;
   }
 };

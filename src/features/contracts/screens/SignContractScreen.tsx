@@ -109,6 +109,7 @@ export default function SignContractScreen() {
     gender: string;
     permanentAddress: string;
     orderId: string;
+    phoneNumber?: string;
   }>();
 
   const { requestId, user } = useAuthStore();
@@ -350,7 +351,11 @@ export default function SignContractScreen() {
                 <MaterialCommunityIcons name="message-text-outline" size={15} color="#2092EC" />
                 <Text style={styles.otpHint}>
                   Mã OTP đã gửi đến{" "}
-                  <Text style={{ fontWeight: "700", color: "#1565C0" }}>098*****308</Text>
+                  <Text style={{ fontWeight: "700", color: "#1565C0" }}>
+                    {params.phoneNumber
+                      ? params.phoneNumber.slice(0, 3) + "*****" + params.phoneNumber.slice(-3)
+                      : "số điện thoại của bạn"}
+                  </Text>
                 </Text>
               </View>
 
