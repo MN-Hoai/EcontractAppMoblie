@@ -1,11 +1,13 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { checkCaStatus, executeExternalSignContract, getIdNumber } from "@/services/contractService";
+import { API_BASE_URL_PRODUCT, checkCaStatus, executeExternalSignContract, getIdNumber } from "@/services/contractService";
 import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { SignOptionsModal } from "../components/SignOptionsModal";
+import { SignaturePlacementModal } from "../components/SignaturePlacementModal";
 import {
     ActivityIndicator,
     Alert,
@@ -41,6 +43,9 @@ export default function ContractDetailScreen() {
     const [caMessage, setCaMessage] = useState("");
 
     // --- Sign Contract State ---
+    const [showSignOptions, setShowSignOptions] = useState(false);
+    const [showPlacementModal, setShowPlacementModal] = useState(false);
+    const [signatureConfig, setSignatureConfig] = useState<any>(null);
     const [showProcessing, setShowProcessing] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [countdown, setCountdown] = useState(100);
@@ -58,7 +63,18 @@ export default function ContractDetailScreen() {
 
 
 
-    const handleSign = async () => {
+    const pathStr = params.path as string;
+    let finalDocUrl = "";
+    if (pathStr) {
+        if (pathStr.startsWith("http")) {
+            finalDocUrl = pathStr;
+        } else {
+            const connector = pathStr.startsWith("/") ? "" : "/";
+            finalDocUrl = `${API_BASE_URL_PRODUCT}${connector}${pathStr}`;
+        }
+    }
+
+    const handleSign = async (config?: any) => {
         console.log("====> START handleSign! User clicked 'Ký duyệt' <====");
         try {
             setLoadingCa(true);
@@ -72,7 +88,7 @@ export default function ContractDetailScreen() {
             if (isSuccess && data === true) {
                 // Have CA -> trigger sign contract directly
                 console.log("====> CA status is OK (data=true), calling handleProceedToSign()");
-                handleProceedToSign();
+                handleProceedToSign(config);
             } else {
                 console.log("====> CA status is NOT OK (data=" + data + "), showing CA Modal:", message);
                 setCaMessage(message);
@@ -86,23 +102,33 @@ export default function ContractDetailScreen() {
         }
     };
 
-    const handleProceedToSign = async () => {
-        console.log("====> START handleProceedToSign <====");
-        const accountId = requestId || ""; // Or we might need user?.id if requestId is not right. Assuming requestId works for this screen context as per user implementation, but SignContractScreen used user?.id. Will use requestId as it was used in checkCaStatus here.
-        const contractId = (params.contractId as string) || (params.id as string) || ""; // Adjust based on how contractId is passed
+    // ---> UPDATE: Nhận cấu hình chữ ký từ SignOptionsModal
+    const handleProceedToSign = async (signatureConfig?: any) => {
+        console.log("====> BẮT ĐẦU QUY TRÌNH KÝ <====");
+        const accountId = requestId || ""; 
+        const contractId = (params.contractId as string) || (params.id as string) || ""; 
+
+        // 1. Đóng gói dữ liệu chữ ký (Chứng thư số + Ảnh/Font chữ ký)
+        const signPayload = {
+            accountId: accountId,
+            contractId: contractId,
+            certificateId: signatureConfig?.selectedCertificate || "",
+            signatureType: signatureConfig?.type || 0, // 0: Ký số, 1: Ảnh, 2: Vẽ, 3: Font
+            // Nếu là ảnh/vẽ thì nó là uri base64, nếu không thì null
+            signatureImageBase64: (signatureConfig?.type === 1 || signatureConfig?.type === 2) ? signatureConfig?.imageUri : null,
+            fontId: signatureConfig?.type === 3 ? signatureConfig?.fontId : null,
+            displayInfos: signatureConfig?.infos || [],
+        };
+
+        console.log("📦 Dữ liệu đóng gói sẽ gửi lên API [FromBody]:", JSON.stringify(signPayload, null, 2));
 
         setShowProcessing(true);
         setSignError(null);
         setCountdown(100);
 
-        console.log("===> Gọi executeExternalSignContract params:", { accountId, contractId });
-
         try {
-            // ---> MỚI: Gọi API lấy CCCD động theo accountId trước
-            console.log("===> Đang lấy CCCD (idNo) từ API...");
+            console.log("===> Lấy CCCD (idNo) từ API...");
             const idNumberRes = await getIdNumber(accountId);
-
-            // Xử lý đúng chuẩn { Success: true, Data: { IdNumber: "040304..." } }
             const isSuccess = idNumberRes?.success ?? idNumberRes?.Success;
             const dataObj = idNumberRes?.data ?? idNumberRes?.Data;
             const idNo = dataObj?.IdNumber ?? dataObj?.idNumber;
@@ -112,37 +138,22 @@ export default function ContractDetailScreen() {
                 setShowProcessing(false);
                 return;
             }
-            console.log("===> CCCD lấy được là:", idNo);
 
-            console.log("===> Trang thái: Đang chờ phản hồi dài hạn (long polling) từ executeExternalSignContract...");
-
-            // --- BẮT ĐẦU: Gọi deeplink NGAY LẬP TỨC trong khi API backend đang chờ ---
-            // Trỏ callBack chính xác về econtact:// để nó bật ứng dụng lên ngay sau khi ký bên MySign hoàn thành!
             const myCallBack = "econtact://";
             const directMySignUrl = `mysign://mysignws/open_screen?name=home&agency=Office_AI_0318237748&idNo=${idNo}&mainCode=MAINCODE&vasCode=VAS1&callBack=${encodeURIComponent(myCallBack)}&deviceId=`;
 
-            // Dùng setTimeout 500ms để app lót kịp cái Processing Modal rồi mới nhảy ứng dụng
             setTimeout(async () => {
-                console.log("===> GỌI THẲNG DEEPLINK (Trong lúc API đang chờ):", directMySignUrl);
                 try {
                     await Linking.openURL(directMySignUrl);
                 } catch (e) {
-                    console.log("Lỗi mở MySign (có thể app chưa cài đặt)", e);
-                    if (Platform.OS === 'android') {
-                        Linking.openURL("https://play.google.com/store/apps/details?id=com.viettel.cloud.ca.mysign");
-                    } else if (Platform.OS === 'ios') {
-                        Linking.openURL("https://apps.apple.com/vn/app/mysign/id1633019232?l=vi");
-                    } else {
-                        Linking.openURL("https://viettel-ca.vn/trang-chu");
-                    }
+                    if (Platform.OS === 'android') Linking.openURL("https://play.google.com/store/apps/details?id=com.viettel.cloud.ca.mysign");
+                    else if (Platform.OS === 'ios') Linking.openURL("https://apps.apple.com/vn/app/mysign/id1633019232?l=vi");
                 }
             }, 500);
-            // --- KẾT THÚC ---
 
-            // Ở DƯỚI NÀY VẪN LÀ AWAIT, NỘI BỘ APP SẼ BLOCK Ở ĐÂY CHO ĐẾN KHI USER KÝ TRONG MYSIGN XONG VÀ BACKEND TRẢ RESPONSE
-            const signResponse = await executeExternalSignContract(accountId, contractId) as any;
-            console.log("===> Đã nhận phản hồi TỪ executeExternalSignContract!");
-
+            // GỌI API THEO DẠNG FROMBODY BẰNG CÁCH TRUYỀN RAW PAYLOAD
+            const signResponse = await executeExternalSignContract(signPayload) as any;
+            
             const signSuccess = signResponse.Success ?? signResponse.success;
 
             if (signSuccess) {
@@ -247,7 +258,7 @@ export default function ContractDetailScreen() {
 
                         <TouchableOpacity
                             style={styles.signBtn}
-                            onPress={handleSign}
+                            onPress={() => setShowSignOptions(true)}
                             disabled={loadingCa}
                         >
                             {loadingCa ? (
@@ -343,6 +354,27 @@ export default function ContractDetailScreen() {
                 </View>
             </Modal>
 
+            <SignOptionsModal 
+                visible={showSignOptions} 
+                onClose={() => setShowSignOptions(false)} 
+                onConfirm={(config) => {
+                    setShowSignOptions(false);
+                    handleSign(config);
+                }} 
+            />
+
+            <SignaturePlacementModal
+                visible={showPlacementModal}
+                pdfUrl={finalDocUrl}
+                config={signatureConfig}
+                onClose={() => setShowPlacementModal(false)}
+                onConfirm={(position) => {
+                    setShowPlacementModal(false);
+                    console.log("===> Đã chọn vị trí ký hợp lệ: ", position);
+                    // Ở đây có thể lưu lại toạ độ vào payload cho backend
+                    handleSign();
+                }}
+            />
         </SafeAreaView>
     );
 }

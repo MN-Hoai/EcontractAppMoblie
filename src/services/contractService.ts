@@ -2,7 +2,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { handleApiError } from "../utils/errorUtils";
 import apiClient from "./apiClient";
 
-export const API_BASE_URL = "http://192.168.1.82:5000";
+export const API_BASE_URL = "http://192.168.1.87:5000";
 export const API_BASE_URL_PRODUCT = "https://contract.officeai.vn";
 
 /**
@@ -553,12 +553,14 @@ export const getIdNumber = async (accountId: string) => {
   }
 };
 
-export const executeExternalSignContract = async (accountId: string, contractId: string, customPingCode?: string) => {
+export const executeExternalSignContract = async (payload: any, customPingCode?: string) => {
+  const accountId = payload?.accountId;
+  const contractId = payload?.contractId;
   const pingCode = customPingCode || `PING_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   console.log("!!! API SIGN CALLED FROM SERVICE !!! params:", { accountId, contractId, pingCode });
   try {
     const url = `${API_BASE_URL}/api/sign-contract?accountId=${accountId}&contractId=${contractId}&pingCode=${pingCode}`;
-    const response = await apiClient.post(url, {}, { timeout: 100000, _skipAlert: true });
+    const response = await apiClient.post(url, payload, { timeout: 100000, _skipAlert: true });
     return { ...response.data, pingCode };
   } catch (error) {
     throw error;

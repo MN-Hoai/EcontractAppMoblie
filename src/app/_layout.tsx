@@ -20,6 +20,15 @@ import {
 } from "@/services/sessionManager";
 import LockScreen from "@/features/auth/screens/LockScreen";
 
+import { useFonts } from 'expo-font';
+import { Arimo_400Regular, Arimo_700Bold, Arimo_400Regular_Italic } from '@expo-google-fonts/arimo';
+import { Tinos_400Regular, Tinos_700Bold, Tinos_400Regular_Italic } from '@expo-google-fonts/tinos';
+import { Cousine_400Regular } from '@expo-google-fonts/cousine';
+import { ComicNeue_400Regular } from '@expo-google-fonts/comic-neue';
+import { DancingScript_400Regular } from '@expo-google-fonts/dancing-script';
+import { Lora_400Regular, Lora_400Regular_Italic } from '@expo-google-fonts/lora';
+import { Roboto_400Regular, Roboto_700Bold } from '@expo-google-fonts/roboto';
+
 export const unstable_settings = {
     anchor: "(tabs)",
 };
@@ -41,6 +50,22 @@ export default function RootLayout() {
     const lockSession = useAuthStore((s) => s.lockSession);
     const user = useAuthStore((s) => s.user);
     const requestId = useAuthStore((s) => s.requestId);
+
+    const [fontsLoaded] = useFonts({
+        Arimo_400Regular,
+        Arimo_700Bold,
+        Arimo_400Regular_Italic,
+        Tinos_400Regular,
+        Tinos_700Bold,
+        Tinos_400Regular_Italic,
+        Cousine_400Regular,
+        ComicNeue_400Regular,
+        DancingScript_400Regular,
+        Lora_400Regular,
+        Lora_400Regular_Italic,
+        Roboto_400Regular,
+        Roboto_700Bold,
+    });
 
     // ─── Auto-Login Bootstrap ───────────────────────────────────────────────
     useEffect(() => {
@@ -155,7 +180,7 @@ export default function RootLayout() {
     }, [isAuthenticated, hasHydrated, isBootstrapping, isLocked, segments]);
 
     // Show loading while hydrating/bootstrapping
-    if (!hasHydrated || isBootstrapping) {
+    if (!hasHydrated || isBootstrapping || !fontsLoaded) {
         return (
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
                 <ActivityIndicator size="large" color="#2092EC" />

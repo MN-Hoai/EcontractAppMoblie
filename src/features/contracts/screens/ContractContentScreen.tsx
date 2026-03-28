@@ -6,6 +6,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { SignOptionsModal } from "../components/SignOptionsModal";
+import { SignaturePlacementModal } from "../components/SignaturePlacementModal";
 import {
     ActivityIndicator,
     Alert,
@@ -33,6 +35,9 @@ export default function ContractContentScreen() {
     const [caMessage, setCaMessage] = useState("");
 
     // --- Sign Contract State ---
+    const [showSignOptions, setShowSignOptions] = useState(false);
+    const [showPlacementModal, setShowPlacementModal] = useState(false);
+    const [signatureConfig, setSignatureConfig] = useState<any>(null);
     const [showProcessing, setShowProcessing] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [countdown, setCountdown] = useState(100);
@@ -94,7 +99,7 @@ export default function ContractContentScreen() {
             finalDocUrl = `${API_BASE_URL_PRODUCT}${connector}${pathStr}`;
         }
     }
-    const handleSign = async () => {
+    const handleSign = async (config?: any) => {
         try {
             setLoadingCa(true);
             const res = await checkCaStatus(user?.id || "");
@@ -105,7 +110,7 @@ export default function ContractContentScreen() {
 
             if (isSuccess && data === true) {
                 // Have CA -> trigger sign contract directly
-                handleProceedToSign();
+                handleProceedToSign(config);
             } else {
                 setCaMessage(message);
                 setShowCaModal(true);
@@ -118,9 +123,22 @@ export default function ContractContentScreen() {
         }
     };
 
-    const handleProceedToSign = async () => {
+    const handleProceedToSign = async (signatureConfig?: any) => {
         const accountId = requestId || "";
         const contractId = (params.contractId as string) || (params.id as string) || "";
+
+        // 1. Đóng gói dữ liệu chữ ký
+        const signPayload = {
+            accountId: accountId,
+            contractId: contractId,
+            certificateId: signatureConfig?.selectedCertificate || "",
+            signatureType: signatureConfig?.type || 0,
+            signatureImageBase64: (signatureConfig?.type === 1 || signatureConfig?.type === 2) ? signatureConfig?.imageUri : null,
+            fontId: signatureConfig?.type === 3 ? signatureConfig?.fontId : null,
+            displayInfos: signatureConfig?.infos || [],
+        };
+
+        console.log("📦 Dữ liệu đóng gói sẽ gửi lên API [FromBody]:", JSON.stringify(signPayload, null, 2));
 
         setShowProcessing(true);
         setSignError(null);
@@ -171,9 +189,8 @@ export default function ContractContentScreen() {
                 }
             }, 500);
 
-            // Chờ API dài hạn từ backend, không await để tránh app bị treo do await khi chuyển app và bị ngắt kết nối
-            // Đặc biệt trên iOS sẽ hay bị lỗi kết nối mạng khi mở app MySign, nên ta dựa hoàn toàn vào việc gọi API ping (polling ở trên)
-            executeExternalSignContract(user?.id || "", contractId, newPingCode)
+            // Chờ API dài hạn từ backend, truyền signPayload [FromBody]
+            executeExternalSignContract(signPayload, newPingCode)
                 .then((signResponse: any) => {
                     if (Platform.OS === 'ios') return; // Bỏ qua trên iOS, chỉ dùng polling
                     const signSuccess = signResponse.Success ?? signResponse.success;
@@ -268,7 +285,7 @@ export default function ContractContentScreen() {
                 {params.status === '1' && (
                     <TouchableOpacity
                         style={styles.signBtn}
-                        onPress={handleSign}
+                        onPress={() => setShowSignOptions(true)}
                         disabled={loadingCa}
                     >
                         {loadingCa ? (
@@ -363,6 +380,27 @@ export default function ContractContentScreen() {
                 </View>
             </Modal >
 
+            <SignOptionsModal 
+                visible={showSignOptions} 
+                onClose={() => setShowSignOptions(false)} 
+                onConfirm={(config) => {
+                    setShowSignOptions(false);
+                    handleSign();
+                }} 
+            />
+
+            <SignaturePlacementModal
+                visible={showPlacementModal}
+                pdfUrl={finalDocUrl}
+                config={signatureConfig}
+                onClose={() => setShowPlacementModal(false)}
+                onConfirm={(position) => {
+                    setShowPlacementModal(false);
+                    console.log("===> Đã chọn vị trí ký hợp lệ: ", position);
+                    // Ở đây có thể gắn toạ độ vào request payload nếu backend support. Tạm thời pass qua handleSign gốc.
+                    handleSign();
+                }}
+            />
         </SafeAreaView >
     );
 }
