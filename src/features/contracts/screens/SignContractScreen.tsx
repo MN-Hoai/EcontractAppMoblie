@@ -128,10 +128,9 @@ export default function SignContractScreen() {
   const isOtpComplete = otp.length === 6;
   const isOtpValid = otpError === null;
 
-  /* Gọi ngầm API confirm-sign khi vừa vào màn hình */
   useEffect(() => {
-    confirmSign(requestId || "").catch((e) => {
-      console.log("Lỗi gọi ngầm confirmSign:", e?.response?.data || e.message);
+    confirmSign(user?.id || "").catch((e) => {
+      console.log("Lỗi gọi ngầm confirmSign [accountId]:", user?.id, e?.response?.data || e.message);
     });
   }, []);
 
@@ -159,7 +158,7 @@ export default function SignContractScreen() {
     setOtpError(null);
 
     try {
-      const response = await confirmOtp(requestId || "", otp) as any;
+      const response = await confirmOtp(user?.id || "", otp) as any;
       const success = response.success ?? response.Success;
       const message = response.message ?? response.Message;
 
@@ -191,7 +190,7 @@ export default function SignContractScreen() {
     setResendCooldown(10);
     focusInput();
     try {
-      await resendOtp(requestId || "");
+      await resendOtp(user?.id || "");
     } catch (e) {
       console.warn("Lỗi gửi lại OTP:", e);
     }
@@ -457,12 +456,6 @@ export default function SignContractScreen() {
               <MaterialCommunityIcons name="file-check" size={18} color="#FFF" />
               <Text style={styles.successBtnText}>Nghiệm thu</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.homeBtn}
-              onPress={() => { setShowSuccess(false); router.replace("/(tabs)" as any); }}
-            >
-              <Text style={styles.homeBtnText}>Về trang chủ</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -673,8 +666,4 @@ const styles = StyleSheet.create({
     paddingVertical: 14, width: "100%", marginBottom: 10,
   },
   successBtnText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
-  homeBtn: {
-    paddingVertical: 12, width: "100%", alignItems: "center",
-  },
-  homeBtnText: { color: "#607D8B", fontWeight: "600", fontSize: 14 },
 });

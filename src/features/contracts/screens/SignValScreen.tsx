@@ -39,7 +39,7 @@ function InfoRow({ icon, label, value }: { icon: string; label: string; value: s
 
 export default function SignValScreen() {
   const router = useRouter();
-  const { requestId } = useAuthStore();
+  const { requestId, user } = useAuthStore();
   const [showCertModal, setShowCertModal] = useState(false);
   const [certInfo, setCertInfo] = useState<CertInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,10 +55,10 @@ export default function SignValScreen() {
         console.log("[VAL Debug] - requestId:", requestId);
 
         // --- Bước 1: Gọi nghiệm thu ---
-        console.log("[VAL Debug] - (1) Đang gọi 'approveHandOver'...");
+        console.log("[VAL Debug] - (1) Đang gọi 'approveHandOver' với accountId:", user?.id);
         let approveRes;
         try {
-          approveRes = await approveHandOver(requestId || "");
+          approveRes = await approveHandOver(user?.id || "");
           console.log("[VAL Debug] - Kết quả 'approveHandOver':", JSON.stringify(approveRes, null, 2));
 
           const isSuccessObj = approveRes && (approveRes.Success === true || approveRes.success === true);
@@ -78,10 +78,10 @@ export default function SignValScreen() {
         }
 
         // --- Bước 2: Gọi viewOrder (Âm thầm) ---
-        console.log("[VAL Debug] - (2) Đang gọi 'viewOrder'...");
+        console.log("[VAL Debug] - (2) Đang gọi 'viewOrder' với accountId:", user?.id);
         let viewRes;
         try {
-          viewRes = await viewOrder(requestId || "");
+          viewRes = await viewOrder(user?.id || "");
           console.log("[VAL Debug] - Kết quả 'viewOrder':", JSON.stringify(viewRes, null, 2));
           
           const isSuccess = viewRes && (viewRes.Success === true || viewRes.success === true);
@@ -101,24 +101,44 @@ export default function SignValScreen() {
           // Ở đây tôi chọn cho chạy tiếp bước 3 vì bạn muốn log ngầm
         }
 
-        // --- Bước 3: Import certificate ---
+        // --- Bước 3: Import certificate (Retry logic nếu lỗi 400/BadRequest hoặc Success: false) ---
         console.log("[VAL Debug] - (3) Đang gọi 'importCertificate'...");
-        let importRes;
-        try {
-          importRes = await importCertificate(requestId || "");
-          console.log("[VAL Debug] - Kết quả 'importCertificate':", JSON.stringify(importRes, null, 2));
+        let importRes: any;
+        let retryCount = 0;
+        const maxRetries = 2; // Thử tổng cộng 3 lần
 
-          const isSuccess = importRes && (importRes.Success !== false && importRes.success !== false);
-          if (!isSuccess) {
-            const msg = (importRes?.Message || importRes?.message || "Import chứng thư số thất bại.");
-            console.error("[VAL Debug] - Import chứng thư thất bại:", msg);
-            if (isMounted) Alert.alert("Lỗi Import Cert", msg.replace("Lỗi hệ thống: ", ""), [{ text: "Đóng", style: "cancel" }]);
-            return;
+        while (retryCount <= maxRetries) {
+          try {
+            importRes = await importCertificate(user?.id || "");
+            console.log(`[VAL Debug] - Kết quả 'importCertificate' (Lần ${retryCount + 1}):`, JSON.stringify(importRes, null, 2));
+
+            const isSuccess = importRes && (importRes.Success !== false && importRes.success !== false);
+            if (isSuccess) {
+              console.log(`[VAL Debug] - Import chứng thư thành công ở lần thử thứ ${retryCount + 1}`);
+              break; 
+            } else {
+              const msg = (importRes?.Message || importRes?.message || "Import chứng thư số thất bại.");
+              if (retryCount < maxRetries) {
+                console.warn(`[VAL Debug] - Lần thử ${retryCount + 1} thất bại: ${msg}. Đang thử lại sau 2s...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                retryCount++;
+              } else {
+                console.error("[VAL Debug] - Import chứng thư thất bại sau nhiều lần thử:", msg);
+                if (isMounted) Alert.alert("Lỗi Import Cert", msg.replace("Lỗi hệ thống: ", ""), [{ text: "Đóng", style: "cancel" }]);
+                return;
+              }
+            }
+          } catch (err: any) {
+            if (retryCount < maxRetries) {
+              console.warn(`[VAL Debug] - Lỗi hệ thống ở lần thử ${retryCount + 1}: ${err.message}. Đang thử lại sau 2s...`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              retryCount++;
+            } else {
+              console.error("[VAL Debug] - Lỗi hệ thống khi gọi 'importCertificate':", err);
+              if (isMounted) Alert.alert("Lỗi hệ thống", "Không thể nhập chứng thư số.");
+              return;
+            }
           }
-        } catch (err: any) {
-          console.error("[VAL Debug] - Lỗi hệ thống khi gọi 'importCertificate':", err);
-          if (isMounted) Alert.alert("Lỗi hệ thống", "Không thể nhập chứng thư số.");
-          return;
         }
 
         // --- Bước 4: Lấy thông tin chứng thư ---
@@ -137,7 +157,8 @@ export default function SignValScreen() {
         console.log("[VAL Debug] - validFrom truyền đi:", formattedValidFrom);
 
         try {
-          const certRes = await getCertInfo(requestId || "", formattedValidFrom);
+          console.log("[VAL Debug] - (4) Đang gọi 'getCertInfo' với accountId:", user?.id);
+          const certRes = await getCertInfo(user?.id || "", formattedValidFrom);
           console.log("[VAL Debug] - Kết quả 'getCertInfo':", JSON.stringify(certRes, null, 2));
 
           const isSuccess = certRes && (certRes.Success !== false && certRes.success !== false);

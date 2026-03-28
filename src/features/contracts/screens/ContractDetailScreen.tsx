@@ -101,10 +101,11 @@ export default function ContractDetailScreen() {
             // ---> MỚI: Gọi API lấy CCCD động theo accountId trước
             console.log("===> Đang lấy CCCD (idNo) từ API...");
             const idNumberRes = await getIdNumber(accountId);
-            
-            // Xử lý đúng chuẩn { success: true, data: "0123456" }
+
+            // Xử lý đúng chuẩn { Success: true, Data: { IdNumber: "040304..." } }
             const isSuccess = idNumberRes?.success ?? idNumberRes?.Success;
-            const idNo = idNumberRes?.data ?? idNumberRes?.Data; 
+            const dataObj = idNumberRes?.data ?? idNumberRes?.Data;
+            const idNo = dataObj?.IdNumber ?? dataObj?.idNumber;
 
             if (!isSuccess || !idNo) {
                 Alert.alert("Lỗi", "Không lấy được số CCCD từ hệ thống.");
@@ -118,7 +119,7 @@ export default function ContractDetailScreen() {
             // --- BẮT ĐẦU: Gọi deeplink NGAY LẬP TỨC trong khi API backend đang chờ ---
             // Trỏ callBack chính xác về econtact:// để nó bật ứng dụng lên ngay sau khi ký bên MySign hoàn thành!
             const myCallBack = "econtact://";
-            const directMySignUrl = `mysign://mysignws/open_screen?name=register_account&agency=Office_AI_0318237748&idNo=${idNo}&mainCode=MAINCODE&vasCode=VAS1&callBack=${encodeURIComponent(myCallBack)}&deviceId=`;
+            const directMySignUrl = `mysign://mysignws/open_screen?name=home&agency=Office_AI_0318237748&idNo=${idNo}&mainCode=MAINCODE&vasCode=VAS1&callBack=${encodeURIComponent(myCallBack)}&deviceId=`;
 
             // Dùng setTimeout 500ms để app lót kịp cái Processing Modal rồi mới nhảy ứng dụng
             setTimeout(async () => {
@@ -347,8 +348,10 @@ export default function ContractDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { paddingTop: 45,
-    flex: 1 },
+    container: {
+        paddingTop: 45,
+        flex: 1
+    },
     header: {
         flexDirection: "row",
         alignItems: "center",

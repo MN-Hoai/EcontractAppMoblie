@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { API_BASE_URL_PRODUCT, checkCaStatus, executeExternalSignContract } from "@/services/contractService";
+import { API_BASE_URL_PRODUCT, checkCaStatus, checkSigningStatus, executeExternalSignContract, getIdNumber } from "@/services/contractService";
 import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -9,7 +9,9 @@ import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Linking,
     Modal,
+    Platform,
     SafeAreaView,
     StyleSheet,
     TouchableOpacity,
@@ -24,7 +26,7 @@ export default function ContractContentScreen() {
     const params = useLocalSearchParams();
     const [loading, setLoading] = useState(true);
     const [webviewKey, setWebviewKey] = useState(Date.now().toString());
-    const { requestId } = useAuthStore();
+    const { requestId, user } = useAuthStore();
 
     const [loadingCa, setLoadingCa] = useState(false);
     const [showCaModal, setShowCaModal] = useState(false);
@@ -35,16 +37,43 @@ export default function ContractContentScreen() {
     const [showSuccess, setShowSuccess] = useState(false);
     const [countdown, setCountdown] = useState(100);
     const [signError, setSignError] = useState<string | null>(null);
+    const [pingCode, setPingCode] = useState<string>("");
 
     // Countdown logic
     useEffect(() => {
         if (!showProcessing) return;
         if (countdown <= 0) {
+            setShowProcessing(false);
+            setSignError("Hết thời gian chờ. Không nhận được trạng thái ký hợp đồng.");
             return;
         }
         const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
         return () => clearTimeout(t);
     }, [showProcessing, countdown]);
+
+    // Polling logic
+    useEffect(() => {
+        if (!showProcessing || !pingCode) return;
+
+        const contractId = (params.contractId as string) || (params.id as string) || "";
+        
+        const interval = setInterval(async () => {
+            const res = await checkSigningStatus(contractId, pingCode);
+            if (res) {
+                const isSuccess = res.success ?? res.Success;
+                if ((isSuccess && res.data) || res.status === 1 || res.data === 1) {
+                    // res.data is either 1 or { signatures: [...] } on success
+                    setShowProcessing(false);
+                    setShowSuccess(true);
+                } else if (isSuccess === false) {
+                    setShowProcessing(false);
+                    setSignError(res.message || res.Message || "Lỗi khi kiểm tra trạng thái ký.");
+                }
+            }
+        }, 2500);
+
+        return () => clearInterval(interval);
+    }, [showProcessing, pingCode, params]);
 
     useEffect(() => {
         setLoading(true);
@@ -68,7 +97,7 @@ export default function ContractContentScreen() {
     const handleSign = async () => {
         try {
             setLoadingCa(true);
-            const res = await checkCaStatus(requestId || "");
+            const res = await checkCaStatus(user?.id || "");
 
             const isSuccess = res.Success ?? res.success;
             const data = res.Data ?? res.data;
@@ -100,16 +129,66 @@ export default function ContractContentScreen() {
         console.log("===> executeExternalSignContract params:", { accountId, contractId });
 
         try {
-            const signResponse = await executeExternalSignContract(accountId, contractId) as any;
-            const signSuccess = signResponse.Success ?? signResponse.success;
+            // ---> MỚI: Gọi API lấy CCCD động theo accountId trước
+            console.log("===> Đang lấy CCCD (idNo) từ API với accountId:", user?.id);
+            const idNumberRes = await getIdNumber(user?.id || "");
 
-            if (signSuccess) {
+            // Xử lý đúng chuẩn { Success: true, Data: { IdNumber: "040304..." } }
+            const isSuccess = idNumberRes?.success ?? idNumberRes?.Success;
+            const dataObj = idNumberRes?.data ?? idNumberRes?.Data;
+            const idNo = dataObj?.IdNumber ?? dataObj?.idNumber;
+
+            if (!isSuccess || !idNo) {
+                Alert.alert("Lỗi", "Không lấy được số CCCD từ hệ thống.");
                 setShowProcessing(false);
-                setShowSuccess(true);
-            } else {
-                setShowProcessing(false);
-                setSignError(signResponse.Message ?? signResponse.message ?? "Lỗi ký hợp đồng từ hệ thống.");
+                return;
             }
+            console.log("===> CCCD lấy được là:", idNo);
+
+            // Generate ping code for polling
+            const newPingCode = `PING_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
+            setPingCode(newPingCode);
+
+            console.log("===> Trang thái: Đang chờ phản hồi dài hạn (long polling) từ executeExternalSignContract...");
+
+            // --- BẮT ĐẦU: Gọi deeplink NGAY LẬP TỨC trong khi API backend đang chờ ---
+            const myCallBack = "econtact://";
+            const directMySignUrl = `mysign://mysignws/open_screen?name=homagency=Office_AI_0318237748&idNo=${idNo}&mainCode=MAINCODE&vasCode=VAS1&callBack=${encodeURIComponent(myCallBack)}&deviceId=`;
+
+            setTimeout(async () => {
+                console.log("===> GỌI THẲNG DEEPLINK (Trong lúc API đang chờ):", directMySignUrl);
+                try {
+                    await Linking.openURL(directMySignUrl);
+                } catch (e) {
+                    console.log("Lỗi mở MySign (có thể app chưa cài đặt)", e);
+                    if (Platform.OS === 'android') {
+                        Linking.openURL("https://play.google.com/store/apps/details?id=com.viettel.cloud.ca.mysign");
+                    } else if (Platform.OS === 'ios') {
+                        Linking.openURL("https://apps.apple.com/vn/app/mysign/id1633019232?l=vi");
+                    } else {
+                        Linking.openURL("https://viettel-ca.vn/trang-chu");
+                    }
+                }
+            }, 500);
+
+            // Chờ API dài hạn từ backend, không await để tránh app bị treo do await khi chuyển app và bị ngắt kết nối
+            // Đặc biệt trên iOS sẽ hay bị lỗi kết nối mạng khi mở app MySign, nên ta dựa hoàn toàn vào việc gọi API ping (polling ở trên)
+            executeExternalSignContract(user?.id || "", contractId, newPingCode)
+                .then((signResponse: any) => {
+                    if (Platform.OS === 'ios') return; // Bỏ qua trên iOS, chỉ dùng polling
+                    const signSuccess = signResponse.Success ?? signResponse.success;
+                    if (signSuccess) {
+                        setShowProcessing(false);
+                        setShowSuccess(true);
+                    } else if (signResponse.Message || signResponse.message) {
+                        setShowProcessing(false);
+                        setSignError(signResponse.Message ?? signResponse.message ?? "Lỗi ký hợp đồng từ hệ thống.");
+                    }
+                })
+                .catch((err) => {
+                    console.log("executeExternalSignContract error (background, can be ignored if polling succeeds):", err);
+                });
+
         } catch (err: any) {
             setShowProcessing(false);
             setSignError(err?.message || "Lỗi gọi API sign-contract.");
@@ -176,7 +255,7 @@ export default function ContractContentScreen() {
             <View style={[styles.bottomBar, { backgroundColor: isDark ? "#0D1B23" : "#FFF" }]}>
                 <TouchableOpacity
                     style={[
-                        styles.bottomBtn, 
+                        styles.bottomBtn,
                         { backgroundColor: isDark ? "#1D3D47" : "#F0F4F8" },
                         params.status !== '1' && { flex: 1 } // Take full width if sign button is hidden
                     ]}
@@ -289,8 +368,10 @@ export default function ContractContentScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { paddingTop: 45,
-    flex: 1 },
+    container: {
+        paddingTop: 45,
+        flex: 1
+    },
     header: {
         flexDirection: "row",
         alignItems: "center",

@@ -156,7 +156,7 @@ function InfoRow({
 /* ─── Main Screen ───────────────────────────────────────────── */
 export default function IDInformationScreen() {
     const router = useRouter();
-    const { requestId } = useAuthStore();
+    const { requestId, user } = useAuthStore();
     const reset = useKycStore((s) => s.reset);
 
     const [idInfo, setIdInfo] = useState<IDInfo>({
@@ -258,10 +258,10 @@ export default function IDInformationScreen() {
                 Email: idInfo.email,
             };
 
-            console.log("[ORDER Debug] - (1) Đang gọi 'submitKycInfo'...");
+            console.log("[ORDER Debug] - (1) Đang gọi 'submitKycInfo' với accountId:", user?.id);
             console.log("[ORDER Debug] - Payload:", JSON.stringify(model, null, 2));
 
-            const serviceResponse = await submitKycInfo(requestId || "", model) as any;
+            const serviceResponse = await submitKycInfo(user?.id || "", model) as any;
             console.log("[ORDER Debug] - Kết quả 'submitKycInfo':", JSON.stringify(serviceResponse, null, 2));
 
             const isSuccess = serviceResponse.success ?? serviceResponse.Success;
@@ -276,8 +276,8 @@ export default function IDInformationScreen() {
             }
 
             // ── Bước 4: Chuẩn hóa địa chỉ ─────────────────────────
-            console.log("[ORDER Debug] - (2) Đang gọi 'normalizeAddress'...");
-            const addressResponse = await normalizeAddress(requestId || "");
+            console.log("[ORDER Debug] - (2) Đang gọi 'normalizeAddress' với accountId:", user?.id);
+            const addressResponse = await normalizeAddress(user?.id || "");
             console.log("[ORDER Debug] - Kết quả 'normalizeAddress':", JSON.stringify(addressResponse, null, 2));
 
             const addressSuccess = addressResponse.success ?? addressResponse.Success;
@@ -290,8 +290,8 @@ export default function IDInformationScreen() {
             }
 
             // ── Bước 5: Tạo đơn hàng CA ──────────────────────────
-            console.log("[ORDER Debug] - (3) Đang gọi 'orderCA' (Tạo đơn hàng)...");
-            const orderResponse = await orderCA(requestId || "");
+            console.log("[ORDER Debug] - (3) Đang gọi 'orderCA' (Tạo đơn hàng) với accountId:", user?.id);
+            const orderResponse = await orderCA(user?.id || "");
             console.log("[ORDER Debug] - Kết quả 'orderCA':", JSON.stringify(orderResponse, null, 2));
 
             const orderSuccess = orderResponse.success ?? orderResponse.Success;
@@ -304,8 +304,8 @@ export default function IDInformationScreen() {
             }
 
             // ── Bước 6: Lấy thông tin đơn hàng và mã OrderID ───────
-            console.log("[ORDER Debug] - (4) Đang gọi 'getOrderInfo' để lấy mã đơn hàng...");
-            const infoResponse = await getOrderInfo(requestId || "");
+            console.log("[ORDER Debug] - (4) Đang gọi 'getOrderInfo' với accountId:", user?.id);
+            const infoResponse = await getOrderInfo(user?.id || "");
             console.log("[ORDER Debug] - Kết quả 'getOrderInfo':", JSON.stringify(infoResponse, null, 2));
 
             const infoData = infoResponse.data ?? infoResponse.Data;

@@ -210,7 +210,7 @@ export const checkCaStatus = async (accountId: string): Promise<CheckCaResponse>
 export const submitKycInfo = async (accountId: string, model: any) => {
   try {
     const url = `${API_BASE_URL}/api/infoid?accountId=${accountId}`;
-    const response = await apiClient.post(url, model);
+    const response = await apiClient.post(url, model, { _skipAlert: true });
     return response.data;
   } catch (error) {
     const message = handleApiError(error);
@@ -231,7 +231,7 @@ export interface NormalizeAddressResponse {
 export const normalizeAddress = async (accountId: string): Promise<NormalizeAddressResponse> => {
   try {
     const url = `${API_BASE_URL}/api/customer/address?accountId=${accountId}`;
-    const response = await apiClient.post(url, {});
+    const response = await apiClient.post(url, {}, { _skipAlert: true });
     return response.data;
   } catch (error: any) {
     if (error?.response?.status === 405) {
@@ -257,15 +257,35 @@ export interface OrderCAResponse {
 export const orderCA = async (accountId: string): Promise<OrderCAResponse> => {
   try {
     const url = `${API_BASE_URL}/api/order-ca?accountId=${accountId}`;
-    const response = await apiClient.post(url, {});
+    const response = await apiClient.post(url, {}, { _skipAlert: true });
     const result = response.data;
+
+    // --- Kiểm tra lỗi nghiệp vụ từ Viettel nằm trong XML Data (mặc dù top-level Success: true) ---
+    if (result.Data && typeof result.Data === 'string' && result.Data.includes('<success>false</success>')) {
+      const match = result.Data.match(/<description>(.*?)<\/description>/);
+      if (match && match[1]) {
+        let description = match[1];
+        // Tách chuỗi sau dấu ":" cuối cùng để lấy thông báo lỗi thân thiện (bỏ qua các mã code CDVA...)
+        const lastColonIndex = description.lastIndexOf(':');
+        if (lastColonIndex !== -1) {
+          description = description.substring(lastColonIndex + 1).trim();
+        }
+        
+        console.warn("[orderCA Debug] - Phát hiện lỗi Viettel trong XML:", description);
+        
+        // Ghi đè trạng thái và message để các màn hình phía trên (như IDInformationScreen) hiển thị đúng lỗi
+        result.Success = false;
+        result.success = false;
+        result.Message = description;
+        result.message = description;
+      }
+    }
 
     if (result.Success || result.success) {
       viewOrder(accountId).catch((err) =>
         console.log("Lỗi gọi ngầm viewOrder:", err)
       );
     }
-
     return result;
   } catch (error) {
     const message = handleApiError(error);
@@ -299,7 +319,7 @@ export interface OrderInfoResponse {
 export const getOrderInfo = async (accountId: string): Promise<OrderInfoResponse> => {
   try {
     const url = `${API_BASE_URL}/api/order/customer?accountId=${accountId}`;
-    const response = await apiClient.post(url, {});
+    const response = await apiClient.post(url, {}, { _skipAlert: true });
     return response.data;
   } catch (error: any) {
     if (error?.response?.status === 405) {
@@ -316,7 +336,7 @@ export const getOrderInfo = async (accountId: string): Promise<OrderInfoResponse
 export const approveHandOver = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/approve-handover?accountId=${accountId}`;
-    const response = await apiClient.post(url, {});
+    const response = await apiClient.post(url, {}, { _skipAlert: true });
     return response.data;
   } catch (error) {
     const message = handleApiError(error);
@@ -327,10 +347,13 @@ export const approveHandOver = async (accountId: string) => {
 
 export const viewOrder = async (accountId: string) => {
   try {
-    const url = `${API_BASE_URL}/api/view-order`;
-    const response = await apiClient.post(url, { accountId }, { _skipAlert: true });
+    console.log(`[viewOrder Debug] - Đang gọi API with accountId: ${accountId}`);
+    const url = `${API_BASE_URL}/api/view-order?accountId=${accountId}`;
+    const response = await apiClient.post(url, {}, { _skipAlert: true });
+    console.log("[viewOrder Debug] - Kết quả từ API view-order:", JSON.stringify(response.data, null, 2));
     return response.data;
   } catch (error) {
+    console.error("[viewOrder Debug] - Lỗi khi gọi API view-order:", error);
     const message = handleApiError(error);
     if (message) throw new Error(message);
     throw error;
@@ -401,7 +424,7 @@ export interface CertInfoResponse {
 export const importCertificate = async (accountId: string): Promise<CertInfoResponse> => {
   try {
     const url = `${API_BASE_URL}/api/import-cert?accountId=${accountId}`;
-    const response = await apiClient.post(url, {});
+    const response = await apiClient.post(url, {}, { _skipAlert: true });
     return response.data;
   } catch (error) {
     const message = handleApiError(error);
@@ -416,7 +439,7 @@ export const getCertInfo = async (accountId: string, validFrom?: string): Promis
     if (validFrom) {
       url += `&validFrom=${encodeURIComponent(validFrom)}`;
     }
-    const response = await apiClient.get(url);
+    const response = await apiClient.get(url, { _skipAlert: true });
     return response.data;
   } catch (error) {
     const message = handleApiError(error);
@@ -428,7 +451,7 @@ export const getCertInfo = async (accountId: string, validFrom?: string): Promis
 export const getCertificateDetail = async (accountId: string, id: number): Promise<CertInfoResponse> => {
   try {
     const url = `${API_BASE_URL}/api/cert-info-detail?accountId=${accountId}&id=${id}`;
-    const response = await apiClient.get(url);
+    const response = await apiClient.get(url, { _skipAlert: true });
     return response.data;
   } catch (error) {
     const message = handleApiError(error);
@@ -452,7 +475,7 @@ export const confirmSign = async (accountId: string) => {
 export const resendOtp = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/resend-otp?accountId=${accountId}`;
-    const response = await apiClient.post(url, {});
+    const response = await apiClient.post(url, {}, { _skipAlert: true });
     return response.data;
   } catch (error) {
     const message = handleApiError(error);
@@ -464,7 +487,7 @@ export const resendOtp = async (accountId: string) => {
 export const confirmOtp = async (accountId: string, otpCode: string) => {
   try {
     const url = `${API_BASE_URL}/api/confirm-otp?accountId=${accountId}&otpCode=${otpCode}`;
-    const response = await apiClient.post(url, {});
+    const response = await apiClient.post(url, {}, { _skipAlert: true });
     return response.data;
   } catch (error) {
     const message = handleApiError(error);
@@ -497,7 +520,7 @@ export interface CustomerRequestDTO {
 export const checkCustomerExist = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/check-customer-exist?accountId=${accountId}`;
-    const response = await apiClient.get(url);
+    const response = await apiClient.get(url, { _skipAlert: true });
     return response.data;
   } catch (error) {
     const message = handleApiError(error);
@@ -509,7 +532,7 @@ export const checkCustomerExist = async (accountId: string) => {
 export const addOrUpdateCustomer = async (accountId: string, model: CustomerRequestDTO) => {
   try {
     const url = `${API_BASE_URL}/api/customer?accountId=${accountId}`;
-    const response = await apiClient.post(url, model);
+    const response = await apiClient.post(url, model, { _skipAlert: true });
     return response.data;
   } catch (error) {
     const message = handleApiError(error);
@@ -521,7 +544,7 @@ export const addOrUpdateCustomer = async (accountId: string, model: CustomerRequ
 export const getIdNumber = async (accountId: string) => {
   try {
     const url = `${API_BASE_URL}/api/id-number?accountId=${accountId}`;
-    const response = await apiClient.get(url);
+    const response = await apiClient.get(url, { _skipAlert: true });
     return response.data;
   } catch (error) {
     const message = handleApiError(error);
@@ -530,15 +553,27 @@ export const getIdNumber = async (accountId: string) => {
   }
 };
 
-export const executeExternalSignContract = async (accountId: string, contractId: string) => {
-  console.log("!!! API SIGN CALLED FROM SERVICE !!! params:", { accountId, contractId });
+export const executeExternalSignContract = async (accountId: string, contractId: string, customPingCode?: string) => {
+  const pingCode = customPingCode || `PING_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  console.log("!!! API SIGN CALLED FROM SERVICE !!! params:", { accountId, contractId, pingCode });
   try {
-    const url = `${API_BASE_URL}/api/sign-contract?accountId=${accountId}&contractId=${contractId}`;
-    const response = await apiClient.post(url, {}, { timeout: 100000 });
+    const url = `${API_BASE_URL}/api/sign-contract?accountId=${accountId}&contractId=${contractId}&pingCode=${pingCode}`;
+    const response = await apiClient.post(url, {}, { timeout: 100000, _skipAlert: true });
+    return { ...response.data, pingCode };
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const checkSigningStatus = async (contractId: string, pingCode: string) => {
+  try {
+    console.log(`[POLLING PING] Đang gọi API kiểm tra trạng thái: /api/check-signing-status?contractId=${contractId}&pingCode=${pingCode}`);
+    const url = `${API_BASE_URL}/api/check-signing-status?contractId=${contractId}&pingCode=${pingCode}`;
+    const response = await apiClient.get(url, { _skipAlert: true });
+    console.log(`[POLLING PING] Kết quả:`, response.data);
     return response.data;
   } catch (error) {
-    const message = handleApiError(error);
-    if (message) throw new Error(message);
-    throw error;
+    console.log("checkSigningStatus error:", error);
+    return null;
   }
 };

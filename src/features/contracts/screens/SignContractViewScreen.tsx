@@ -23,7 +23,7 @@ export default function SignContractViewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
-  const { requestId } = useAuthStore();
+  const { requestId, user } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [loadingCa, setLoadingCa] = useState(false);
@@ -77,7 +77,7 @@ export default function SignContractViewScreen() {
     try {
       setLoadingCa(true);
       // Gọi API check CA
-      const res = await checkCaStatus(requestId || "");
+      const res = await checkCaStatus(user?.id || "");
 
       const isSuccess = res.Success ?? res.success;
       const data = res.Data ?? res.data;
