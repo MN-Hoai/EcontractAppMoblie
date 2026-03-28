@@ -2,9 +2,11 @@ import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import SignatureScreen from "react-native-signature-canvas";
+import { useAuthStore } from "@/store/authStore";
+import { getCertInfo } from "@/services/contractService";
 
 export const FONT_OPTIONS = [
     { id: 'f1', name: 'Roboto (Mặc định)', style: { fontFamily: 'Roboto_400Regular' } },
@@ -105,7 +107,38 @@ export function SignOptionsModal({ visible, onClose, onConfirm, loading }: SignO
         }
     };
 
-    const signatures = ["chứng thư 1", "chứng thư 2", "chứng thư 3"];
+    const { user } = useAuthStore();
+    const [signatures, setSignatures] = useState<string[]>([]);
+    const [isLoadingCerts, setIsLoadingCerts] = useState(false);
+
+    useEffect(() => {
+        const loadCerts = async () => {
+            if (!user?.id) return;
+            setIsLoadingCerts(true);
+            try {
+                const res = await getCertInfo(user.id);
+                const certData = res.data || res.Data || [];
+                if (certData.length > 0) {
+                    const certList = certData.map(c => c.credentialId || c.CredentialId || "Không có số chứng thư");
+                    setSignatures(certList);
+                    setSelectedSignature(certList[0]);
+                } else {
+                    setSelectedSignature("Không tìm thấy chứng thư");
+                    setSignatures([]);
+                }
+            } catch (error) {
+                console.log("Lỗi tải chứng thư", error);
+                setSelectedSignature("Lỗi tải chứng thư");
+                setSignatures([]);
+            } finally {
+                setIsLoadingCerts(false);
+            }
+        };
+        
+        if (visible) {
+            loadCerts();
+        }
+    }, [visible, user?.id]);
 
     const setups = [
         { id: 0, title: "Ký số Viettel", icon: "shield-check" },
@@ -404,9 +437,16 @@ export function SignOptionsModal({ visible, onClose, onConfirm, loading }: SignO
                                     <TouchableOpacity
                                         style={[styles.dropdownBtn, { borderColor: isDark ? "rgba(255,255,255,0.15)" : "#E2E8F0", backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC" }]}
                                         onPress={() => setShowSignatureDropdown(!showSignatureDropdown)}
+                                        disabled={isLoadingCerts || signatures.length === 0}
                                     >
-                                        <ThemedText style={[styles.dropdownText, { color: isDark ? "#FFF" : "#333" }]}>{selectedSignature}</ThemedText>
-                                        <MaterialCommunityIcons name={showSignatureDropdown ? "chevron-up" : "chevron-down"} size={22} color={isDark ? "#A0AEC0" : "#64748B"} />
+                                        <ThemedText style={[styles.dropdownText, { color: isDark ? "#FFF" : "#333" }]}>
+                                            {isLoadingCerts ? "Đang tải chứng thư..." : selectedSignature}
+                                        </ThemedText>
+                                        {isLoadingCerts ? (
+                                            <ActivityIndicator size="small" color="#2092EC" />
+                                        ) : (
+                                            <MaterialCommunityIcons name={showSignatureDropdown ? "chevron-up" : "chevron-down"} size={8} color={isDark ? "#A0AEC0" : "#64748B"} />
+                                        )}
                                     </TouchableOpacity>
 
                                     {showSignatureDropdown && (
