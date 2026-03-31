@@ -1,13 +1,11 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { API_BASE_URL_PRODUCT, checkCaStatus, getIdNumber, getCloudCaHash, getSignature, insertCloudCaSign } from "@/services/contractService";
+import { API_BASE_URL_PRODUCT, checkCaStatus, getCloudCaHash, getIdNumber, getSignature, insertCloudCaSign } from "@/services/contractService";
 import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { SignOptionsModal } from "../components/SignOptionsModal";
-import { SignaturePlacementModal } from "../components/SignaturePlacementModal";
 import {
     ActivityIndicator,
     Alert,
@@ -20,6 +18,8 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
+import { SignOptionsModal } from "../components/SignOptionsModal";
+import { SignaturePlacementModal } from "../components/SignaturePlacementModal";
 
 const CONTRACT_INFO = [
     { label: "Số hợp đồng", value: "HĐ-2025/01/0042" },
@@ -107,8 +107,8 @@ export default function ContractDetailScreen() {
     // ---> UPDATE: Nhận cấu hình chữ ký từ SignOptionsModal
     const handleProceedToSign = async (signatureConfig?: any) => {
         console.log("====> BẮT ĐẦU QUY TRÌNH KÝ <====");
-        const accountId = requestId || ""; 
-        const contractId = (params.contractId as string) || (params.id as string) || ""; 
+        const accountId = requestId || "";
+        const contractId = (params.contractId as string) || (params.id as string) || "";
 
         setShowProcessing(true);
         setSignError(null);
@@ -135,20 +135,20 @@ export default function ContractDetailScreen() {
             if (rawBase64.includes("base64,")) {
                 rawBase64 = rawBase64.split("base64,")[1];
             }
-            
+
             const hashPayload = {
                 contractId: contractId,
                 signImageBase64: rawBase64,
-                certChainBase64: Array.isArray(signatureConfig?.certificateData) 
-                    ? signatureConfig.certificateData 
+                certChainBase64: Array.isArray(signatureConfig?.certificateData)
+                    ? signatureConfig.certificateData
                     : (signatureConfig?.certificateData ? [signatureConfig.certificateData] : [])
             };
-            console.log("===> Gọi API cloudca-get-hash với payload (ẩn base64 dài):", JSON.stringify({ 
-                ...hashPayload, 
-                signImageBase64: rawBase64 ? `${rawBase64.substring(0, 50)}...` : "", 
-                certChainBase64: hashPayload.certChainBase64.length > 0 ? [`${hashPayload.certChainBase64[0].substring(0, 50)}...`, `(+${hashPayload.certChainBase64.length - 1} more)`] : [] 
+            console.log("===> Gọi API cloudca-get-hash với payload (ẩn base64 dài):", JSON.stringify({
+                ...hashPayload,
+                signImageBase64: rawBase64 ? `${rawBase64.substring(0, 50)}...` : "",
+                certChainBase64: hashPayload.certChainBase64.length > 0 ? [`${hashPayload.certChainBase64[0].substring(0, 50)}...`, `(+${hashPayload.certChainBase64.length - 1} more)`] : []
             }));
-            
+
             const hashResult = await getCloudCaHash(hashPayload);
             console.log("===> KẾT QUẢ API cloudca-get-hash:", JSON.stringify(hashResult, null, 2));
 
@@ -194,7 +194,7 @@ export default function ContractDetailScreen() {
             console.log("===> Đang chờ kết quả từ API get-signature với filename:", fieldName, "certificateId:", certId);
             const sigResult = await getSignature(fieldName, certId, hashBase64, contractId, accountId);
             console.log("===> KẾT QUẢ API get-signature:", JSON.stringify(sigResult, null, 2));
-            
+
             if (sigResult?.message || sigResult?.Message) {
                 setSignStatus(sigResult?.message || sigResult?.Message);
             }
@@ -328,7 +328,7 @@ export default function ContractDetailScreen() {
 
 
 
-                {/* Action Buttons */}
+                {/* Action Buttons: Only show for 'Waiting' (1) status */}
                 {params.status === '1' && (
                     <View style={styles.actionRow}>
                         <TouchableOpacity
@@ -422,8 +422,8 @@ export default function ContractDetailScreen() {
                         <ThemedText style={{ fontSize: 20, fontWeight: "800", color: "#FF5252", marginBottom: 10, textAlign: 'center' }}>Ký số không thành công</ThemedText>
                         <ThemedText style={{ fontSize: 14, textAlign: "center", opacity: 0.8, marginBottom: 24, lineHeight: 22 }}>{signError}</ThemedText>
 
-                        <TouchableOpacity 
-                            style={{ backgroundColor: "#1565C0", borderRadius: 14, paddingVertical: 14, width: "100%", alignItems: "center" }} 
+                        <TouchableOpacity
+                            style={{ backgroundColor: "#1565C0", borderRadius: 14, paddingVertical: 14, width: "100%", alignItems: "center" }}
                             onPress={() => setShowError(false)}
                         >
                             <ThemedText style={{ color: "#FFF", fontWeight: "700", fontSize: 15 }}>Đóng</ThemedText>
@@ -449,13 +449,13 @@ export default function ContractDetailScreen() {
                 </View>
             </Modal>
 
-            <SignOptionsModal 
-                visible={showSignOptions} 
-                onClose={() => setShowSignOptions(false)} 
+            <SignOptionsModal
+                visible={showSignOptions}
+                onClose={() => setShowSignOptions(false)}
                 onConfirm={(config) => {
                     setShowSignOptions(false);
                     handleSign(config);
-                }} 
+                }}
             />
 
             <SignaturePlacementModal

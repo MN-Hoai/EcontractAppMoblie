@@ -129,6 +129,32 @@ export default function DigitalContractsScreen() {
     };
 
     const getStatusInfo = (status: number, currentTab: string) => {
+        // Ưu tiên hiển thị nhãn theo tab nếu status khớp
+        if (currentTab === "completed" && status === 2) {
+            return {
+                label: "Hoàn tất",
+                color: "#72e028",
+                bg: isDark ? "#1B5E20" : "#E8F5E9",
+                icon: "check-decagram-outline"
+            };
+        }
+        if (currentTab === "signed" && status === 2) {
+            return {
+                label: "Đã ký",
+                color: "#72e028",
+                bg: isDark ? "#1B5E20" : "#E8F5E9",
+                icon: "file-certificate-outline"
+            };
+        }
+        if (currentTab === "canceled" && status === -1) {
+            return {
+                label: "Từ chối",
+                color: "#E53935",
+                bg: isDark ? "#4A1010" : "#FFEBEE",
+                icon: "file-cancel-outline"
+            };
+        }
+
         switch (status) {
             case 0:
                 return {
@@ -175,8 +201,6 @@ export default function DigitalContractsScreen() {
         if (!contractInfo) return null;
 
         const statusInfo = getStatusInfo(contractInfo.Status, activeTab);
-        const isWaiting = contractInfo.Status === 0;
-        const isRejected = contractInfo.Status === 2;
 
         const parsedDate = parseDotNetDate(contractInfo.RequestSentDate || contractInfo.CreatedDate);
         const displayDate = parsedDate
@@ -445,8 +469,10 @@ export default function DigitalContractsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { paddingTop: 45,
-    flex: 1 },
+    container: {
+        paddingTop: 45,
+        flex: 1
+    },
     header: {
         flexDirection: "row",
         alignItems: "center",

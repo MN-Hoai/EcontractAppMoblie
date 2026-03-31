@@ -303,7 +303,7 @@ export default function ContractContentScreen() {
                 )}
             </View>
 
-            {/* Bottom Actions */}
+            {/* Bottom Actions: Only show 'Ký hợp đồng' for 'Waiting' (1) status */}
             <View style={[styles.bottomBar, { backgroundColor: isDark ? "#0D1B23" : "#FFF" }]}>
                 <TouchableOpacity
                     style={[

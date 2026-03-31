@@ -19,8 +19,11 @@ import {
     Switch,
     Text,
     TouchableOpacity,
-    View
+    View,
+    NativeModules
 } from "react-native";
+
+const { CloudCAModule } = NativeModules;
 
 
 
@@ -99,6 +102,18 @@ export default function HomeScreen() {
     const toggleBiometric = async (value: boolean) => {
         setBiometricEnabled(value);
         await AsyncStorage.setItem("biometric_enabled", value ? "true" : "false");
+    };
+
+    const handleTestCloudCA = async () => {
+        try {
+            console.log("Testing CloudCA SDK...");
+            CloudCAModule.setConfig("TEST_CLIENT_ID", "TEST_CLIENT_SECRET");
+            const alias = await CloudCAModule.registerDevice("test_user_id", "test_token_header");
+            Alert.alert("SDK Test Success", "Alias: " + alias);
+        } catch (error: any) {
+            console.error("SDK Test Error:", error);
+            Alert.alert("SDK Test Error", error.message || "Unknown error");
+        }
     };
 
     const displayName = user
@@ -365,6 +380,50 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     ))}
                 </View>
+            </View>
+
+
+            {/* SDK Testing Section (New) */}
+            <View style={styles.modernSection}>
+                <View style={styles.sectionHeaderRow}>
+                    <ThemedText style={styles.modernSectionTitle}>Thử nghiệm hệ thống</ThemedText>
+                </View>
+
+                <TouchableOpacity
+                    style={[styles.testSDKCard, { backgroundColor: isDark ? "#1E293B" : "#FFF" }]}
+                    onPress={handleTestCloudCA}
+                    activeOpacity={0.7}
+                >
+                    <LinearGradient
+                        colors={["#FF6B6B", "#EE5253"]}
+                        style={styles.testIconGradient}
+                    >
+                        <MaterialCommunityIcons name="test-tube" size={24} color="#FFF" />
+                    </LinearGradient>
+                    <View style={{ flex: 1 }}>
+                        <ThemedText style={styles.testTitleText}>Kiểm tra CloudCA SDK</ThemedText>
+                        <ThemedText style={styles.testSubText}>Gọi registerDevice từ Native Module</ThemedText>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={24} color={isDark ? "rgba(255,255,255,0.3)" : "#CBD5E1"} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.testSDKCard, { backgroundColor: isDark ? "#1E293B" : "#FFF", marginTop: 12 }]}
+                    onPress={() => router.push("/ping")}
+                    activeOpacity={0.7}
+                >
+                    <LinearGradient
+                        colors={["#2092EC", "#054D8C"]}
+                        style={styles.testIconGradient}
+                    >
+                        <MaterialCommunityIcons name="broadcast" size={24} color="#FFF" />
+                    </LinearGradient>
+                    <View style={{ flex: 1 }}>
+                        <ThemedText style={styles.testTitleText}>Kiểm tra kết nối (Ping)</ThemedText>
+                        <ThemedText style={styles.testSubText}>Gọi API ping và xem phản hồi JSON</ThemedText>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={24} color={isDark ? "rgba(255,255,255,0.3)" : "#CBD5E1"} />
+                </TouchableOpacity>
             </View>
 
 
@@ -1115,6 +1174,36 @@ const styles = StyleSheet.create({
     settingsCancelText: {
         fontSize: 15,
         fontWeight: "600",
+    },
+    testSDKCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 16,
+        borderRadius: 20,
+        gap: 16,
+        borderWidth: 1,
+        borderColor: "rgba(0,0,0,0.05)",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    testIconGradient: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    testTitleText: {
+        fontSize: 16,
+        fontWeight: "700",
+    },
+    testSubText: {
+        fontSize: 12,
+        opacity: 0.6,
+        marginTop: 2,
     },
 });
 

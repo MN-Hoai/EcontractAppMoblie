@@ -1,25 +1,48 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { CertificateItem, getCertificates } from "@/services/contractService";
+import { useAuthStore } from "@/store/authStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import React, { useRef, useState, useEffect } from "react";
-import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import SignatureScreen from "react-native-signature-canvas";
 import ViewShot, { captureRef } from "react-native-view-shot";
-import { useAuthStore } from "@/store/authStore";
-import { getCertificates, CertificateItem } from "@/services/contractService";
 
 export const FONT_OPTIONS = [
-    { id: 'f1', name: 'Roboto (Mặc định)', style: { fontFamily: 'Roboto_400Regular' } },
+    { id: 'f1', name: 'Roboto', style: { fontFamily: 'Roboto_400Regular' } },
     { id: 'f2', name: 'Roboto Đậm', style: { fontFamily: 'Roboto_700Bold' } },
-    { id: 'f3', name: 'Arial (Arimo)', style: { fontFamily: 'Arimo_400Regular' } },
-    { id: 'f4', name: 'Arial In Đậm', style: { fontFamily: 'Arimo_700Bold' } },
-    { id: 'f5', name: 'Times New Roman (Tinos)', style: { fontFamily: 'Tinos_400Regular' } },
-    { id: 'f6', name: 'Times New Roman Đậm', style: { fontFamily: 'Tinos_700Bold' } },
-    { id: 'f7', name: 'Courier New (Cousine)', style: { fontFamily: 'Cousine_400Regular' } },
-    { id: 'f8', name: 'Comic Sans (Comic Neue)', style: { fontFamily: 'ComicNeue_400Regular' } },
-    { id: 'f9', name: 'Ký tay (Dancing Script)', style: { fontFamily: 'DancingScript_400Regular', fontSize: 28 } },
-    { id: 'f10', name: 'Georgia / Lora', style: { fontFamily: 'Lora_400Regular' } },
+    { id: 'f3', name: 'Arial', style: { fontFamily: 'Arimo_400Regular' } },
+    { id: 'f4', name: 'Arial Đậm', style: { fontFamily: 'Arimo_700Bold' } },
+    { id: 'f5', name: 'Times New Roman', style: { fontFamily: 'Tinos_400Regular' } },
+    { id: 'f6', name: 'Times Đậm', style: { fontFamily: 'Tinos_700Bold' } },
+    { id: 'f7', name: 'Courier New', style: { fontFamily: 'Cousine_400Regular' } },
+    { id: 'f8', name: 'Comic Sans', style: { fontFamily: 'ComicNeue_400Regular' } },
+    { id: 'f9', name: 'Ký tay', style: { fontFamily: 'DancingScript_400Regular' } },
+    { id: 'f10', name: 'Georgia', style: { fontFamily: 'Lora_400Regular' } },
+];
+
+const PEN_COLORS = [
+    { id: "#1565C0", name: "Xanh" },
+    { id: "#111827", name: "Đen" },
+    { id: "#C62828", name: "Đỏ" },
+];
+
+const PEN_WIDTHS = [
+    { width: 1, label: "Mảnh" },
+    { width: 3, label: "Vừa" },
+    { width: 6, label: "Đậm" },
 ];
 
 type SignOptionsModalProps = {
@@ -29,847 +52,901 @@ type SignOptionsModalProps = {
     loading?: boolean;
 };
 
+const ALL_INFO_OPTIONS = [
+    { id: "name", labelVi: "Tên khách hàng", labelEn: "Customer name", authKey: "fullname" },
+    { id: "idNumber", labelVi: "Số giấy tờ", labelEn: "ID number", authKey: null },
+    { id: "email", labelVi: "Email", labelEn: "Email", authKey: "email" },
+    { id: "phone", labelVi: "Số điện thoại", labelEn: "Phone number", authKey: "phone" },
+    { id: "date", labelVi: "Ngày ký", labelEn: "Signing date", authKey: "signing_date" },
+    { id: "dept", labelVi: "Phòng ban", labelEn: "Department", authKey: null },
+    { id: "position", labelVi: "Chức vụ", labelEn: "Position", authKey: null },
+];
+
 export function SignOptionsModal({ visible, onClose, onConfirm, loading }: SignOptionsModalProps) {
     const isDark = useColorScheme() === "dark";
+    const { user, phoneNumber } = useAuthStore();
+
+    // --- Certificate ---
     const [selectedSignature, setSelectedSignature] = useState<CertificateItem | null>(null);
     const [showSignatureDropdown, setShowSignatureDropdown] = useState(false);
     const [signatureSetupType, setSignatureSetupType] = useState<number>(0);
     const [isDefaultSignature, setIsDefaultSignature] = useState(false);
+    const [signatures, setSignatures] = useState<CertificateItem[]>([]);
+    const [isLoadingCerts, setIsLoadingCerts] = useState(false);
 
-    // --- Image Setup State ---
-    const [isImageSetupVisible, setIsImageSetupVisible] = useState(false);
+    // --- Screen visibility ---
+    const [activeScreen, setActiveScreen] = useState<"main" | "image" | "font" | "draw">("main");
+
+    // --- Image ---
     const [uploadedImageUri, setUploadedImageUri] = useState<string | null>(null);
     const [uploadedImageBase64, setUploadedImageBase64] = useState<string | null>(null);
     const [isDefaultImage, setIsDefaultImage] = useState(false);
-    const [selectedDisplayInfos, setSelectedDisplayInfos] = useState<string[]>([]);
 
-    // --- Font Setup State ---
-    const [isFontSetupVisible, setIsFontSetupVisible] = useState(false);
-    const [selectedFontId, setSelectedFontId] = useState<string>("f1");
+    // --- Font ---
+    const [selectedFontId, setSelectedFontId] = useState<string>("f9");
     const [isFontConfigured, setIsFontConfigured] = useState(false);
-    const [showFontDropdown, setShowFontDropdown] = useState(false);
+    const [customSignName, setCustomSignName] = useState<string>("");
 
-    // --- Hand Draw Setup State ---
-    const [isHandDrawSetupVisible, setIsHandDrawSetupVisible] = useState(false);
+    // --- Hand Draw ---
     const [handDrawUri, setHandDrawUri] = useState<string | null>(null);
-    const [penColor, setPenColor] = useState<string>("#1565C0"); // Mặc định xanh dương
+    const [penColor, setPenColor] = useState<string>("#1565C0");
     const [penWidth, setPenWidth] = useState<number>(3);
     const [isHandDrawConfigured, setIsHandDrawConfigured] = useState(false);
     const [scrollEnabled, setScrollEnabled] = useState(true);
     const signatureRef = useRef<any>(null);
     const signatureCaptureRef = useRef<any>(null);
 
-    const handleConfirm = async () => {
-        let finalBase64 = uploadedImageBase64; // fallback
+    // --- Display content ---
+    const [selectedDisplayInfos, setSelectedDisplayInfos] = useState<string[]>(["name"]);
+    const [signatureLanguage, setSignatureLanguage] = useState<"vi" | "en">("vi");
+    const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
 
-        if (signatureSetupType !== 0 && signatureCaptureRef.current) {
-            try {
-                const uri = await captureRef(signatureCaptureRef, {
-                    format: 'png',
-                    quality: 1,
-                    result: 'base64'
-                });
-                finalBase64 = uri;
-            } catch (err) {
-                console.log("Error capturing signature stamp:", err);
+    // --- Derived values ---
+    const getAuthValue = (id: string): string | null => {
+        switch (id) {
+            case "name": {
+                const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim();
+                return fullName || null;
             }
-        } else if (signatureSetupType === 0) {
-            finalBase64 = "";
-        } else if (signatureSetupType === 2) {
-            finalBase64 = handDrawUri; // fallback
+            case "email": return user?.email || null;
+            case "phone": return phoneNumber || null;
+            case "date": return new Date().toLocaleDateString("vi-VN");
+            default: return null;
         }
+    };
+    const hasAuthValue = (id: string) => getAuthValue(id) !== null;
+    const getDisplayValue = (id: string): string => {
+        const a = getAuthValue(id);
+        return a !== null ? a : (customFieldValues[id] || "");
+    };
 
-        onConfirm({ 
-            type: signatureSetupType, 
+    const sigName = (customSignName ||
+        [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
+        "Nguyễn Văn A") + " ";
+
+    const bgCard = isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC";
+    const border = isDark ? "rgba(255,255,255,0.10)" : "#E5E7EB";
+    const textPrimary = { color: isDark ? "#F1F5F9" : "#111827" };
+    const textSecondary = { color: isDark ? "#94A3B8" : "#6B7280" };
+
+    // --- Load certs ---
+    useEffect(() => {
+        if (!visible || !user?.id) return;
+        setIsLoadingCerts(true);
+        getCertificates(user.id)
+            .then(res => {
+                const d = res.data || res.Data || [];
+                setSignatures(d);
+                setSelectedSignature(d[0] || null);
+            })
+            .catch(() => { setSignatures([]); setSelectedSignature(null); })
+            .finally(() => setIsLoadingCerts(false));
+    }, [visible, user?.id]);
+
+    // Auto-fill name from auth
+    useEffect(() => {
+        if (user && !customSignName) {
+            const n = [user.first_name, user.last_name].filter(Boolean).join(" ");
+            if (n) setCustomSignName(n);
+        }
+    }, [user]);
+
+    // --- Actions ---
+    const handleConfirm = async () => {
+        let finalBase64 = uploadedImageBase64;
+        if (signatureSetupType !== 0 && signatureCaptureRef.current) {
+            try { finalBase64 = await captureRef(signatureCaptureRef, { format: "png", quality: 1, result: "base64" }); }
+            catch (e) { console.log("capture err", e); }
+        } else if (signatureSetupType === 0) finalBase64 = "";
+        else if (signatureSetupType === 2) finalBase64 = handDrawUri;
+
+        onConfirm({
+            type: signatureSetupType,
             selectedCertificate: selectedSignature?.CredentialId || selectedSignature?.credentialId,
             certificateData: selectedSignature?.CertificateData || selectedSignature?.certificateData,
-            imageUri: signatureSetupType === 2 ? handDrawUri : uploadedImageUri, 
+            imageUri: signatureSetupType === 2 ? handDrawUri : uploadedImageUri,
             imageBase64: finalBase64,
-            fontId: selectedFontId, 
-            infos: selectedDisplayInfos 
+            fontId: selectedFontId,
+            signName: sigName,
+            infos: selectedDisplayInfos,
+            language: signatureLanguage,
+            fieldValues: ALL_INFO_OPTIONS.reduce((a, o) => { a[o.id] = getDisplayValue(o.id); return a; }, {} as Record<string, string>),
         });
     };
 
-    const handleClearDraw = () => {
-        signatureRef.current?.clearSignature();
-        setHandDrawUri(null);
-        setIsHandDrawConfigured(false);
-    };
-
-    const handleSaveDraw = () => {
-        // triggers onOK callback
-        signatureRef.current?.readSignature();
-    };
-
-    const handleSignatureOK = (signature: string) => {
-        setHandDrawUri(signature);
-        setIsHandDrawConfigured(true);
-        setIsHandDrawSetupVisible(false); // Only close after save completes
-    };
-
-    const infoOptions = [
-        { id: "name", label: "Tên" },
-        { id: "email", label: "Mail" },
-        { id: "phone", label: "SĐT" },
-        { id: "date", label: "Ngày ký" },
-    ];
-
+    const handleClearDraw = () => { signatureRef.current?.clearSignature(); setHandDrawUri(null); setIsHandDrawConfigured(false); };
+    const handleSaveDraw = () => signatureRef.current?.readSignature();
+    const handleSignatureOK = (sig: string) => { setHandDrawUri(sig); setIsHandDrawConfigured(true); setActiveScreen("main"); };
+    const toggleInfo = (id: string) =>
+        setSelectedDisplayInfos(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
     const pickImage = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            base64: true,
-            quality: 1,
-        });
-
-        if (!result.canceled) {
-            const asset = result.assets[0];
-            if (asset.fileSize && asset.fileSize > 3 * 1024 * 1024) {
-                Alert.alert("Dung lượng quá lớn", "Vui lòng chọn ảnh chữ ký có dung lượng dưới 3MB.");
-                return;
-            }
+        const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, base64: true, quality: 1 });
+        if (!r.canceled) {
+            const asset = r.assets[0];
+            if (asset.fileSize && asset.fileSize > 3 * 1024 * 1024) { Alert.alert("Dung lượng quá lớn", "Vui lòng chọn ảnh dưới 3MB."); return; }
             setUploadedImageUri(asset.uri);
             setUploadedImageBase64(asset.base64 || null);
         }
     };
 
-    const toggleInfo = (id: string) => {
-        if (selectedDisplayInfos.includes(id)) {
-            setSelectedDisplayInfos(selectedDisplayInfos.filter(item => item !== id));
-        } else {
-            setSelectedDisplayInfos([...selectedDisplayInfos, id]);
-        }
+    // ─── Shared render helpers ────────────────────────────────────────────────
+
+    const renderPreviewLines = () => {
+        return selectedDisplayInfos.map(id => {
+            const opt = ALL_INFO_OPTIONS.find(o => o.id === id)!;
+            const label = signatureLanguage === "vi" ? opt.labelVi : (opt.labelEn || "");
+            return { label, value: getDisplayValue(id), id };
+        }).filter(Boolean) as { label: string; value: string; id: string }[];
     };
 
-    const { user } = useAuthStore();
-    const [signatures, setSignatures] = useState<CertificateItem[]>([]);
-    const [isLoadingCerts, setIsLoadingCerts] = useState(false);
+    /** Unified preview stamp card */
+    const renderPreviewStamp = () => {
+        const lines = renderPreviewLines();
+        const hasContent = lines.length > 0;
 
-    useEffect(() => {
-        const loadCerts = async () => {
-            if (!user?.id) return;
-            setIsLoadingCerts(true);
-            try {
-                const res = await getCertificates(user.id);
-                const certData = res.data || res.Data || [];
-                if (certData.length > 0) {
-                    setSignatures(certData);
-                    setSelectedSignature(certData[0]);
-                } else {
-                    setSelectedSignature(null);
-                    setSignatures([]);
-                }
-            } catch (error) {
-                console.log("Lỗi tải chứng thư", error);
-                setSelectedSignature(null);
-                setSignatures([]);
-            } finally {
-                setIsLoadingCerts(false);
-            }
-        };
-        
-        if (visible) {
-            loadCerts();
-        }
-    }, [visible, user?.id]);
-
-    const setups = [
-        { id: 0, title: "Ký số Viettel", icon: "shield-check" },
-        { id: 1, title: "Chữ ký ảnh", icon: "image-outline", hasAction: true },
-        { id: 2, title: "Chữ ký vẽ tay", icon: "draw", hasAction: true },
-        { id: 3, title: "Kiểu chữ (Font)", icon: "format-text", hasAction: true },
-    ];
-
-    return (
-        <Modal visible={visible} transparent animationType="slide">
-            <View style={styles.overlay}>
-                <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-                <View style={[styles.container, { backgroundColor: isDark ? "#1D3D47" : "#FFF" }]}>
-
-                    {isImageSetupVisible ? (
-                        /* --- MÀN HÌNH THIẾT LẬP CHỮ KÝ ẢNH --- */
-                        <>
-                            <View style={styles.header}>
-                                <TouchableOpacity onPress={() => setIsImageSetupVisible(false)} style={[styles.closeBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#F1F5F9" }]}>
-                                    <MaterialCommunityIcons name="arrow-left" size={22} color={isDark ? "#FFF" : "#333"} />
-                                </TouchableOpacity>
-                                <ThemedText style={[styles.title, { flex: 1, marginLeft: 16 }]}>Cài đặt chữ ký ảnh</ThemedText>
-                            </View>
-
-                            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-                                <View style={styles.section}>
-                                    <ThemedText style={styles.sectionTitle}>Hình ảnh chữ ký</ThemedText>
-                                    {uploadedImageUri ? (
-                                        <View style={styles.imagePreviewContainer}>
-                                            <Image source={{ uri: uploadedImageUri }} style={styles.previewImage} resizeMode="contain" />
-                                            <View style={styles.previewInfos}>
-                                                {selectedDisplayInfos.includes("name") && <ThemedText style={styles.previewText}>Nguyễn Văn A</ThemedText>}
-                                                {selectedDisplayInfos.includes("email") && <ThemedText style={styles.previewText}>nguyenvana@gmail.com</ThemedText>}
-                                                {selectedDisplayInfos.includes("phone") && <ThemedText style={styles.previewText}>0987654321</ThemedText>}
-                                                {selectedDisplayInfos.includes("date") && <ThemedText style={styles.previewText}>28/03/2026</ThemedText>}
-                                            </View>
-                                            <TouchableOpacity style={styles.deleteImageBtn} onPress={() => setUploadedImageUri(null)}>
-                                                <MaterialCommunityIcons name="delete-outline" size={20} color="#FFF" />
-                                                <ThemedText style={{ color: "#FFF", fontSize: 13, fontWeight: "600", marginLeft: 4 }}>Xóa ảnh</ThemedText>
-                                            </TouchableOpacity>
-                                        </View>
-                                    ) : (
-                                        <TouchableOpacity style={[styles.uploadBox, { borderColor: isDark ? "rgba(255,255,255,0.15)" : "#CBD5E1", backgroundColor: isDark ? "rgba(255,255,255,0.02)" : "#F8FAFC" }]} onPress={pickImage}>
-                                            <MaterialCommunityIcons name="cloud-upload-outline" size={32} color="#2092EC" />
-                                            <ThemedText style={[styles.uploadText, { color: isDark ? "#A0AEC0" : "#64748B" }]}>Nhấn để tải ảnh lên (PNG, JPG)</ThemedText>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-
-                                <View style={styles.section}>
-                                    <TouchableOpacity style={styles.checkboxRow} onPress={() => setIsDefaultImage(!isDefaultImage)}>
-                                        <MaterialCommunityIcons name={isDefaultImage ? "checkbox-marked" : "checkbox-blank-outline"} size={22} color={isDefaultImage ? "#2092EC" : (isDark ? "#A0AEC0" : "#94A3B8")} />
-                                        <ThemedText style={[styles.checkboxLabel, { color: isDark ? "#E2E8F0" : "#475569" }]}>Đặt làm hình ảnh ký mặc định</ThemedText>
-                                    </TouchableOpacity>
-                                </View>
-
-                                <View style={styles.section}>
-                                    <ThemedText style={styles.sectionTitle}>Nội dung hiển thị (Kèm theo ảnh)</ThemedText>
-                                    <View style={{ gap: 4 }}>
-                                        {infoOptions.map(option => (
-                                            <TouchableOpacity key={option.id} style={styles.checkboxRow} onPress={() => toggleInfo(option.id)}>
-                                                <MaterialCommunityIcons name={selectedDisplayInfos.includes(option.id) ? "checkbox-marked" : "checkbox-blank-outline"} size={22} color={selectedDisplayInfos.includes(option.id) ? "#2092EC" : (isDark ? "#A0AEC0" : "#94A3B8")} />
-                                                <ThemedText style={[styles.checkboxLabel, { color: isDark ? "#E2E8F0" : "#475569" }]}>{option.label}</ThemedText>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                </View>
-                            </ScrollView>
-
-                            <View style={[styles.footer, { borderTopColor: isDark ? "rgba(255,255,255,0.1)" : "#F1F5F9" }]}>
-                                <TouchableOpacity style={[styles.footerBtn, styles.cancelBtn, { backgroundColor: isDark ? "#2A4B56" : "#F1F5F9" }]} onPress={() => setIsImageSetupVisible(false)}>
-                                    <ThemedText style={[styles.cancelBtnText, { color: isDark ? "#E2E8F0" : "#64748B" }]}>Hủy bỏ</ThemedText>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={[styles.footerBtn, styles.confirmBtn]} onPress={() => setIsImageSetupVisible(false)}>
-                                    <ThemedText style={styles.confirmBtnText}>Lưu thiết lập</ThemedText>
-                                </TouchableOpacity>
-                            </View>
-                        </>
-                    ) : isFontSetupVisible ? (
-                        /* --- MÀN HÌNH THIẾT LẬP KIỂU CHỮ --- */
-                        <>
-                            <View style={styles.header}>
-                                <TouchableOpacity onPress={() => setIsFontSetupVisible(false)} style={[styles.closeBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#F1F5F9" }]}>
-                                    <MaterialCommunityIcons name="arrow-left" size={22} color={isDark ? "#FFF" : "#333"} />
-                                </TouchableOpacity>
-                                <ThemedText style={[styles.title, { flex: 1, marginLeft: 16 }]}>Cài đặt kiểu chữ</ThemedText>
-                            </View>
-
-                            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-                                <View style={styles.section}>
-                                    <ThemedText style={styles.sectionTitle}>Chọn kiểu chữ (Font)</ThemedText>
-
-                                    <TouchableOpacity
-                                        style={[styles.dropdownBtn, { borderColor: isDark ? "rgba(255,255,255,0.15)" : "#E2E8F0", backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC" }]}
-                                        onPress={() => setShowFontDropdown(!showFontDropdown)}
-                                    >
-                                        <ThemedText style={[styles.dropdownText, { color: isDark ? "#FFF" : "#333" }, FONT_OPTIONS.find(f => f.id === selectedFontId)?.style as any]}>
-                                            {FONT_OPTIONS.find(f => f.id === selectedFontId)?.name}
-                                        </ThemedText>
-                                        <MaterialCommunityIcons name={showFontDropdown ? "chevron-up" : "chevron-down"} size={22} color={isDark ? "#A0AEC0" : "#64748B"} />
-                                    </TouchableOpacity>
-
-                                    {showFontDropdown && (
-                                        <View style={[styles.dropdownMenu, { backgroundColor: isDark ? "#2A4B56" : "#FFF", borderColor: isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0", maxHeight: 200 }]}>
-                                            <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                                                {FONT_OPTIONS.map((font, idx) => (
-                                                    <TouchableOpacity
-                                                        key={font.id}
-                                                        style={[styles.dropdownItem, idx < FONT_OPTIONS.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9" }]}
-                                                        onPress={() => {
-                                                            setSelectedFontId(font.id);
-                                                            setShowFontDropdown(false);
-                                                        }}
-                                                    >
-                                                        <ThemedText style={[{ color: selectedFontId === font.id ? "#2092EC" : (isDark ? "#FFF" : "#333"), fontWeight: selectedFontId === font.id ? "700" : "400", flex: 1, fontSize: 16 }, font.style as any]}>
-                                                            {font.name}
-                                                        </ThemedText>
-                                                        {selectedFontId === font.id && <MaterialCommunityIcons name="check-circle" size={18} color="#2092EC" />}
-                                                    </TouchableOpacity>
-                                                ))}
-                                            </ScrollView>
-                                        </View>
-                                    )}
-                                </View>
-
-                                <View style={styles.section}>
-                                    <ThemedText style={styles.sectionTitle}>Xem trước chữ ký</ThemedText>
-                                    <View style={styles.fontPreviewContainer}>
-                                        <ThemedText style={[{ fontSize: 20, color: isDark ? "#2092EC" : "#1565C0", textAlign: 'center', marginBottom: 8 }, FONT_OPTIONS.find(f => f.id === selectedFontId)?.style as any]}>Nguyễn Văn A</ThemedText>
-
-                                        <View style={styles.previewInfosVertical}>
-                                            {selectedDisplayInfos.includes("name") && <ThemedText style={styles.previewTextCenter}>Nguyễn Văn A</ThemedText>}
-                                            {selectedDisplayInfos.includes("email") && <ThemedText style={styles.previewTextCenter}>nguyenvana@gmail.com</ThemedText>}
-                                            {selectedDisplayInfos.includes("phone") && <ThemedText style={styles.previewTextCenter}>0987654321</ThemedText>}
-                                            {selectedDisplayInfos.includes("date") && <ThemedText style={styles.previewTextCenter}>28/03/2026</ThemedText>}
-                                        </View>
-                                    </View>
-                                </View>
-
-                                {/* Common fields */}
-                                <View style={styles.section}>
-                                    <TouchableOpacity style={styles.checkboxRow} onPress={() => setIsDefaultImage(!isDefaultImage)}>
-                                        <MaterialCommunityIcons name={isDefaultImage ? "checkbox-marked" : "checkbox-blank-outline"} size={22} color={isDefaultImage ? "#2092EC" : (isDark ? "#A0AEC0" : "#94A3B8")} />
-                                        <ThemedText style={[styles.checkboxLabel, { color: isDark ? "#E2E8F0" : "#475569" }]}>Đặt làm kiểu chữ mặc định</ThemedText>
-                                    </TouchableOpacity>
-                                </View>
-
-                                <View style={styles.section}>
-                                    <ThemedText style={styles.sectionTitle}>Nội dung hiển thị (Kèm theo)</ThemedText>
-                                    <View style={{ gap: 4 }}>
-                                        {infoOptions.filter(o => o.id !== "name").map(option => (
-                                            <TouchableOpacity key={option.id} style={styles.checkboxRow} onPress={() => toggleInfo(option.id)}>
-                                                <MaterialCommunityIcons name={selectedDisplayInfos.includes(option.id) ? "checkbox-marked" : "checkbox-blank-outline"} size={22} color={selectedDisplayInfos.includes(option.id) ? "#2092EC" : (isDark ? "#A0AEC0" : "#94A3B8")} />
-                                                <ThemedText style={[styles.checkboxLabel, { color: isDark ? "#E2E8F0" : "#475569" }]}>{option.label}</ThemedText>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                </View>
-                            </ScrollView>
-
-                            <View style={[styles.footer, { borderTopColor: isDark ? "rgba(255,255,255,0.1)" : "#F1F5F9" }]}>
-                                <TouchableOpacity style={[styles.footerBtn, styles.cancelBtn, { backgroundColor: isDark ? "#2A4B56" : "#F1F5F9" }]} onPress={() => setIsFontSetupVisible(false)}>
-                                    <ThemedText style={[styles.cancelBtnText, { color: isDark ? "#E2E8F0" : "#64748B" }]}>Hủy bỏ</ThemedText>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={[styles.footerBtn, styles.confirmBtn]} onPress={() => { setIsFontConfigured(true); setIsFontSetupVisible(false); }}>
-                                    <ThemedText style={styles.confirmBtnText}>Lưu thiết lập</ThemedText>
-                                </TouchableOpacity>
-                            </View>
-                        </>
-                    ) : isHandDrawSetupVisible ? (
-                        /* --- MÀN HÌNH THIẾT LẬP VẼ CHỮ KÝ TAY --- */
-                        <>
-                            <View style={styles.header}>
-                                <TouchableOpacity onPress={() => setIsHandDrawSetupVisible(false)} style={[styles.closeBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#F1F5F9" }]}>
-                                    <MaterialCommunityIcons name="arrow-left" size={22} color={isDark ? "#FFF" : "#333"} />
-                                </TouchableOpacity>
-                                <ThemedText style={[styles.title, { flex: 1, marginLeft: 16 }]}>Cài đặt chữ ký tay</ThemedText>
-                            </View>
-
-                            <ScrollView scrollEnabled={scrollEnabled} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-                                <View style={styles.section}>
-                                    <ThemedText style={styles.sectionTitle}>Khung vẽ chữ ký</ThemedText>
-                                    <View style={{ borderWidth: 1, borderColor: isDark ? "rgba(255,255,255,0.15)" : "#E2E8F0", borderRadius: 14, overflow: 'hidden', backgroundColor: '#FFF' }}>
-                                        <View style={{ height: 220 }}>
-                                            <SignatureScreen
-                                                ref={signatureRef}
-                                                onBegin={() => setScrollEnabled(false)}
-                                                onEnd={() => setScrollEnabled(true)}
-                                                onOK={handleSignatureOK}
-                                                penColor={penColor}
-                                                minWidth={penWidth}
-                                                maxWidth={penWidth + 1}
-                                                descriptionText=""
-                                                clearText="Xóa"
-                                                confirmText="Lưu"
-                                                webStyle={`
-                                                    .m-signature-pad { box-shadow: none; border: none; margin: 0; padding: 0; }
-                                                    .m-signature-pad--body { border: none; }
-                                                    .m-signature-pad--footer { display: none; margin: 0px; }
-                                                    body,html { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: #FFF; padding: 0; margin: 0; }
-                                                `}
-                                            />
-                                        </View>
-                                        {selectedDisplayInfos.length > 0 && (
-                                            <View style={{ paddingBottom: 16, paddingTop: 6, alignItems: 'center', gap: 2 }}>
-                                                {selectedDisplayInfos.includes("name") && <ThemedText style={styles.previewTextCenter}>Nguyễn Văn A</ThemedText>}
-                                                {selectedDisplayInfos.includes("email") && <ThemedText style={styles.previewTextCenter}>nguyenvana@gmail.com</ThemedText>}
-                                                {selectedDisplayInfos.includes("phone") && <ThemedText style={styles.previewTextCenter}>0987654321</ThemedText>}
-                                                {selectedDisplayInfos.includes("date") && <ThemedText style={styles.previewTextCenter}>28/03/2026</ThemedText>}
-                                            </View>
-                                        )}
-                                    </View>
-                                </View>
-
-                                <View style={styles.section}>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                                        <ThemedText style={styles.sectionTitle}>Màu & Nét bút</ThemedText>
-                                        <TouchableOpacity onPress={handleClearDraw} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                            <MaterialCommunityIcons name="eraser" size={16} color="#EF4444" />
-                                            <ThemedText style={{ color: "#EF4444", fontSize: 13, fontWeight: "600", marginLeft: 4 }}>Xóa vẽ lại</ThemedText>
-                                        </TouchableOpacity>
-                                    </View>
-                                    <View style={{ flexDirection: 'row', gap: 16 }}>
-                                        {/* Colors */}
-                                        <View style={{ flexDirection: 'row', gap: 10 }}>
-                                            {[
-                                                { id: "#1565C0", name: "Xanh" },
-                                                { id: "#000000", name: "Đen" },
-                                                { id: "#EF4444", name: "Đỏ" },
-                                            ].map(color => (
-                                                <TouchableOpacity key={color.id} onPress={() => setPenColor(color.id)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: color.id, borderWidth: 3, borderColor: penColor === color.id ? "rgba(0,0,0,0.2)" : "transparent", alignItems: 'center', justifyContent: 'center' }}>
-                                                    {penColor === color.id && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
-                                                </TouchableOpacity>
-                                            ))}
-                                        </View>
-                                        <View style={{ width: 1, backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0" }} />
-                                        {/* Widths */}
-                                        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                                            {[
-                                                { width: 1, label: "Mảnh" },
-                                                { width: 3, label: "Vừa" },
-                                                { width: 6, label: "Đậm" },
-                                            ].map(w => (
-                                                <TouchableOpacity key={w.width} onPress={() => setPenWidth(w.width)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: penWidth === w.width ? "rgba(32, 146, 236, 0.15)" : (isDark ? "#2A4B56" : "#F1F5F9") }}>
-                                                    <ThemedText style={{ color: penWidth === w.width ? "#2092EC" : (isDark ? "#FFF" : "#64748B"), fontSize: 13, fontWeight: "600" }}>{w.label}</ThemedText>
-                                                </TouchableOpacity>
-                                            ))}
-                                        </View>
-                                    </View>
-                                </View>
-
-                                {/* Common metadata */}
-                                <View style={styles.section}>
-                                    <TouchableOpacity style={styles.checkboxRow} onPress={() => setIsDefaultImage(!isDefaultImage)}>
-                                        <MaterialCommunityIcons name={isDefaultImage ? "checkbox-marked" : "checkbox-blank-outline"} size={22} color={isDefaultImage ? "#2092EC" : (isDark ? "#A0AEC0" : "#94A3B8")} />
-                                        <ThemedText style={[styles.checkboxLabel, { color: isDark ? "#E2E8F0" : "#475569" }]}>Đặt làm thiết lập tương lai</ThemedText>
-                                    </TouchableOpacity>
-                                </View>
-
-                                <View style={styles.section}>
-                                    <ThemedText style={styles.sectionTitle}>Nội dung hiển thị (Kèm theo)</ThemedText>
-                                    <View style={{ gap: 4 }}>
-                                        {infoOptions.map(option => (
-                                            <TouchableOpacity key={option.id} style={styles.checkboxRow} onPress={() => toggleInfo(option.id)}>
-                                                <MaterialCommunityIcons name={selectedDisplayInfos.includes(option.id) ? "checkbox-marked" : "checkbox-blank-outline"} size={22} color={selectedDisplayInfos.includes(option.id) ? "#2092EC" : (isDark ? "#A0AEC0" : "#94A3B8")} />
-                                                <ThemedText style={[styles.checkboxLabel, { color: isDark ? "#E2E8F0" : "#475569" }]}>{option.label}</ThemedText>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                </View>
-                            </ScrollView>
-
-                            <View style={[styles.footer, { borderTopColor: isDark ? "rgba(255,255,255,0.1)" : "#F1F5F9" }]}>
-                                <TouchableOpacity style={[styles.footerBtn, styles.cancelBtn, { backgroundColor: isDark ? "#2A4B56" : "#F1F5F9" }]} onPress={() => setIsHandDrawSetupVisible(false)}>
-                                    <ThemedText style={[styles.cancelBtnText, { color: isDark ? "#E2E8F0" : "#64748B" }]}>Hủy bỏ</ThemedText>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={[styles.footerBtn, styles.confirmBtn]} onPress={handleSaveDraw}>
-                                    <ThemedText style={styles.confirmBtnText}>Lưu thiết lập</ThemedText>
-                                </TouchableOpacity>
-                            </View>
-                        </>
+        return (
+            <View style={[S.stamp, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#F0F4FF", borderColor: isDark ? "rgba(255,255,255,0.10)" : "#D1D9F0" }]}>
+                {/* Left column */}
+                <View style={S.stampLeft}>
+                    {activeScreen === "image" && uploadedImageUri ? (
+                        <Image source={{ uri: uploadedImageUri }} style={S.stampSig} resizeMode="contain" />
+                    ) : activeScreen === "font" ? (
+                        <ThemedText style={[S.stampFont, { color: "#1565C0" }, FONT_OPTIONS.find(f => f.id === selectedFontId)?.style as any]} numberOfLines={2}>
+                            {sigName}
+                        </ThemedText>
+                    ) : activeScreen === "draw" && handDrawUri ? (
+                        <Image source={{ uri: handDrawUri }} style={S.stampSig} resizeMode="contain" />
                     ) : (
-                        /* --- MÀN HÌNH CHÍNH --- */
-                        <>
-                            <View style={styles.header}>
-                                <ThemedText style={styles.title}>Thiết lập chữ ký</ThemedText>
-                                <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#F1F5F9" }]}>
-                                    <MaterialCommunityIcons name="close" size={22} color={isDark ? "#FFF" : "#333"} />
-                                </TouchableOpacity>
+                        <View style={S.stampEmpty}>
+                            <MaterialCommunityIcons name={activeScreen === "image" ? "image-outline" : activeScreen === "draw" ? "draw" : "format-text"} size={32} color={isDark ? "#4A5568" : "#C0CAE0"} />
+                        </View>
+                    )}
+                    {activeScreen !== "font" && (
+                        <ThemedText style={[S.stampName, textSecondary]}>{sigName}</ThemedText>
+                    )}
+                </View>
+
+                {/* Divider */}
+                {hasContent && <View style={[S.stampDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.12)" : "#C8D4F0" }]} />}
+
+                {/* Right column */}
+                {hasContent && (
+                    <View style={S.stampRight}>
+                        {lines.filter(l => l.id === "name").map((l, i) => (
+                            <ThemedText key={`title-${i}`} style={[S.stampTitle, textPrimary]}>
+                                {l.value}
+                            </ThemedText>
+                        ))}
+                        {lines.filter(l => l.id !== "name").map((l, i) => (
+                            <View key={i} style={S.stampRow}>
+                                <ThemedText style={[S.stampLabel, textSecondary]}>{l.label}: </ThemedText>
+                                <ThemedText style={[S.stampValue, textPrimary]}>{l.value}</ThemedText>
                             </View>
+                        ))}
+                    </View>
+                )}
+            </View>
+        );
+    };
 
-                            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-                                {/* Phần 1: Chọn chữ ký số */}
-                                <View style={styles.section}>
-                                    <ThemedText style={styles.sectionTitle}>1. Chọn chứng thư số</ThemedText>
-                                    <TouchableOpacity
-                                        style={[styles.dropdownBtn, { borderColor: isDark ? "rgba(255,255,255,0.15)" : "#E2E8F0", backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC" }]}
-                                        onPress={() => setShowSignatureDropdown(!showSignatureDropdown)}
-                                        disabled={isLoadingCerts || signatures.length === 0}
-                                    >
-                                        <ThemedText style={[styles.dropdownText, { color: isDark ? "#FFF" : "#333" }]}>
-                                            {isLoadingCerts ? "Đang tải chứng thư..." : (selectedSignature?.CredentialId || selectedSignature?.credentialId || "Không tìm thấy chứng thư")}
-                                        </ThemedText>
-                                        {isLoadingCerts ? (
-                                            <ActivityIndicator size="small" color="#2092EC" />
-                                        ) : (
-                                            <MaterialCommunityIcons name={showSignatureDropdown ? "chevron-up" : "chevron-down"} size={18} color={isDark ? "#A0AEC0" : "#64748B"} />
-                                        )}
-                                    </TouchableOpacity>
+    /** Chips for "Nội dung hiển thị" section */
+    const renderContentChips = () => {
+        const pending = selectedDisplayInfos.filter(id => !hasAuthValue(id) && id !== "date");
+        return (
+            <View style={S.section}>
+                <ThemedText style={S.sectionLabel}>Nội dung hiển thị</ThemedText>
+                <View style={S.chipWrap}>
+                    {ALL_INFO_OPTIONS.map(opt => {
+                        const sel = selectedDisplayInfos.includes(opt.id);
+                        const label = signatureLanguage === "en" ? opt.labelEn : opt.labelVi;
+                        return (
+                            <TouchableOpacity
+                                key={opt.id}
+                                style={[S.chip, sel ? S.chipOn : { borderColor: border, backgroundColor: bgCard }]}
+                                onPress={() => toggleInfo(opt.id)}
+                                activeOpacity={0.75}
+                            >
+                                {sel && <MaterialCommunityIcons name="check" size={12} color="#B91C1C" />}
+                                <ThemedText style={[S.chipTxt, sel ? S.chipTxtOn : textSecondary]}>{label}</ThemedText>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+                {pending.length > 0 && (
+                    <View style={{ marginTop: 12, gap: 8 }}>
+                        {pending.map(id => {
+                            const opt = ALL_INFO_OPTIONS.find(o => o.id === id)!;
+                            return (
+                                <View key={id} style={[S.inputRow, { borderColor: border, backgroundColor: bgCard }]}>
+                                    <ThemedText style={[S.inputRowLabel, textSecondary]}>
+                                        {signatureLanguage === "en" ? opt.labelEn : opt.labelVi}
+                                    </ThemedText>
+                                    <TextInput
+                                        value={customFieldValues[id] || ""}
+                                        onChangeText={t => setCustomFieldValues(p => ({ ...p, [id]: t }))}
+                                        placeholder={`Nhập ${opt.labelVi.toLowerCase()}...`}
+                                        placeholderTextColor={isDark ? "#4B5563" : "#CBD5E1"}
+                                        style={[S.inputField, textPrimary]}
+                                    />
+                                </View>
+                            );
+                        })}
+                    </View>
+                )}
+            </View>
+        );
+    };
 
-                                    {showSignatureDropdown && (
-                                        <View style={[styles.dropdownMenu, { backgroundColor: isDark ? "#2A4B56" : "#FFF", borderColor: isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0" }]}>
-                                            {signatures.map((sig, idx) => {
-                                                const displayId = sig.CredentialId || sig.credentialId || "Không rõ";
-                                                const isSelected = displayId === (selectedSignature?.CredentialId || selectedSignature?.credentialId);
-                                                return (
-                                                    <TouchableOpacity
-                                                        key={idx}
-                                                        style={[styles.dropdownItem, idx < signatures.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9" }]}
-                                                        onPress={() => {
-                                                            setSelectedSignature(sig);
-                                                            setShowSignatureDropdown(false);
-                                                        }}
-                                                    >
-                                                        <ThemedText style={{ color: isSelected ? "#2092EC" : (isDark ? "#FFF" : "#333"), fontWeight: isSelected ? "700" : "400", flex: 1 }}>{displayId}</ThemedText>
-                                                        {isSelected && <MaterialCommunityIcons name="check-circle" size={18} color="#2092EC" />}
-                                                    </TouchableOpacity>
-                                                );
-                                            })}
+    /** Language radio */
+    const renderLanguage = () => (
+        <View style={S.section}>
+            <ThemedText style={S.sectionLabel}>Ngôn ngữ chữ ký</ThemedText>
+            <View style={{ flexDirection: "row", gap: 24 }}>
+                {(["vi", "en"] as const).map(lang => (
+                    <TouchableOpacity key={lang} style={S.radioRow} onPress={() => setSignatureLanguage(lang)} activeOpacity={0.7}>
+                        <View style={[S.radioOuter, { borderColor: signatureLanguage === lang ? "#B91C1C" : border }]}>
+                            {signatureLanguage === lang && <View style={S.radioInner} />}
+                        </View>
+                        <ThemedText style={[S.radioLabel, textPrimary]}>{lang === "vi" ? "Tiếng Việt" : "Tiếng Anh"}</ThemedText>
+                    </TouchableOpacity>
+                ))}
+            </View>
+        </View>
+    );
+
+    /** Default toggle */
+    const renderDefaultToggle = (label: string) => (
+        <View style={[S.toggleRow, { borderColor: border }]}>
+            <ThemedText style={[S.toggleLabel, textPrimary]}>{label}</ThemedText>
+            <Switch
+                value={isDefaultImage}
+                onValueChange={setIsDefaultImage}
+                trackColor={{ false: isDark ? "#374151" : "#D1D5DB", true: "#B91C1C" }}
+                thumbColor="#FFF"
+                ios_backgroundColor={isDark ? "#374151" : "#D1D5DB"}
+            />
+        </View>
+    );
+
+    /** Sub-screen header */
+    const renderSubHeader = (title: string, onBack: () => void) => (
+        <View style={S.header}>
+            <TouchableOpacity onPress={onBack} style={[S.headerBtn, { backgroundColor: bgCard, borderColor: border }]}>
+                <MaterialCommunityIcons name="arrow-left" size={20} color={isDark ? "#E2E8F0" : "#374151"} />
+            </TouchableOpacity>
+            <ThemedText style={[S.headerTitle, textPrimary]}>{title}</ThemedText>
+            <View style={{ width: 38 }} />
+        </View>
+    );
+
+    /** Sub-screen footer */
+    const renderSubFooter = (onSave: () => void, saveLabel = "Lưu thiết lập") => (
+        <View style={[S.footer, { borderColor: border }]}>
+            <TouchableOpacity style={[S.footerCancel, { backgroundColor: bgCard, borderColor: border }]} onPress={() => setActiveScreen("main")}>
+                <ThemedText style={[S.footerCancelTxt, textSecondary]}>Hủy</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity style={S.footerSave} onPress={onSave}>
+                <MaterialCommunityIcons name="check" size={18} color="#FFF" />
+                <ThemedText style={S.footerSaveTxt}>{saveLabel}</ThemedText>
+            </TouchableOpacity>
+        </View>
+    );
+
+    // ─── SCREENS ──────────────────────────────────────────────────────────────
+
+    const screenImage = () => (
+        <>
+            {renderSubHeader("Chữ ký ảnh", () => setActiveScreen("main"))}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
+
+                {/* Upload zone */}
+                <View style={S.section}>
+                    <ThemedText style={S.sectionLabel}>Hình ảnh chữ ký</ThemedText>
+                    {uploadedImageUri ? (
+                        <View style={[S.imgBox, { backgroundColor: bgCard, borderColor: border }]}>
+                            <Image source={{ uri: uploadedImageUri }} style={S.imgPreview} resizeMode="contain" />
+                            <TouchableOpacity style={S.imgDeleteBtn} onPress={() => setUploadedImageUri(null)}>
+                                <MaterialCommunityIcons name="trash-can-outline" size={16} color="#FFF" />
+                                <ThemedText style={{ color: "#FFF", fontSize: 12, fontWeight: "600" }}>Xóa</ThemedText>
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <TouchableOpacity style={[S.uploadZone, { borderColor: isDark ? "#3B4E6B" : "#B8C5E0", backgroundColor: bgCard }]} onPress={pickImage} activeOpacity={0.8}>
+                            <View style={[S.uploadIconWrap, { backgroundColor: isDark ? "rgba(32,146,236,0.12)" : "#EFF6FF" }]}>
+                                <MaterialCommunityIcons name="image-plus" size={28} color="#2092EC" />
+                            </View>
+                            <ThemedText style={[S.uploadTitle, textPrimary]}>Tải ảnh chữ ký</ThemedText>
+                            <ThemedText style={[S.uploadHint, textSecondary]}>PNG, JPG · Tối đa 3MB</ThemedText>
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Preview stamp */}
+                <View style={S.section}>
+                    <ThemedText style={S.sectionLabel}>Xem trước con dấu</ThemedText>
+                    {renderPreviewStamp()}
+                </View>
+
+                {renderDefaultToggle("Đặt làm chữ ký mặc định")}
+                {renderContentChips()}
+                {renderLanguage()}
+            </ScrollView>
+            {renderSubFooter(() => setActiveScreen("main"))}
+        </>
+    );
+
+    const screenFont = () => (
+        <>
+            {renderSubHeader("Kiểu chữ (Font)", () => setActiveScreen("main"))}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
+
+                {/* Name input */}
+                <View style={S.section}>
+                    <ThemedText style={S.sectionLabel}>Tên ký</ThemedText>
+                    <View style={[S.inputRow, { borderColor: border, backgroundColor: bgCard }]}>
+                        <MaterialCommunityIcons name="account-edit-outline" size={18} color={isDark ? "#64748B" : "#9CA3AF"} />
+                        <TextInput
+                            value={customSignName}
+                            onChangeText={setCustomSignName}
+                            placeholder="Nhập tên muốn ký..."
+                            placeholderTextColor={isDark ? "#4B5563" : "#CBD5E1"}
+                            style={[S.inputField, textPrimary, { fontSize: 16, fontWeight: "600" }]}
+                        />
+                    </View>
+                </View>
+
+                {/* Font grid */}
+                <View style={S.section}>
+                    <ThemedText style={S.sectionLabel}>Chọn kiểu chữ</ThemedText>
+                    <View style={S.fontGrid}>
+                        {FONT_OPTIONS.map(font => {
+                            const sel = selectedFontId === font.id;
+                            return (
+                                <TouchableOpacity
+                                    key={font.id}
+                                    style={[S.fontCard, sel ? S.fontCardOn : { borderColor: border, backgroundColor: bgCard }]}
+                                    onPress={() => setSelectedFontId(font.id)}
+                                    activeOpacity={0.8}
+                                >
+                                    <ThemedText style={[S.fontCardName, sel ? { color: "#1565C0" } : textSecondary, font.style as any]} numberOfLines={1}>
+                                        {sigName || "Ký tên"}
+                                    </ThemedText>
+                                    <ThemedText style={[{ fontSize: 10, marginTop: 4 }, sel ? { color: "#2092EC" } : textSecondary]}>{font.name}</ThemedText>
+                                    {sel && (
+                                        <View style={S.fontCardCheck}>
+                                            <MaterialCommunityIcons name="check-circle" size={16} color="#1565C0" />
                                         </View>
                                     )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </View>
 
-                                    {/* Checkbox: Chọn làm mặc định */}
+                {/* Preview stamp */}
+                <View style={S.section}>
+                    <ThemedText style={S.sectionLabel}>Xem trước con dấu</ThemedText>
+                    {renderPreviewStamp()}
+                </View>
+
+                {renderDefaultToggle("Đặt làm kiểu chữ mặc định")}
+                {renderContentChips()}
+                {renderLanguage()}
+            </ScrollView>
+            {renderSubFooter(() => { setIsFontConfigured(true); setActiveScreen("main"); })}
+        </>
+    );
+
+    const screenDraw = () => (
+        <>
+            {renderSubHeader("Chữ ký vẽ tay", () => setActiveScreen("main"))}
+            <ScrollView scrollEnabled={scrollEnabled} showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
+
+                {/* Canvas */}
+                <View style={S.section}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                        <ThemedText style={S.sectionLabel}>Vùng vẽ chữ ký</ThemedText>
+                        <TouchableOpacity onPress={handleClearDraw} style={[S.clearBtn, { backgroundColor: isDark ? "rgba(239,68,68,0.12)" : "#FEE2E2" }]}>
+                            <MaterialCommunityIcons name="eraser" size={14} color="#DC2626" />
+                            <ThemedText style={{ fontSize: 12, color: "#DC2626", fontWeight: "600", marginLeft: 4 }}>Xóa lại</ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={[S.canvas, { borderColor: isDark ? "#3B4E6B" : "#B8C5E0" }]}>
+                        <View style={{ height: 200 }}>
+                            <SignatureScreen
+                                ref={signatureRef}
+                                onBegin={() => setScrollEnabled(false)}
+                                onEnd={() => setScrollEnabled(true)}
+                                onOK={handleSignatureOK}
+                                penColor={penColor}
+                                minWidth={penWidth}
+                                maxWidth={penWidth + 1}
+                                descriptionText=""
+                                clearText="Xóa"
+                                confirmText="Lưu"
+                                backgroundColor="transparent"
+                                webStyle={`
+                                    .m-signature-pad{box-shadow:none;border:none;margin:0;padding:0;}
+                                    .m-signature-pad--body{border:none;}
+                                    .m-signature-pad--footer{display:none;}
+                                    body,html{background:transparent;width:100%;height:100%;margin:0;padding:0;}
+                                `}
+                            />
+                        </View>
+                    </View>
+                    {handDrawUri && (
+                        <View style={[S.drawSavedBadge, { backgroundColor: isDark ? "rgba(34,197,94,0.10)" : "#F0FDF4" }]}>
+                            <MaterialCommunityIcons name="check-circle" size={14} color="#16A34A" />
+                            <ThemedText style={{ fontSize: 12, color: "#16A34A", fontWeight: "600", marginLeft: 6 }}>
+                                Chữ ký đã được lưu — nhấn "Lưu thiết lập" để hoàn tất
+                            </ThemedText>
+                        </View>
+                    )}
+                </View>
+
+                {/* Pen toolbar */}
+                <View style={S.section}>
+                    <ThemedText style={[S.sectionLabel, { marginBottom: 10 }]}>Bút vẽ</ThemedText>
+                    <View style={[S.penToolbar, { backgroundColor: bgCard, borderColor: border }]}>
+                        {/* Colors */}
+                        <View style={S.penColors}>
+                            {PEN_COLORS.map(c => (
+                                <TouchableOpacity key={c.id} onPress={() => setPenColor(c.id)} style={[S.colorDot, { backgroundColor: c.id }, penColor === c.id && S.colorDotActive]}>
+                                    {penColor === c.id && <MaterialCommunityIcons name="check" size={13} color="#FFF" />}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                        <View style={[S.penDivider, { backgroundColor: border }]} />
+                        {/* Widths */}
+                        <View style={S.penWidths}>
+                            {PEN_WIDTHS.map(w => (
+                                <TouchableOpacity
+                                    key={w.width}
+                                    onPress={() => setPenWidth(w.width)}
+                                    style={[S.widthBtn, penWidth === w.width ? S.widthBtnOn : { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}
+                                >
+                                    <ThemedText style={{ fontSize: 12, fontWeight: "600", color: penWidth === w.width ? "#2092EC" : (isDark ? "#9CA3AF" : "#6B7280") }}>
+                                        {w.label}
+                                    </ThemedText>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+                </View>
+
+                {/* Preview stamp */}
+                <View style={S.section}>
+                    <ThemedText style={S.sectionLabel}>Xem trước con dấu</ThemedText>
+                    {renderPreviewStamp()}
+                </View>
+
+                {renderDefaultToggle("Đặt làm chữ ký mặc định")}
+                {renderContentChips()}
+                {renderLanguage()}
+            </ScrollView>
+            {renderSubFooter(handleSaveDraw, handDrawUri ? "Lưu thiết lập" : "Lưu chữ ký")}
+        </>
+    );
+
+    const screenMain = () => {
+        const setups = [
+            { id: 0, label: "Ký số", sub: "Viettel CA", icon: "shield-check-outline", color: "#1565C0", bg: "#EFF6FF" },
+            { id: 1, label: "Chữ ký ảnh", sub: "Tải ảnh lên", icon: "image-outline", color: "#1565C0", bg: "#EFF6FF" },
+            { id: 2, label: "Vẽ tay", sub: "Dùng ngón tay", icon: "draw", color: "#1565C0", bg: "#EFF6FF" },
+            { id: 3, label: "Kiểu chữ", sub: "Chọn font chữ", icon: "format-text", color: "#1565C0", bg: "#EFF6FF" },
+        ];
+        const configuredLabel: Record<number, string | null> = {
+            0: null,
+            1: uploadedImageUri ? "Đã có ảnh" : null,
+            2: isHandDrawConfigured ? "Đã vẽ xong" : null,
+            3: isFontConfigured ? "Đã chọn font" : null,
+        };
+
+        return (
+            <>
+                <View style={S.header}>
+                    <View style={{ flex: 1 }}>
+                        <ThemedText style={[S.headerTitle, textPrimary]}>Thiết lập chữ ký</ThemedText>
+                        <ThemedText style={[S.headerSub, textSecondary]}>Chọn phương thức ký hợp đồng</ThemedText>
+                    </View>
+                    <TouchableOpacity onPress={onClose} style={[S.headerBtn, { backgroundColor: bgCard, borderColor: border }]}>
+                        <MaterialCommunityIcons name="close" size={20} color={isDark ? "#E2E8F0" : "#374151"} />
+                    </TouchableOpacity>
+                </View>
+
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={S.content}>
+
+                    {/* Certificate picker */}
+                    <View style={S.section}>
+                        <ThemedText style={S.sectionLabel}>Chứng thư số</ThemedText>
+                        <TouchableOpacity
+                            style={[S.certPicker, { backgroundColor: bgCard, borderColor: border }]}
+                            onPress={() => setShowSignatureDropdown(p => !p)}
+                            disabled={isLoadingCerts || signatures.length === 0}
+                            activeOpacity={0.8}
+                        >
+                            <MaterialCommunityIcons name="certificate-outline" size={20} color="#2092EC" />
+                            <ThemedText style={[S.certPickerTxt, textPrimary, { flex: 1, marginHorizontal: 10 }]} numberOfLines={1}>
+                                {isLoadingCerts ? "Đang tải..." : (selectedSignature?.CredentialId || selectedSignature?.credentialId || "Không tìm thấy chứng thư")}
+                            </ThemedText>
+                            {isLoadingCerts ? <ActivityIndicator size="small" color="#2092EC" /> : <MaterialCommunityIcons name={showSignatureDropdown ? "chevron-up" : "chevron-down"} size={18} color={isDark ? "#94A3B8" : "#9CA3AF"} />}
+                        </TouchableOpacity>
+                        {showSignatureDropdown && (
+                            <View style={[S.dropdown, { backgroundColor: isDark ? "#1E3A4A" : "#FFF", borderColor: border }]}>
+                                {signatures.map((sig, i) => {
+                                    const id = sig.CredentialId || sig.credentialId || "Không rõ";
+                                    const sel = id === (selectedSignature?.CredentialId || selectedSignature?.credentialId);
+                                    return (
+                                        <TouchableOpacity key={i} style={[S.dropdownItem, i < signatures.length - 1 && { borderBottomWidth: 1, borderBottomColor: border }]}
+                                            onPress={() => { setSelectedSignature(sig); setShowSignatureDropdown(false); }}>
+                                            <ThemedText style={{ color: sel ? "#2092EC" : (isDark ? "#F1F5F9" : "#111827"), fontWeight: sel ? "700" : "400", flex: 1 }}>{id}</ThemedText>
+                                            {sel && <MaterialCommunityIcons name="check-circle" size={16} color="#2092EC" />}
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        )}
+                        <View style={[S.toggleRow, { borderColor: "transparent", paddingHorizontal: 0, marginTop: 6 }]}>
+                            <ThemedText style={[S.toggleLabel, textSecondary, { fontSize: 13 }]}>Đặt làm chứng thư mặc định</ThemedText>
+                            <Switch value={isDefaultSignature} onValueChange={setIsDefaultSignature}
+                                trackColor={{ false: isDark ? "#374151" : "#D1D5DB", true: "#B91C1C" }}
+                                thumbColor="#FFF" ios_backgroundColor={isDark ? "#374151" : "#D1D5DB"} />
+                        </View>
+                    </View>
+
+                    {/* Method grid */}
+                    <View style={S.section}>
+                        <ThemedText style={S.sectionLabel}>Phương thức ký</ThemedText>
+                        <View style={S.methodGrid}>
+                            {setups.map(s => {
+                                const isSel = signatureSetupType === s.id;
+                                const configured = configuredLabel[s.id];
+                                return (
                                     <TouchableOpacity
-                                        style={styles.checkboxRow}
-                                        onPress={() => setIsDefaultSignature(!isDefaultSignature)}
+                                        key={s.id}
+                                        style={[S.methodCard, isSel ? { borderColor: s.color, backgroundColor: isDark ? `${s.color}22` : s.bg } : { borderColor: border, backgroundColor: bgCard }]}
+                                        onPress={() => {
+                                            setSignatureSetupType(s.id);
+                                            if (s.id === 1) setActiveScreen("image");
+                                            if (s.id === 2) setActiveScreen("draw");
+                                            if (s.id === 3) setActiveScreen("font");
+                                        }}
+                                        activeOpacity={0.8}
                                     >
-                                        <MaterialCommunityIcons
-                                            name={isDefaultSignature ? "checkbox-marked" : "checkbox-blank-outline"}
-                                            size={22}
-                                            color={isDefaultSignature ? "#2092EC" : (isDark ? "#A0AEC0" : "#94A3B8")}
-                                        />
-                                        <ThemedText style={[styles.checkboxLabel, { color: isDark ? "#E2E8F0" : "#475569" }]}>Đặt làm chứng thư mặc định</ThemedText>
+                                        <View style={[S.methodIcon, { backgroundColor: isSel ? s.color : (isDark ? "#1F2937" : "#F3F4F6") }]}>
+                                            <MaterialCommunityIcons name={s.icon as any} size={22} color={isSel ? "#FFF" : (isDark ? "#94A3B8" : "#6B7280")} />
+                                        </View>
+                                        <ThemedText style={[S.methodLabel, { color: isSel ? s.color : (isDark ? "#E2E8F0" : "#1F2937") }]}>{s.label}</ThemedText>
+                                        <ThemedText style={[S.methodSub, textSecondary]}>{s.sub}</ThemedText>
+                                        {configured && (
+                                            <View style={[S.methodBadge, { backgroundColor: isDark ? "rgba(34,197,94,0.15)" : "#F0FDF4" }]}>
+                                                <MaterialCommunityIcons name="check-circle" size={11} color="#16A34A" />
+                                                <ThemedText style={{ fontSize: 10, color: "#16A34A", fontWeight: "700", marginLeft: 3 }}>{configured}</ThemedText>
+                                            </View>
+                                        )}
+                                        {s.id > 0 && (
+                                            <View style={S.methodEdit}>
+                                                <MaterialCommunityIcons name="chevron-right" size={16} color={isSel ? s.color : (isDark ? "#4B5563" : "#D1D5DB")} />
+                                            </View>
+                                        )}
                                     </TouchableOpacity>
-                                </View>
+                                );
+                            })}
+                        </View>
+                    </View>
 
-                                {/* Phần 2: Thiết lập chữ ký */}
-                                <View style={styles.section}>
-                                    <ThemedText style={styles.sectionTitle}>2. Phương thức ký</ThemedText>
-                                    <View style={styles.setupGrid}>
-                                        {setups.map((setup) => {
-                                            const isSelected = signatureSetupType === setup.id;
-                                            return (
-                                                <TouchableOpacity
-                                                    key={setup.id}
-                                                    style={[
-                                                        styles.setupItem,
-                                                        { borderColor: isSelected ? "#2092EC" : (isDark ? "rgba(255,255,255,0.15)" : "#E2E8F0") },
-                                                        isSelected && { backgroundColor: isDark ? "rgba(32, 146, 236, 0.15)" : "#F0F8FF" }
-                                                    ]}
-                                                    onPress={() => {
-                                                        setSignatureSetupType(setup.id);
-                                                        if (setup.id === 1) { // Mở form cài đặt ảnh nếu chọn ảnh chữ ký
-                                                            setIsImageSetupVisible(true);
-                                                        }
-                                                        if (setup.id === 2) {
-                                                            setIsHandDrawSetupVisible(true);
-                                                        }
-                                                        if (setup.id === 3) {
-                                                            setIsFontSetupVisible(true);
-                                                        }
-                                                    }}
-                                                >
-                                                    <View style={styles.setupItemContent}>
-                                                        <MaterialCommunityIcons name={setup.icon as any} size={28} color={isSelected ? "#2092EC" : (isDark ? "#A0AEC0" : "#64748B")} />
-                                                        <ThemedText style={[styles.setupItemText, isSelected && { color: "#2092EC", fontWeight: "700" }, isDark && !isSelected && { color: "#E2E8F0" }]}>{setup.title}</ThemedText>
+                    {/* ViewShot capture zone */}
+                    {signatureSetupType !== 0 && (
+                        <View style={S.section}>
+                            <ThemedText style={S.sectionLabel}>Xem trước con dấu cuối cùng</ThemedText>
+                            <View style={{
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderStyle: "dashed",
+                                borderColor: isDark ? "#3B4E6B" : "#C0CAE0",
+                                width: "100%",
+                                overflow: "hidden"
+                            }}>
+                                <ViewShot ref={signatureCaptureRef} options={{ format: "png", quality: 1.0, result: "base64" }}
+                                    style={{
+                                        backgroundColor: "transparent",
+                                        flexDirection: renderPreviewLines().filter(l => l.id !== "name").length > 0 ? "row" : "column",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        padding: 20,
+                                        width: "100%",
+                                        minHeight: 120
+                                    }}>
 
-                                                        {setup.id === 1 && uploadedImageUri && (
-                                                            <View style={styles.configuredBadge}>
-                                                                <MaterialCommunityIcons name="check-circle" size={14} color="#4CAF50" />
-                                                                <ThemedText style={{ fontSize: 11, color: "#4CAF50", fontWeight: '700' }}>Đã thiết lập ảnh</ThemedText>
-                                                            </View>
-                                                        )}
-                                                        {setup.id === 2 && isHandDrawConfigured && (
-                                                            <View style={styles.configuredBadge}>
-                                                                <MaterialCommunityIcons name="check-circle" size={14} color="#4CAF50" />
-                                                                <ThemedText style={{ fontSize: 11, color: "#4CAF50", fontWeight: '700' }}>Đã thiết lập nét vẽ</ThemedText>
-                                                            </View>
-                                                        )}
-                                                        {setup.id === 3 && isFontConfigured && (
-                                                            <View style={styles.configuredBadge}>
-                                                                <MaterialCommunityIcons name="check-circle" size={14} color="#4CAF50" />
-                                                                <ThemedText style={{ fontSize: 11, color: "#4CAF50", fontWeight: '700' }}>Đã thiết lập font</ThemedText>
-                                                            </View>
-                                                        )}
+                                    {/* Content Wrapper */}
+                                    {renderPreviewLines().filter(l => l.id !== "name").length > 0 ? (
+                                        <>
+                                            {/* Split Layout: Signature + Name on Left, Others on Right */}
+                                            <View style={S.stampLeft}>
+                                                {signatureSetupType === 1 && uploadedImageUri ? (
+                                                    <Image source={{ uri: uploadedImageUri }} style={S.stampSig} resizeMode="contain" />
+                                                ) : signatureSetupType === 2 && handDrawUri ? (
+                                                    <Image source={{ uri: handDrawUri }} style={S.stampSig} resizeMode="contain" />
+                                                ) : signatureSetupType === 3 ? (
+                                                    <ThemedText style={[S.stampFont, { color: "#1565C0" }, FONT_OPTIONS.find(f => f.id === selectedFontId)?.style as any]} numberOfLines={2}>
+                                                        {sigName}
+                                                    </ThemedText>
+                                                ) : (
+                                                    <View style={S.stampEmpty}>
+                                                        <MaterialCommunityIcons name={signatureSetupType === 1 ? "image-outline" : signatureSetupType === 2 ? "draw" : "format-text"} size={32} color={isDark ? "#4A5568" : "#C0CAE0"} />
                                                     </View>
-                                                    {setup.hasAction && (
-                                                        <View style={styles.editIcon}>
-                                                            <MaterialCommunityIcons name="cog-outline" size={18} color={isSelected ? "#2092EC" : (isDark ? "#A0AEC0" : "#94A3B8")} />
-                                                        </View>
-                                                    )}
-                                                </TouchableOpacity>
-                                            );
-                                        })}
-                                    </View>
-                                </View>
+                                                )}
 
-                                {/* GOM TẤT CẢ THÀNH 1 ẢNH (VIEW_SHOT) ĐỂ LẤY BASE64 THEO Ý MUỐN */}
-                                {signatureSetupType !== 0 && (
-                                    <View style={styles.section}>
-                                        <ThemedText style={styles.sectionTitle}>3. Xem trước chữ ký lồng ghép (Sẽ được đóng gói PNG)</ThemedText>
-                                        <ViewShot 
-                                            ref={signatureCaptureRef} 
-                                            options={{ format: "png", quality: 1.0, result: "base64" }} 
-                                            style={{ backgroundColor: isDark ? "#1D3D47" : "#FFF", padding: 16, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', borderWidth: 1, borderColor: "rgba(0,0,0,0.1)", borderStyle: "dashed", borderRadius: 12, minWidth: 200 }}
-                                        >
-                                            {signatureSetupType === 1 && uploadedImageUri && (
-                                                <Image source={{ uri: uploadedImageUri }} style={{ width: 150, height: 100, backgroundColor: 'transparent' }} resizeMode="contain" />
-                                            )}
-                                            {signatureSetupType === 2 && handDrawUri && (
-                                                <Image source={{ uri: handDrawUri }} style={{ width: 150, height: 100, backgroundColor: 'transparent' }} resizeMode="contain" />
-                                            )}
-                                            {signatureSetupType === 3 && (
-                                                <ThemedText style={[{ fontSize: 32, color: isDark ? "#2092EC" : "#1565C0", textAlign: 'center', marginVertical: 10 }, FONT_OPTIONS.find(f => f.id === selectedFontId)?.style as any]}>Nguyễn Văn A</ThemedText>
-                                            )}
+                                                <ThemedText style={[S.stampName, textSecondary, { fontSize: 14, opacity: 0.8 }]}>
+                                                    {sigName}
+                                                </ThemedText>
+                                            </View>
 
-                                            {selectedDisplayInfos.length > 0 && (
-                                                <View style={{ alignItems: 'center', marginTop: 10, gap: 2 }}>
-                                                    {selectedDisplayInfos.includes("name") && <ThemedText style={{ fontSize: 13, color: isDark ? "#E2E8F0" : "#475569", fontWeight: "600" }}>Nguyễn Văn A</ThemedText>}
-                                                    {selectedDisplayInfos.includes("email") && <ThemedText style={{ fontSize: 13, color: isDark ? "#E2E8F0" : "#475569", fontWeight: "600" }}>nguyenvana@gmail.com</ThemedText>}
-                                                    {selectedDisplayInfos.includes("phone") && <ThemedText style={{ fontSize: 13, color: isDark ? "#E2E8F0" : "#475569", fontWeight: "600" }}>0987654321</ThemedText>}
-                                                    {selectedDisplayInfos.includes("date") && <ThemedText style={{ fontSize: 13, color: isDark ? "#E2E8F0" : "#475569", fontWeight: "600" }}>28/03/2026</ThemedText>}
+                                            <View style={[S.stampDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.12)" : "#C8D4F0" }]} />
+
+                                            <View style={S.stampRight}>
+                                                {renderPreviewLines().filter(l => l.id !== "name").map((l, i) => (
+                                                    <View key={i} style={S.stampRow}>
+                                                        <ThemedText style={[S.stampLabel, textSecondary]}>{l.label}: </ThemedText>
+                                                        <ThemedText style={[S.stampValue, textPrimary]}>{l.value}</ThemedText>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        </>
+                                    ) : (
+                                        /* Single Column Layout: Centered Signature + Name */
+                                        <View style={{ alignItems: "center" }}>
+                                            {signatureSetupType === 1 && uploadedImageUri ? (
+                                                <Image source={{ uri: uploadedImageUri }} style={{ width: 140, height: 90 }} resizeMode="contain" />
+                                            ) : signatureSetupType === 2 && handDrawUri ? (
+                                                <Image source={{ uri: handDrawUri }} style={{ width: 140, height: 90 }} resizeMode="contain" />
+                                            ) : signatureSetupType === 3 ? (
+                                                <ThemedText style={[{ fontSize: 32, color: "#1565C0", textAlign: "center" }, FONT_OPTIONS.find(f => f.id === selectedFontId)?.style as any]} numberOfLines={2}>
+                                                    {sigName}
+                                                </ThemedText>
+                                            ) : (
+                                                <View style={{ width: 140, height: 90, alignItems: "center", justifyContent: "center" }}>
+                                                    <MaterialCommunityIcons name={signatureSetupType === 1 ? "image-outline" : signatureSetupType === 2 ? "draw" : "format-text"} size={48} color={isDark ? "#4A5568" : "#C0CAE0"} />
                                                 </View>
                                             )}
-                                        </ViewShot>
-                                    </View>
-                                )}
-                            </ScrollView>
 
-                            <View style={[styles.footer, { borderTopColor: isDark ? "rgba(255,255,255,0.1)" : "#F1F5F9" }]}>
-                                <TouchableOpacity style={[styles.footerBtn, styles.cancelBtn, { backgroundColor: isDark ? "#2A4B56" : "#F1F5F9" }]} onPress={onClose}>
-                                    <ThemedText style={[styles.cancelBtnText, { color: isDark ? "#E2E8F0" : "#64748B" }]}>Hủy bỏ</ThemedText>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.footerBtn, styles.confirmBtn]}
-                                    onPress={handleConfirm}
-                                    disabled={loading}
-                                >
-                                    {loading ? (
-                                        <ActivityIndicator size="small" color="#FFF" />
-                                    ) : (
-                                        <>
-                                            <MaterialCommunityIcons name="pen" size={20} color="#FFF" />
-                                            <ThemedText style={styles.confirmBtnText}>Xác nhận ký</ThemedText>
-                                        </>
+                                            <ThemedText style={[S.stampName, textSecondary, { fontSize: 16, marginTop: 12, opacity: 0.8 }]}>
+                                                {sigName}
+                                            </ThemedText>
+                                        </View>
                                     )}
-                                </TouchableOpacity>
+                                </ViewShot>
                             </View>
-                        </>
+                        </View>
                     )}
+                </ScrollView>
 
+                {/* Footer */}
+                <View style={[S.footer, { borderColor: border }]}>
+                    <TouchableOpacity style={[S.footerCancel, { backgroundColor: bgCard, borderColor: border }]} onPress={onClose}>
+                        <ThemedText style={[S.footerCancelTxt, textSecondary]}>Hủy bỏ</ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={S.footerConfirm} onPress={handleConfirm} disabled={loading} activeOpacity={0.85}>
+                        {loading ? (
+                            <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                            <>
+                                <MaterialCommunityIcons name="pen" size={18} color="#FFF" />
+                                <ThemedText style={S.footerConfirmTxt}>Xác nhận ký</ThemedText>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </>
+        );
+    };
+
+    // ─── Root ─────────────────────────────────────────────────────────────────
+    return (
+        <Modal visible={visible} transparent animationType="slide" statusBarTranslucent>
+            <View style={S.overlay}>
+                <TouchableOpacity style={S.backdrop} activeOpacity={1} onPress={onClose} />
+                <View style={[S.sheet, { backgroundColor: isDark ? "#111C27" : "#FFFFFF" }]}>
+                    {activeScreen === "image" ? screenImage()
+                        : activeScreen === "font" ? screenFont()
+                            : activeScreen === "draw" ? screenDraw()
+                                : screenMain()}
                 </View>
             </View>
         </Modal>
     );
 }
 
-const styles = StyleSheet.create({
-    overlay: {
-        flex: 1,
-        justifyContent: "flex-end",
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const S = StyleSheet.create({
+    overlay: { flex: 1, justifyContent: "flex-end" },
+    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
+    sheet: {
+        borderTopLeftRadius: 28, borderTopRightRadius: 28,
+        maxHeight: "92%",
+        elevation: 24,
+        shadowColor: "#000", shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.15, shadowRadius: 16,
     },
-    backdrop: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(0,0,0,0.5)",
-    },
-    container: {
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        maxHeight: "85%",
-        elevation: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -5 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-    },
+
+    // Header
     header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: 15,
+        flexDirection: "row", alignItems: "center",
+        paddingHorizontal: 20, paddingTop: 20, paddingBottom: 14,
+        gap: 12,
     },
-    title: {
-        fontSize: 18,
-        fontWeight: "800",
-    },
-    closeBtn: {
-        width: 36, height: 36,
-        borderRadius: 18,
+    headerBtn: {
+        width: 38, height: 38, borderRadius: 19,
         alignItems: "center", justifyContent: "center",
-    },
-    content: {
-        paddingHorizontal: 20,
-        paddingBottom: 24,
-    },
-    section: {
-        marginTop: 10,
-        marginBottom: 20,
-    },
-    sectionTitle: {
-        fontSize: 15,
-        fontWeight: "700",
-        marginBottom: 12,
-        opacity: 0.8,
-    },
-    dropdownBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        borderWidth: 1.5,
-        borderRadius: 14,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-    },
-    dropdownText: {
-        fontSize: 15,
-        fontWeight: "500",
-    },
-    dropdownMenu: {
-        marginTop: 8,
         borderWidth: 1,
-        borderRadius: 14,
-        overflow: "hidden",
-        elevation: 3,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
     },
-    dropdownItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 16,
-        paddingVertical: 14,
+    headerTitle: { fontSize: 17, fontWeight: "800" },
+    headerSub: { fontSize: 12, marginTop: 2 },
+
+    // Content
+    content: { paddingHorizontal: 20, paddingBottom: 28 },
+    section: { marginBottom: 20 },
+    sectionLabel: { fontSize: 13, fontWeight: "700", marginBottom: 10, opacity: 0.7, textTransform: "uppercase", letterSpacing: 0.5 },
+
+    // Certificate picker
+    certPicker: {
+        flexDirection: "row", alignItems: "center",
+        borderWidth: 1.5, borderRadius: 14,
+        paddingHorizontal: 14, paddingVertical: 13,
     },
-    checkboxRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        marginTop: 14,
-        paddingHorizontal: 4,
+    certPickerTxt: { fontSize: 14, fontWeight: "600" },
+    dropdown: {
+        marginTop: 6, borderWidth: 1, borderRadius: 12,
+        overflow: "hidden", elevation: 4,
+        shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8,
     },
-    checkboxLabel: {
-        fontSize: 14,
-        fontWeight: "500",
+    dropdownItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 13 },
+
+    // Method grid
+    methodGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+    methodCard: {
+        width: "48%", borderWidth: 1.5, borderRadius: 16,
+        paddingVertical: 14, paddingHorizontal: 12,
+        alignItems: "center", gap: 6, position: "relative",
     },
-    setupGrid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 12,
+    methodIcon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+    methodLabel: { fontSize: 14, fontWeight: "700", textAlign: "center" },
+    methodSub: { fontSize: 11, textAlign: "center" },
+    methodBadge: {
+        flexDirection: "row", alignItems: "center",
+        paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, marginTop: 2,
     },
-    setupItem: {
-        width: "48%",
-        borderWidth: 1.5,
-        borderRadius: 14,
-        paddingVertical: 16,
-        paddingHorizontal: 12,
-        alignItems: "center",
-        justifyContent: "space-between",
+    methodEdit: { position: "absolute", bottom: 8, right: 10 },
+
+    // Upload zone
+    uploadZone: {
+        borderWidth: 2, borderStyle: "dashed", borderRadius: 16,
+        paddingVertical: 28, alignItems: "center", gap: 8,
     },
-    setupItemContent: {
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
+    uploadIconWrap: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+    uploadTitle: { fontSize: 15, fontWeight: "700" },
+    uploadHint: { fontSize: 12 },
+    imgBox: {
+        borderRadius: 14, borderWidth: 1,
+        overflow: "hidden", position: "relative",
+        alignItems: "center", paddingVertical: 16,
     },
-    setupItemText: {
-        fontSize: 14,
-        fontWeight: "600",
-        textAlign: "center",
+    imgPreview: { width: "70%", height: 100, borderRadius: 8 },
+    imgDeleteBtn: {
+        position: "absolute", bottom: 10, right: 10,
+        flexDirection: "row", alignItems: "center", gap: 4,
+        backgroundColor: "rgba(220,38,38,0.85)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
     },
-    configuredBadge: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        backgroundColor: "rgba(76, 175, 80, 0.1)",
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        marginTop: 4,
+
+    // Font grid
+    fontGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    fontCard: {
+        width: "48%", borderWidth: 1.5, borderRadius: 12,
+        paddingHorizontal: 12, paddingVertical: 12,
+        alignItems: "center", position: "relative",
     },
-    editIcon: {
-        position: "absolute",
-        top: 10,
-        right: 10,
+    fontCardOn: { borderColor: "#1565C0", backgroundColor: "#EFF6FF" },
+    fontCardName: { fontSize: 18, textAlign: "center" },
+    fontCardCheck: { position: "absolute", top: 6, right: 6 },
+
+    // Canvas
+    canvas: {
+        borderWidth: 1.5, borderRadius: 14, overflow: "hidden",
+        backgroundColor: "#FFFFFF",
     },
-    uploadBox: {
-        borderWidth: 2,
-        borderStyle: "dashed",
-        borderRadius: 14,
-        paddingVertical: 32,
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 12,
+    drawSavedBadge: {
+        flexDirection: "row", alignItems: "center",
+        marginTop: 10, paddingHorizontal: 12, paddingVertical: 8,
+        borderRadius: 10,
     },
-    uploadText: {
-        fontSize: 14,
-        fontWeight: "500",
+    clearBtn: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+
+    // Pen toolbar
+    penToolbar: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, gap: 12 },
+    penColors: { flexDirection: "row", gap: 10 },
+    colorDot: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+    colorDotActive: { borderWidth: 3, borderColor: "rgba(0,0,0,0.25)" },
+    penDivider: { width: 1, height: 28 },
+    penWidths: { flexDirection: "row", gap: 6 },
+    widthBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+    widthBtnOn: { backgroundColor: "rgba(32,146,236,0.13)" },
+
+    // Preview stamp
+    stamp: { borderRadius: 18, borderWidth: 1.5, borderStyle: "dashed", flexDirection: "row", padding: 16, minHeight: 120, overflow: "hidden" },
+    stampLeft: { width: 130, alignItems: "center", justifyContent: "center", paddingRight: 10 },
+    stampSig: { width: 110, height: 75, backgroundColor: "transparent" },
+    stampEmpty: { width: 110, height: 75, alignItems: "center", justifyContent: "center" },
+    stampFont: { fontSize: 24, lineHeight: 30, textAlign: "center" },
+    stampName: { fontSize: 13, fontWeight: "500", marginTop: 8, textAlign: "center" },
+    stampDivider: { width: 1, height: "80%", marginHorizontal: 12, borderRadius: 1, alignSelf: "center" },
+    stampRight: { flex: 1, justifyContent: "center", paddingLeft: 8, gap: 4 },
+    stampTitle: { fontSize: 18, fontWeight: "800", marginBottom: 6 },
+    stampRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", marginBottom: 2 },
+    stampLabel: { fontSize: 13, fontWeight: "400" },
+    stampValue: { fontSize: 13, fontWeight: "600" },
+
+    // Toggle / switch row
+    toggleRow: {
+        flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+        paddingVertical: 12, paddingHorizontal: 4,
+        borderTopWidth: 1, borderBottomWidth: 1, marginVertical: 4,
     },
-    imagePreviewContainer: {
-        width: "100%",
-        padding: 16,
-        paddingBottom: 45,
-        borderRadius: 14,
-        overflow: "hidden",
-        backgroundColor: "#F1F5F9",
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 16,
-        borderWidth: 1,
-        borderColor: "rgba(0,0,0,0.05)",
-        position: "relative",
+    toggleLabel: { fontSize: 14, fontWeight: "600", flex: 1, marginRight: 10 },
+
+    // Chips
+    chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    chip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 13, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
+    chipOn: { borderColor: "#1565C0", backgroundColor: "rgba(21,101,192,0.06)" },
+    chipTxt: { fontSize: 13, fontWeight: "500" },
+    chipTxtOn: { color: "#1565C0", fontWeight: "700" },
+
+    // Input rows
+    inputRow: { flexDirection: "row", alignItems: "center", borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
+    inputRowLabel: { fontSize: 12, fontWeight: "600", minWidth: 82 },
+    inputField: { flex: 1, fontSize: 14, fontWeight: "500", paddingVertical: 2 },
+
+    // Radio
+    radioRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+    radioOuter: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+    radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#1565C0" },
+    radioLabel: { fontSize: 14, fontWeight: "500" },
+
+    // Footer
+    footer: { flexDirection: "row", paddingHorizontal: 20, paddingVertical: 16, gap: 10, borderTopWidth: 1 },
+    footerCancel: {
+        flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+        paddingVertical: 13, borderRadius: 14, borderWidth: 1,
     },
-    previewImage: {
-        width: 100,
-        height: 100,
-        backgroundColor: "#FFF",
-        borderRadius: 8,
+    footerCancelTxt: { fontSize: 14, fontWeight: "700" },
+    footerSave: {
+        flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center",
+        paddingVertical: 13, borderRadius: 14, gap: 6,
+        backgroundColor: "#1565C0",
     },
-    previewInfos: {
-        flex: 1,
-        justifyContent: "center",
-        gap: 4,
+    footerSaveTxt: { color: "#FFF", fontSize: 14, fontWeight: "700" },
+    footerConfirm: {
+        flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center",
+        paddingVertical: 13, borderRadius: 14, gap: 8,
+        backgroundColor: "#1565C0",
     },
-    previewText: {
-        fontSize: 13,
-        fontWeight: "600",
-        color: "#334155",
-    },
-    fontPreviewContainer: {
-        width: "100%",
-        padding: 24,
-        borderRadius: 14,
-        backgroundColor: "#F1F5F9",
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 1,
-        borderColor: "rgba(0,0,0,0.05)",
-    },
-    previewInfosVertical: {
-        alignItems: "center",
-        gap: 4,
-    },
-    previewTextCenter: {
-        fontSize: 12,
-        fontWeight: "500",
-        color: "#475569",
-        textAlign: "center",
-    },
-    deleteImageBtn: {
-        position: "absolute",
-        bottom: 12,
-        right: 12,
-        backgroundColor: "rgba(239, 68, 68, 0.9)",
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    footer: {
-        flexDirection: "row",
-        padding: 20,
-        borderTopWidth: 1,
-        gap: 12,
-    },
-    footerBtn: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        paddingVertical: 14,
-        borderRadius: 14,
-    },
-    cancelBtn: {
-    },
-    cancelBtnText: {
-        fontSize: 15,
-        fontWeight: "700",
-    },
-    confirmBtn: {
-        backgroundColor: "#2092EC",
-    },
-    confirmBtnText: {
-        color: "#FFF",
-        fontSize: 15,
-        fontWeight: "700",
-    },
+    footerConfirmTxt: { color: "#FFF", fontSize: 14, fontWeight: "700" },
 });
