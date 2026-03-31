@@ -45,6 +45,14 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+    return (
+        <QueryClientProvider client={queryClient}>
+            <RootLayoutInner />
+        </QueryClientProvider>
+    );
+}
+
+function RootLayoutInner() {
     const colorScheme = useColorScheme();
     const router = useRouter();
     const segments = useSegments();
@@ -208,19 +216,17 @@ export default function RootLayout() {
     }
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-                <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-                    <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 0, backgroundColor: "transparent" } }}>
-                        <Stack.Screen name="(auth)" />
-                        <Stack.Screen name="(tabs)" />
-                        <Stack.Screen name="(kyc)" />
-                        <Stack.Screen name="(contract)" />
-                        <Stack.Screen name="(certificate)" />
-                    </Stack>
-                    <StatusBar style="auto" />
-                </View>
-            </ThemeProvider>
-        </QueryClientProvider>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+            <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+                <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 0, backgroundColor: "transparent" } }}>
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="(kyc)" />
+                    <Stack.Screen name="(contract)" />
+                    <Stack.Screen name="(certificate)" />
+                </Stack>
+                <StatusBar style="auto" />
+            </View>
+        </ThemeProvider>
     );
 }
