@@ -8,4 +8,5 @@ export {
   useNormalizeAddress,
   useSubmitKycInfo,
   useSubmitKycImages,
+  useGetIdNumberMutation,
 } from "./use-customer-mutation";

@@ -22,7 +22,7 @@ import {
     BiometricType,
 } from "@/services/biometric-service";
 import { clearBackgroundTime } from "@/services/session-manager";
-import { login } from "@/services/auth/auth.service";
+import { useLogin } from "@/queries/auth";
 import { refreshAccessToken } from "@/services/auth/token-refresh";
 import { getTokens } from "@/services/secure-storage";
 
@@ -49,6 +49,8 @@ export default function LockScreen({ onSwitchAccount }: LockScreenProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [biometricAttempts, setBiometricAttempts] = useState(0);
+
+    const loginMutation = useLogin();
 
     const displayName = user
         ? `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || "Người dùng"
@@ -138,7 +140,7 @@ export default function LockScreen({ onSwitchAccount }: LockScreenProps) {
         setIsLoading(true);
         setErrorMsg("");
         try {
-            const response = await login({ email, password });
+            const response = await loginMutation.mutateAsync({ email, password });
             if (response.success && response.data) {
                 await handleUnlockSuccess();
             } else {
@@ -149,7 +151,7 @@ export default function LockScreen({ onSwitchAccount }: LockScreenProps) {
         } finally {
             setIsLoading(false);
         }
-    }, [email, password, handleUnlockSuccess]);
+    }, [email, password, handleUnlockSuccess, loginMutation]);
 
     // ─── Biometric icon label ───────────────────────────────────────────────
     const biometricIcon =

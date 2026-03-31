@@ -2,8 +2,8 @@ import MyNativeView from "@/components/MyNativeView";
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { isBiometricAvailable } from "@/services/biometric-service";
-import { checkCaStatus } from "@/services/contract/contract.service";
-import { getCertInfo } from "@/services/certificate/certificate.service";
+import { useCheckCaStatus } from "@/queries/contract";
+import { useCertInfo } from "@/queries/certificate";
 import type { CertInfo } from "@/services/certificate/certificate-types";
 import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -40,11 +40,26 @@ export default function HomeScreen() {
 
     const [showNativeView, setShowNativeView] = React.useState(false);
     const [showSettings, setShowSettings] = React.useState(false);
-    const [isCA, setIsCA] = React.useState<boolean | null>(null);
-    const [certList, setCertList] = React.useState<CertInfo[]>([]);
-    const [isCertLoading, setIsCertLoading] = React.useState(true);
     const [biometricEnabled, setBiometricEnabled] = React.useState(false);
     const [isBiometricSupported, setIsBiometricSupported] = React.useState(false);
+
+    const checkCaStatusMutation = useCheckCaStatus();
+    const certInfoQuery = useCertInfo(requestId);
+
+    const isCA: boolean | null = React.useMemo(() => {
+        const caData = certInfoQuery.data;
+        if (certInfoQuery.isLoading || certInfoQuery.isFetching) return null;
+        if (!caData) return false;
+        return true;
+    }, [certInfoQuery.data, certInfoQuery.isLoading, certInfoQuery.isFetching]);
+
+    const certList: CertInfo[] = React.useMemo(() => {
+        const rawInfo = certInfoQuery.data?.data || certInfoQuery.data?.Data;
+        if (!rawInfo) return [];
+        return Array.isArray(rawInfo) ? rawInfo : [rawInfo];
+    }, [certInfoQuery.data]);
+
+    const isCertLoading = certInfoQuery.isLoading || certInfoQuery.isFetching;
 
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return "—";
@@ -57,37 +72,6 @@ export default function HomeScreen() {
     };
 
     React.useEffect(() => {
-        const fetchCertData = async () => {
-            if (!requestId) {
-                setIsCertLoading(false);
-                return;
-            }
-            try {
-                setIsCertLoading(true);
-                const caRes = await checkCaStatus(requestId);
-                const hasCA = caRes?.data === true || caRes?.Data === true;
-                setIsCA(hasCA);
-
-                // Nếu không có CA, không gọi thêm API load chứng thư
-                if (!hasCA) {
-                    setCertList([]);
-                    setIsCertLoading(false);
-                    return;
-                }
-
-                // Luồng có CA: gọi lấy thông tin chi tiết
-                const infoRes = await getCertInfo(requestId);
-                const rawInfo = infoRes?.data || infoRes?.Data;
-                const infoArray = Array.isArray(rawInfo) ? rawInfo : (rawInfo ? [rawInfo] : []);
-                setCertList(infoArray);
-            } catch (error) {
-                // Hidden log for debug
-                if (__DEV__) console.log("Cert data fetch error:", error);
-            } finally {
-                setIsCertLoading(false);
-            }
-        };
-
         const loadBiometricSetting = async () => {
             const supported = await isBiometricAvailable();
             setIsBiometricSupported(supported);
@@ -96,10 +80,8 @@ export default function HomeScreen() {
                 setBiometricEnabled(val === "true");
             }
         };
-
-        fetchCertData();
         loadBiometricSetting();
-    }, [requestId]);
+    }, []);
 
     const toggleBiometric = async (value: boolean) => {
         setBiometricEnabled(value);

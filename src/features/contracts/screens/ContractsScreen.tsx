@@ -3,9 +3,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
-import { getContracts } from "@/services/contract/contract.service";
+import { useContracts } from "@/queries/contract";
 import type { Contract } from "@/services/contract/contract-types";
 import {
     FlatList,
@@ -38,87 +38,60 @@ export default function ContractsScreen() {
     const router = useRouter();
     const { requestId } = useAuthStore();
 
-    const [contracts, setContracts] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const contractsQuery = useContracts(requestId);
 
     const [showSearch, setShowSearch] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [searchText, setSearchText] = useState("");
     const [activeFilter, setActiveFilter] = useState("all");
 
-    useEffect(() => {
-        let isMounted = true;
-        const fetchContracts = async () => {
-            if (!requestId) {
-                if (isMounted) setIsLoading(false);
-                return;
+    const contracts = useMemo(() => {
+        const data = contractsQuery.data || [];
+        return data.map((c: Contract) => {
+            const cId = c.id || c.Id || "";
+            let typeStr = "processing";
+            let statusText = "Đang xử lý";
+
+            if (c.Status === 1) {
+                typeStr = "processing";
+                statusText = "Đang xử lý";
+            } else if (c.Status === 2) {
+                typeStr = "completed";
+                statusText = "Hoàn thành";
+            } else if (c.Status === 3 || c.Status === 4) {
+                typeStr = "waiting";
+                statusText = "Chờ duyệt";
             }
-            try {
-                setIsLoading(true);
-                const data = await getContracts(requestId);
-                if (isMounted) {
-                    // Map API Contract interface to Local UI format
-                    const mappedContracts = data.map((c: Contract) => {
-                        const cId = c.id || c.Id || "";
-                        // Mapping Status based on API value
-                        let typeStr = "processing";
-                        let statusText = "Đang xử lý";
-                        
-                        if (c.Status === 1) {
-                            typeStr = "processing";
-                            statusText = "Đang xử lý";
-                        } else if (c.Status === 2) {
-                            typeStr = "completed";
-                            statusText = "Hoàn thành";
-                        } else if (c.Status === 3 || c.Status === 4) {
-                            // Example mapping, adjust based on actual API definitions
-                            typeStr = "waiting";
-                            statusText = "Chờ duyệt";
-                        }
 
-                        // Formatting date: Expecting ISO format from API, if not leave as is
-                        let formattedDate = c.ContractDate;
-                        if (c.ContractDate && c.ContractDate.includes("T")) {
-                             const d = new Date(c.ContractDate);
-                             const dd = String(d.getDate()).padStart(2, "0");
-                             const mm = String(d.getMonth() + 1).padStart(2, "0");
-                             const yy = d.getFullYear();
-                             const hh = String(d.getHours()).padStart(2, "0");
-                             const min = String(d.getMinutes()).padStart(2, "0");
-                             formattedDate = `${dd}/${mm}/${yy} ${hh}:${min}`;
-                        } else if (c.ContractDate && !c.ContractDate.includes("/")) {
-                             // Assuming YYYY-MM-DD
-                             const parts = c.ContractDate.split("-");
-                             if (parts.length === 3) {
-                                  formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
-                             }
-                        }
-
-                        return {
-                            id: cId,
-                            title: c.ContractName || "Hợp đồng không tên",
-                            status: statusText,
-                            sender: "Hệ thống", // Or from API if available
-                            date: formattedDate || "—",
-                            type: typeStr,
-                            originalData: c
-                        };
-                    });
-                    setContracts(mappedContracts);
+            let formattedDate = c.ContractDate;
+            if (c.ContractDate && c.ContractDate.includes("T")) {
+                const d = new Date(c.ContractDate);
+                const dd = String(d.getDate()).padStart(2, "0");
+                const mm = String(d.getMonth() + 1).padStart(2, "0");
+                const yy = d.getFullYear();
+                const hh = String(d.getHours()).padStart(2, "0");
+                const min = String(d.getMinutes()).padStart(2, "0");
+                formattedDate = `${dd}/${mm}/${yy} ${hh}:${min}`;
+            } else if (c.ContractDate && !c.ContractDate.includes("/")) {
+                const parts = c.ContractDate.split("-");
+                if (parts.length === 3) {
+                    formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
                 }
-            } catch (error) {
-                console.log("Failed to fetch contracts:", error);
-            } finally {
-                if (isMounted) setIsLoading(false);
             }
-        };
 
-        fetchContracts();
+            return {
+                id: cId,
+                title: c.ContractName || "Hợp đồng không tên",
+                status: statusText,
+                sender: "Hệ thống",
+                date: formattedDate || "—",
+                type: typeStr,
+                originalData: c
+            };
+        });
+    }, [contractsQuery.data]);
 
-        return () => {
-            isMounted = false;
-        };
-    }, [requestId]);
+    const isLoading = contractsQuery.isLoading || contractsQuery.isFetching;
 
     const getStatusStyle = (type: string) => {
         switch (type) {

@@ -1,8 +1,8 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { checkCaStatus } from "@/services/contract/contract.service";
-import { getIdNumber } from "@/services/customer/customer.service";
-import { getCloudCaHash, getSignature, insertCloudCaSign } from "@/services/signing/signing.service";
+import { useCheckCaStatus } from "@/queries/contract";
+import { useGetIdNumberMutation } from "@/queries/customer";
+import { useCloudCaHash, useGetSignature, useInsertCloudCaSign } from "@/queries/signing";
 import { ENV } from "@/config/env";
 import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -32,6 +32,13 @@ export default function ContractContentScreen() {
     const [loading, setLoading] = useState(true);
     const [webviewKey, setWebviewKey] = useState(Date.now().toString());
     const { requestId, user } = useAuthStore();
+
+    // React Query hooks
+    const checkCaStatusMutation = useCheckCaStatus();
+    const getIdNumberMutation = useGetIdNumberMutation();
+    const cloudCaHashMutation = useCloudCaHash();
+    const getSignatureMutation = useGetSignature();
+    const insertCloudCaSignMutation = useInsertCloudCaSign();
 
     const [loadingCa, setLoadingCa] = useState(false);
     const [showCaModal, setShowCaModal] = useState(false);
@@ -79,7 +86,7 @@ export default function ContractContentScreen() {
     const handleSign = async (config?: any) => {
         try {
             setLoadingCa(true);
-            const res = await checkCaStatus(user?.id || "");
+            const res = await checkCaStatusMutation.mutateAsync(user?.id || "");
 
             const isSuccess = res.Success ?? res.success;
             const data = res.Data ?? res.data;
@@ -112,7 +119,7 @@ export default function ContractContentScreen() {
         try {
             setSignStatus("Đang lấy thông tin định danh...");
             console.log("===> Đang lấy CCCD (idNo) từ API với accountId:", accountId);
-            const idNumberRes = await getIdNumber(accountId);
+            const idNumberRes = await getIdNumberMutation.mutateAsync(accountId);
 
             const isSuccessId = idNumberRes?.success ?? idNumberRes?.Success;
             const dataObj = idNumberRes?.data ?? idNumberRes?.Data;
@@ -145,7 +152,7 @@ export default function ContractContentScreen() {
                 certChainBase64: hashPayload.certChainBase64.length > 0 ? [`${hashPayload.certChainBase64[0].substring(0, 50)}...`, `(+${hashPayload.certChainBase64.length - 1} more)`] : [] 
             }));
             
-            const hashResult = await getCloudCaHash(hashPayload);
+            const hashResult = await cloudCaHashMutation.mutateAsync(hashPayload);
             console.log("===> KẾT QUẢ API cloudca-get-hash:", JSON.stringify(hashResult, null, 2));
 
             if (hashResult?.message || hashResult?.Message) {
@@ -191,7 +198,13 @@ export default function ContractContentScreen() {
             // --- 3. Gọi get-signature (Long polling hoặc Callback) ---
             setSignStatus("Vui lòng xác nhận trên app MySign...");
             console.log("===> Đang chờ kết quả từ API get-signature với filename:", fieldName, "certificateId:", certId);
-            const sigResult = await getSignature(fieldName, certId, hashBase64, contractId, accountId);
+            const sigResult = await getSignatureMutation.mutateAsync({
+                filename: fieldName,
+                certificateId: certId,
+                filehash: hashBase64,
+                contractId: contractId,
+                accountId: accountId,
+            });
             console.log("===> KẾT QUẢ API get-signature:", JSON.stringify(sigResult, null, 2));
             
             if (sigResult?.message || sigResult?.Message) {
@@ -226,7 +239,7 @@ export default function ContractContentScreen() {
                 signatureBase64: cmsSignature
             };
 
-            const insertResult = await insertCloudCaSign(insertPayload);
+            const insertResult = await insertCloudCaSignMutation.mutateAsync(insertPayload);
             const isInsertSuccess = insertResult?.success ?? insertResult?.Success;
 
             if (insertResult?.message || insertResult?.Message) {

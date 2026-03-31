@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { registerAccount } from "@/services/auth/auth.service";
+import { useRegister } from "@/queries/auth";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -31,6 +31,8 @@ export default function RegisterScreen() {
     });
     const [isLoading, setIsLoading] = useState(false);
 
+    const registerMutation = useRegister();
+
     const handleRegister = async () => {
         if (!formData.email || !formData.password) {
             Alert.alert("Lỗi", "Vui lòng nhập email và mật khẩu");
@@ -43,7 +45,7 @@ export default function RegisterScreen() {
             const firstName = nameParts[0] || "";
             const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
 
-            await registerAccount({
+            await registerMutation.mutateAsync({
                 email: formData.email,
                 password: formData.password,
                 username: formData.email,

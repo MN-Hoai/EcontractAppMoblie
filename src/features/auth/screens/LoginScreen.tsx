@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { login } from "@/services/auth/auth.service";
-import { checkCustomerExist, addOrUpdateCustomer } from "@/services/customer/customer.service";
+import { useLogin } from "@/queries/auth";
+import { useCheckCustomerExist, useAddOrUpdateCustomer } from "@/queries/customer";
 import type { CustomerRequest } from "@/services/customer/customer-types";
 import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -39,12 +39,16 @@ export default function LoginScreen() {
     const [isUpdatingCustomer, setIsUpdatingCustomer] = useState(false);
     const [customerError, setCustomerError] = useState("");
 
+    const loginMutation = useLogin();
+    const checkCustomerExistMutation = useCheckCustomerExist(null);
+    const addOrUpdateCustomerMutation = useAddOrUpdateCustomer();
+
     const handleLogin = async () => {
         if (email.includes("@") && password.length >= 6) {
             try {
                 setIsLoading(true);
                 setErrorMessage("");
-                const response = await login({ email, password });
+                const response = await loginMutation.mutateAsync({ email, password });
 
                 if (response.success && response.data) {
                     // Cập nhật Token vào bộ nhớ ngay lập tức để các API sau đó (checkCustomerExist) có Token
@@ -56,8 +60,8 @@ export default function LoginScreen() {
                     const reqId = response.data.user?.id;
                     if (reqId) {
                         try {
-                            const checkRes = await checkCustomerExist(reqId);
-                            const dataObj = checkRes?.data || checkRes?.Data || {};
+                            const checkRes = await checkCustomerExistMutation.refetch();
+                            const dataObj = checkRes?.data?.data || checkRes?.data?.Data || {};
 
                             const isExist = dataObj.exists === true || String(dataObj.exists).toLowerCase() === "true";
                             const hasEmailOrPhone = dataObj.hasEmailOrPhone === true || String(dataObj.hasEmailOrPhone).toLowerCase() === "true";
@@ -141,7 +145,10 @@ export default function LoginScreen() {
                 IsCA: false
             };
 
-            const addRes = await addOrUpdateCustomer(tempAuthData.requestId, customerData);
+            const addRes = await addOrUpdateCustomerMutation.mutateAsync({
+                accountId: tempAuthData.requestId,
+                model: customerData
+            });
             const addSuccess = addRes?.success === true || addRes?.Success === true;
             if (!addSuccess) {
                 setCustomerError(addRes?.message || addRes?.Message || "Đã xảy ra lỗi khi tạo thông tin khách hàng mới. Vui lòng thử lại.");

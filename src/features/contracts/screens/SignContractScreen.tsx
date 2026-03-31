@@ -1,4 +1,4 @@
-import { confirmOtp, confirmSign, resendOtp } from "@/services/signing/signing.service";
+import { useConfirmOtp, useConfirmSign, useResendOtp } from "@/queries/signing";
 import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -117,6 +117,10 @@ export default function SignContractScreen() {
   const inputRef = useRef<TextInput>(null);
   const otpCardRef = useRef<View>(null);
 
+  const confirmSignMutation = useConfirmSign();
+  const confirmOtpMutation = useConfirmOtp();
+  const resendOtpMutation = useResendOtp();
+
   const [otp, setOtp] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showProcessing, setShowProcessing] = useState(false);
@@ -130,7 +134,7 @@ export default function SignContractScreen() {
   const isOtpValid = otpError === null;
 
   useEffect(() => {
-    confirmSign(user?.id || "").catch((e) => {
+    confirmSignMutation.mutateAsync(user?.id || "").catch((e: any) => {
       console.log("Lỗi gọi ngầm confirmSign [accountId]:", user?.id, e?.response?.data || e.message);
     });
   }, []);
@@ -159,7 +163,7 @@ export default function SignContractScreen() {
     setOtpError(null);
 
     try {
-      const response = await confirmOtp(user?.id || "", otp) as any;
+      const response = await confirmOtpMutation.mutateAsync({ accountId: user?.id || "", otpCode: otp }) as any;
       const success = response.success ?? response.Success;
       const message = response.message ?? response.Message;
 
@@ -170,7 +174,6 @@ export default function SignContractScreen() {
         return;
       }
 
-      // THÀNH CÔNG OTP: Chuyển sang bước Nghiệm thu (Bỏ qua ký hợp đồng)
       console.log("[OTP Debug] [CLEAN VERSION] - Xác thực OTP thành công. Chuyển sang Nghiệm thu.");
       setShowProcessing(false);
       setIsSuccessOtp(true);
@@ -191,7 +194,7 @@ export default function SignContractScreen() {
     setResendCooldown(10);
     focusInput();
     try {
-      await resendOtp(user?.id || "");
+      await resendOtpMutation.mutateAsync(user?.id || "");
     } catch (e) {
       console.warn("Lỗi gửi lại OTP:", e);
     }

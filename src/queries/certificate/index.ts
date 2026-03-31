@@ -5,4 +5,4 @@ export {
   useCertificateDetail,
 } from "./use-certificate";
 
-export { useImportCertificate } from "./use-certificate-mutation";
+export { useImportCertificate, useGetCertInfoMutation } from "./use-certificate-mutation";

@@ -2,6 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 import * as customerService from "@/services/customer/customer.service";
 import type { CustomerRequest } from "@/services/customer/customer-types";
 
+export const useGetIdNumberMutation = () => {
+  return useMutation({
+    mutationFn: (accountId: string) => customerService.getIdNumber(accountId),
+  });
+};
+
 export const useAddOrUpdateCustomer = () => {
   return useMutation({
     mutationFn: ({ accountId, model }: { accountId: string; model: CustomerRequest }) =>

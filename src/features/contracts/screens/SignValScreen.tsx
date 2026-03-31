@@ -1,6 +1,5 @@
-import { approveHandOver, viewOrder } from "@/services/contract/contract.service";
-import { getCertInfo } from "@/services/certificate/certificate.service";
-import { importCertificate } from "@/services/certificate/certificate.service";
+import { useApproveHandOver, useViewOrder } from "@/queries/contract";
+import { useImportCertificate, useGetCertInfoMutation } from "@/queries/certificate";
 import type { CertInfo } from "@/services/certificate/certificate-types";
 import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -42,6 +41,11 @@ export default function SignValScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const approveHandOverMutation = useApproveHandOver();
+  const viewOrderMutation = useViewOrder();
+  const importCertificateMutation = useImportCertificate();
+  const certInfoMutation = useGetCertInfoMutation();
+
   useEffect(() => {
     let isMounted = true;
 
@@ -55,7 +59,7 @@ export default function SignValScreen() {
         console.log("[VAL Debug] - (1) Đang gọi 'approveHandOver' với accountId:", user?.id);
         let approveRes;
         try {
-          approveRes = await approveHandOver(user?.id || "");
+          approveRes = await approveHandOverMutation.mutateAsync(user?.id || "");
           console.log("[VAL Debug] - Kết quả 'approveHandOver':", JSON.stringify(approveRes, null, 2));
 
           const isSuccessObj = approveRes && (approveRes.Success === true || approveRes.success === true);
@@ -78,7 +82,7 @@ export default function SignValScreen() {
         console.log("[VAL Debug] - (2) Đang gọi 'viewOrder' với accountId:", user?.id);
         let viewRes;
         try {
-          viewRes = await viewOrder(user?.id || "");
+          viewRes = await viewOrderMutation.mutateAsync(user?.id || "");
           console.log("[VAL Debug] - Kết quả 'viewOrder':", JSON.stringify(viewRes, null, 2));
           
           const isSuccess = viewRes && (viewRes.Success === true || viewRes.success === true);
@@ -106,7 +110,7 @@ export default function SignValScreen() {
 
         while (retryCount <= maxRetries) {
           try {
-            importRes = await importCertificate(user?.id || "");
+            importRes = await importCertificateMutation.mutateAsync(user?.id || "");
             console.log(`[VAL Debug] - Kết quả 'importCertificate' (Lần ${retryCount + 1}):`, JSON.stringify(importRes, null, 2));
 
             const isSuccess = importRes && (importRes.Success !== false && importRes.success !== false);
@@ -155,7 +159,7 @@ export default function SignValScreen() {
 
         try {
           console.log("[VAL Debug] - (4) Đang gọi 'getCertInfo' với accountId:", user?.id);
-          const certRes = await getCertInfo(user?.id || "", formattedValidFrom);
+          const certRes = await certInfoMutation.mutateAsync({ accountId: user?.id || "", validFrom: formattedValidFrom });
           console.log("[VAL Debug] - Kết quả 'getCertInfo':", JSON.stringify(certRes, null, 2));
 
           const isSuccess = certRes && (certRes.Success !== false && certRes.success !== false);
@@ -167,7 +171,7 @@ export default function SignValScreen() {
           }
 
           const rawData = certRes.Data || certRes.data;
-          // Nếu data là mảng, lấy phần tử đầu tiên (thường là mới nhất)
+          // Nếu data là mảng, lấy phần tử đầu tiên (ở mới nhất)
           const certData = Array.isArray(rawData) ? rawData[0] : rawData;
           
           console.log("[VAL Debug] - ==> Dữ liệu Cert sẵn sàng:", certData?.SerialNumber);

@@ -6,3 +6,10 @@ export const useImportCertificate = () => {
     mutationFn: (accountId: string) => certificateService.importCertificate(accountId),
   });
 };
+
+export const useGetCertInfoMutation = () => {
+  return useMutation({
+    mutationFn: ({ accountId, validFrom }: { accountId: string; validFrom?: string }) =>
+      certificateService.getCertInfo(accountId, validFrom),
+  });
+};
