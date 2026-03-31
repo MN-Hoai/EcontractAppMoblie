@@ -1,8 +1,8 @@
 
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { getDigitalContracts } from "@/services/digital-contract/digital-contract.service";
 import type { DigitalContract } from "@/services/digital-contract/digital-contract-types";
+import { getDigitalContracts } from "@/services/digital-contract/digital-contract.service";
 import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
+    SafeAreaView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
@@ -52,7 +53,7 @@ export default function DigitalContractsScreen() {
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchText(searchText);
-        }, 2000);
+        }, 1500);
 
         return () => {
             clearTimeout(handler);
@@ -281,7 +282,7 @@ export default function DigitalContractsScreen() {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: isDark ? "#0D1B23" : "#F0F4F8" }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: isDark ? "#0D1B23" : "#F0F4F8" }]}>
             {/* Gradient Header */}
             <LinearGradient
                 colors={["#00695C", "#00ACC1"]}
@@ -289,50 +290,56 @@ export default function DigitalContractsScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.header}
             >
-                <View style={styles.headerTop}>
-                    <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-                        <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
-                    </TouchableOpacity>
-                    <View style={styles.headerTitleBlock}>
-                        <ThemedText style={styles.headerTitle}>Ký số điện tử</ThemedText>
-                        <ThemedText style={styles.headerCount}>{totalCount} hợp đồng</ThemedText>
-                    </View>
-                    <View style={styles.headerBtns}>
-                        <TouchableOpacity
-                            style={[styles.headerIconBtn, showSearch && styles.headerIconBtnActive]}
-                            onPress={() => { setShowSearch(!showSearch); setShowFilter(false); }}
-                        >
-                            <MaterialCommunityIcons name="magnify" size={22} color="#FFF" />
+                <View style={{ flexDirection: 'column' }}>
+                    <View style={styles.headerTop}>
+                        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+                            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.headerIconBtn, showFilter && styles.headerIconBtnActive]}
-                            onPress={() => { setShowFilter(!showFilter); setShowSearch(false); }}
-                        >
-                            <MaterialCommunityIcons name="tune-variant" size={22} color="#FFF" />
-                            {(activeTab !== "waiting" || pageSize !== 20 || showPagination) && <View style={styles.filterDot} />}
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {/* Search Bar */}
-                {showSearch && (
-                    <View style={styles.searchBar}>
-                        <MaterialCommunityIcons name="magnify" size={20} color="rgba(255,255,255,0.7)" />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Tìm theo tên hoặc người gửi..."
-                            placeholderTextColor="rgba(255,255,255,0.5)"
-                            value={searchText}
-                            onChangeText={setSearchText}
-                            autoFocus
-                        />
-                        {searchText.length > 0 && (
-                            <TouchableOpacity onPress={() => setSearchText("")}>
-                                <MaterialCommunityIcons name="close-circle" size={18} color="rgba(255,255,255,0.6)" />
+                        <View style={styles.headerTitleBlock}>
+                            <ThemedText style={styles.headerTitle}>Ký số điện tử</ThemedText>
+                            <ThemedText style={styles.headerCount}>{totalCount} hợp đồng</ThemedText>
+                        </View>
+                        <View style={styles.headerBtns}>
+                            <TouchableOpacity
+                                style={[styles.headerIconBtn, showSearch && styles.headerIconBtnActive]}
+                                onPress={() => { setShowSearch(!showSearch); setShowFilter(false); }}
+                            >
+                                <MaterialCommunityIcons name="magnify" size={22} color="#FFF" />
                             </TouchableOpacity>
-                        )}
+                            <TouchableOpacity
+                                style={[styles.headerIconBtn, showFilter && styles.headerIconBtnActive]}
+                                onPress={() => { setShowFilter(!showFilter); setShowSearch(false); }}
+                            >
+                                <MaterialCommunityIcons name="tune-variant" size={22} color="#FFF" />
+                                {(activeTab !== "waiting" || pageSize !== 20 || showPagination) && <View style={styles.filterDot} />}
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                )}
+
+                    {/* Search Bar */}
+                    {showSearch && (
+                        <View style={styles.searchBar}>
+                            {(searchText !== debouncedSearchText || (isLoading && searchText !== "")) ? (
+                                <ActivityIndicator size="small" color="#FFF" style={{ marginRight: 8 }} />
+                            ) : (
+                                <MaterialCommunityIcons name="magnify" size={20} color="rgba(255,255,255,0.7)" />
+                            )}
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Tìm theo tên hoặc người gửi..."
+                                placeholderTextColor="rgba(255,255,255,0.5)"
+                                value={searchText}
+                                onChangeText={setSearchText}
+                                autoFocus
+                            />
+                            {searchText.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchText("")}>
+                                    <MaterialCommunityIcons name="close-circle" size={18} color="rgba(255,255,255,0.6)" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
+                </View>
             </LinearGradient>
 
             {/* Filter Panel (Replaces permanent Tabs) */}
@@ -465,22 +472,25 @@ export default function DigitalContractsScreen() {
                 </View>
             )}
 
-        </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         paddingTop: 45,
+        
         flex: 1
     },
     header: {
-        flexDirection: "row",
-        alignItems: "center",
+        flexDirection: "column",
+        alignItems: "stretch",
         paddingTop: 15,
         paddingBottom: 15,
         paddingHorizontal: 15,
-        gap: 12,
+        width: '100%',
+        zIndex: 10,
+        overflow: "visible",
     },
     headerTop: {
         flexDirection: "row",

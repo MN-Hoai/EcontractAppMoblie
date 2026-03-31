@@ -313,10 +313,11 @@ export default function ContractsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { paddingTop: 45,
-    flex: 1 },
+    container: {
+        flex: 1
+    },
     header: {
-        paddingTop: 12,
+        paddingTop: 60,
         paddingHorizontal: 16,
         paddingBottom: 16,
     },

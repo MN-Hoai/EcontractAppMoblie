@@ -190,8 +190,10 @@ export default function InternalContractsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { paddingTop: 45,
-    flex: 1 },
+    container: {
+        paddingTop: 45,
+        flex: 1
+    },
     header: {
         paddingTop: 12,
         paddingHorizontal: 16,
