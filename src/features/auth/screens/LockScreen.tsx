@@ -13,18 +13,18 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore } from "@/store/auth-store";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
     authenticateWithBiometric,
     getBiometricType,
     isBiometricAvailable,
     BiometricType,
-} from "@/services/biometricService";
-import { clearBackgroundTime } from "@/services/sessionManager";
-import { login } from "@/services/authService";
-import { refreshAccessToken } from "@/services/authService";
-import { getTokens } from "@/services/secureStorage";
+} from "@/services/biometric-service";
+import { clearBackgroundTime } from "@/services/session-manager";
+import { login } from "@/services/auth/auth.service";
+import { refreshAccessToken } from "@/services/auth/token-refresh";
+import { getTokens } from "@/services/secure-storage";
 
 interface LockScreenProps {
     onSwitchAccount: () => Promise<void>;

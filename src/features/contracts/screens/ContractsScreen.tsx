@@ -4,8 +4,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { useAuthStore } from "@/store/authStore";
-import { getContracts, Contract } from "@/services/contractService";
+import { useAuthStore } from "@/store/auth-store";
+import { getContracts } from "@/services/contract/contract.service";
+import type { Contract } from "@/services/contract/contract-types";
 import {
     FlatList,
     SafeAreaView,

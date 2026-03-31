@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { registerAccount } from "@/services/authService";
+import { registerAccount } from "@/services/auth/auth.service";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -47,8 +47,8 @@ export default function RegisterScreen() {
                 email: formData.email,
                 password: formData.password,
                 username: formData.email,
-                first_name: firstName,
-                last_name: lastName,
+                firstName: firstName,
+                lastName: lastName,
                 avatar: ""
             });
 

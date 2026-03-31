@@ -1,6 +1,6 @@
-import { submitKycImages } from "@/services/contractService";
-import { useAuthStore } from "@/store/authStore";
-import { useKycStore } from "@/store/kycStore";
+import { submitKycImages } from "@/services/customer/customer.service";
+import { useAuthStore } from "@/store/auth-store";
+import { useKycStore } from "@/store/kyc-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";

@@ -1,5 +1,5 @@
-import { confirmOtp, confirmSign, resendOtp } from "@/services/contractService";
-import { useAuthStore } from "@/store/authStore";
+import { confirmOtp, confirmSign, resendOtp } from "@/services/signing/signing.service";
+import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";

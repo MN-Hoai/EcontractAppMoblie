@@ -1,5 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import apiClient from "@/services/apiClient";
+import apiClient from "@/services/api-client";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";

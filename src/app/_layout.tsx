@@ -3,21 +3,32 @@ import {
     DefaultTheme,
     ThemeProvider,
 } from "@react-navigation/native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import { AppState, AppStateStatus, View, ActivityIndicator } from "react-native";
 
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            retry: 2,
+            staleTime: 5 * 60 * 1000, // 5 minutes
+            refetchOnWindowFocus: false,
+        },
+    },
+});
+
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useAuthStore } from "@/store/authStore";
-import { getTokens } from "@/services/secureStorage";
-import { refreshAccessToken } from "@/services/authService";
+import { useAuthStore } from "@/store/auth-store";
+import { getTokens } from "@/services/secure-storage";
+import { refreshAccessToken } from "@/services/auth/token-refresh";
 import {
     checkSessionTimeout,
     recordBackgroundTime,
     clearBackgroundTime,
-} from "@/services/sessionManager";
+} from "@/services/session-manager";
 import LockScreen from "@/features/auth/screens/LockScreen";
 
 import { useFonts } from 'expo-font';
@@ -197,17 +208,19 @@ export default function RootLayout() {
     }
 
     return (
-        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-            <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-                <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 0, backgroundColor: "transparent" } }}>
-                    <Stack.Screen name="(auth)" />
-                    <Stack.Screen name="(tabs)" />
-                    <Stack.Screen name="(kyc)" />
-                    <Stack.Screen name="(contract)" />
-                    <Stack.Screen name="(certificate)" />
-                </Stack>
-                <StatusBar style="auto" />
-            </View>
-        </ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+            <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+                <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+                    <Stack screenOptions={{ headerShown: false, contentStyle: { paddingTop: 0, backgroundColor: "transparent" } }}>
+                        <Stack.Screen name="(auth)" />
+                        <Stack.Screen name="(tabs)" />
+                        <Stack.Screen name="(kyc)" />
+                        <Stack.Screen name="(contract)" />
+                        <Stack.Screen name="(certificate)" />
+                    </Stack>
+                    <StatusBar style="auto" />
+                </View>
+            </ThemeProvider>
+        </QueryClientProvider>
     );
 }

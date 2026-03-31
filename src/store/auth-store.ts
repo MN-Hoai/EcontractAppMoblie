@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { UserInfo } from "../services/authService";
-import { clearTokens, getTokens, saveTokens } from "../services/secureStorage";
+import { UserInfo } from "../services/auth/auth-types";
+import { clearTokens, getTokens, saveTokens } from "../services/secure-storage";
 
 interface AuthStore {
     // Non-sensitive data (persisted to AsyncStorage)

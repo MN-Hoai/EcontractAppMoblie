@@ -1,9 +1,10 @@
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore } from "@/store/auth-store";
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { Alert } from "react-native";
-import { handleApiError } from "../utils/errorUtils";
-import { getTokens, saveTokens } from "./secureStorage";
-import { refreshAccessToken } from "./authService";
+import { handleApiError } from "../utils/error-utils";
+import { getTokens, saveTokens } from "./secure-storage";
+import { refreshAccessToken } from "./auth/token-refresh";
+import { ENV } from "../config/env";
 
 // Extend AxiosRequestConfig to support _skipAlert flag
 declare module "axios" {
@@ -17,7 +18,7 @@ declare module "axios" {
 }
 
 const apiClient = axios.create({
-    baseURL: "https://contract.officeai.vn",
+    baseURL: ENV.API_CONTRACT_URL,
     timeout: 15000,
 });
 

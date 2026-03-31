@@ -1,8 +1,9 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { login } from "@/services/authService";
-import { addOrUpdateCustomer, checkCustomerExist, CustomerRequestDTO } from "@/services/contractService";
-import { useAuthStore } from "@/store/authStore";
+import { login } from "@/services/auth/auth.service";
+import { checkCustomerExist, addOrUpdateCustomer } from "@/services/customer/customer.service";
+import type { CustomerRequest } from "@/services/customer/customer-types";
+import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -133,7 +134,7 @@ export default function LoginScreen() {
         try {
             setIsUpdatingCustomer(true);
             setCustomerError("");
-            const customerData: CustomerRequestDTO = {
+            const customerData: CustomerRequest = {
                 FullName: customerName,
                 Phone: customerPhone,
                 Email: customerEmail,

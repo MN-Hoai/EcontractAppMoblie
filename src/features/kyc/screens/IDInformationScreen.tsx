@@ -1,6 +1,8 @@
-import { getOrderInfo, normalizeAddress, orderCA, submitKycInfo } from "@/services/contractService";
-import { useAuthStore } from "@/store/authStore";
-import { useKycStore } from "@/store/kycStore";
+import { orderCA } from "@/services/contract/contract.service";
+import { getOrderInfo } from "@/services/contract/contract.service";
+import { normalizeAddress, submitKycInfo } from "@/services/customer/customer.service";
+import { useAuthStore } from "@/store/auth-store";
+import { useKycStore } from "@/store/kyc-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";

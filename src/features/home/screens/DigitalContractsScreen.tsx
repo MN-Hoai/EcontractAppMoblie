@@ -1,8 +1,9 @@
 
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { DigitalContract, DigitalContractService } from "@/services/digitalContractService";
-import { useAuthStore } from "@/store/authStore";
+import { getDigitalContracts } from "@/services/digital-contract/digital-contract.service";
+import type { DigitalContract } from "@/services/digital-contract/digital-contract-types";
+import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -67,7 +68,7 @@ export default function DigitalContractsScreen() {
         else setIsLoading(true);
 
         try {
-            const data = await DigitalContractService.getContracts(
+            const data = await getDigitalContracts(
                 activeTab,
                 pageNumber,
                 pageSize,

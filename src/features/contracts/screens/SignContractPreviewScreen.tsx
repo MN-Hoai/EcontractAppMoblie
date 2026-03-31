@@ -1,9 +1,9 @@
 import {
-  FdfData,
   fetchFdfByUrl,
   getFullUrl,
   parseFdfData
-} from "@/services/contractService";
+} from "@/services/contract/contract.service";
+import type { FdfData } from "@/services/contract/contract-types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";

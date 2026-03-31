@@ -1,4 +1,4 @@
-import { useKycStore } from "@/store/kycStore";
+import { useKycStore } from "@/store/kyc-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";

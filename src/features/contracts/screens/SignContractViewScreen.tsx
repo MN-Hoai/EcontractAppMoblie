@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { checkCaStatus, getFileContract } from "@/services/contractService";
-import { useAuthStore } from "@/store/authStore";
+import { checkCaStatus, getFileContract } from "@/services/contract/contract.service";
+import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import { useLocalSearchParams, useRouter } from "expo-router";

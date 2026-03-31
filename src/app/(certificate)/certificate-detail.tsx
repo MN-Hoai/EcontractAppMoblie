@@ -1,5 +1,6 @@
-import { CertInfo, getCertificateDetail, getCertInfo } from "@/services/contractService";
-import { useAuthStore } from "@/store/authStore";
+import { getCertificateDetail, getCertInfo } from "@/services/certificate/certificate.service";
+import type { CertInfo } from "@/services/certificate/certificate-types";
+import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";

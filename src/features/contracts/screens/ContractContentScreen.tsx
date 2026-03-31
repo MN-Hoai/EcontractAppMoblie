@@ -1,7 +1,10 @@
 import { ThemedText } from "@/components/ui/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { API_BASE_URL_PRODUCT, checkCaStatus, getIdNumber, getCloudCaHash, getSignature, insertCloudCaSign } from "@/services/contractService";
-import { useAuthStore } from "@/store/authStore";
+import { checkCaStatus } from "@/services/contract/contract.service";
+import { getIdNumber } from "@/services/customer/customer.service";
+import { getCloudCaHash, getSignature, insertCloudCaSign } from "@/services/signing/signing.service";
+import { ENV } from "@/config/env";
+import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -70,7 +73,7 @@ export default function ContractContentScreen() {
         } else {
             // path in api starts with '/' e.g: '/media/upload/xxxxx.pdf'
             const connector = pathStr.startsWith("/") ? "" : "/";
-            finalDocUrl = `${API_BASE_URL_PRODUCT}${connector}${pathStr}`;
+            finalDocUrl = `${ENV.API_CONTRACT_URL}${connector}${pathStr}`;
         }
     }
     const handleSign = async (config?: any) => {
