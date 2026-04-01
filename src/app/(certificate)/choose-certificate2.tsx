@@ -1,5 +1,6 @@
 import { getCertInfo } from "@/services/certificate/certificate.service";
 import type { CertInfo } from "@/services/certificate/certificate-types";
+import { formatDate, formatDateTime } from "@/utils/date-utils";
 import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -104,39 +105,29 @@ export default function ChooseCertificate2Screen() {
   const [certInfo, setCertInfo] = useState<CertInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper date formatter dd/MM/yyyy
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "—";
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const yy = d.getFullYear();
-    return `${dd}/${mm}/${yy}`;
-  };
-
-  // Parse CN from subjectDN
+  // Parse CP from subjectDN
   const getSubjectName = (info: CertInfo | null) =>
-    (info?.subjectDN || info?.SubjectDN)?.match(/CN=([^,]+)/)?.[1] || "—";
+    info?.subjectDN?.match(/CN=([^,]+)/)?.[1] || "—";
 
   // Parse certStatus label
   const getCertStatusLabel = (info: CertInfo | null) => {
-    const s = info?.certStatus || info?.CertStatus || "";
+    const s = info?.certStatus || "";
     if (!s) return "—";
-    if (s.toLowerCase() === "valid") return "Đang hoạt động";
-    if (s.toLowerCase() === "revoked") return "Đã thu hồi";
-    if (s.toLowerCase() === "expired") return "Đã hết hạn";
+    const low = s.toLowerCase();
+    if (low === "valid") return "Đang hoạt động";
+    if (low === "revoked") return "Đã thu hồi";
+    if (low === "expired") return "Đã hết hạn";
     return s;
   };
 
   useEffect(() => {
     getCertInfo(requestId || "")
       .then((res) => {
-        const rawData = res.Data || res.data;
+        const rawData = res.data;
         const d = Array.isArray(rawData) ? rawData[0] : rawData;
         if (d) {
           setCertInfo(d);
-          setSelectedCert(d.credentialId || d.CredentialId || d.serialNumber || d.SerialNumber || null);
+          setSelectedCert(d.credentialId || d.serialNumber || null);
         }
       })
       .catch((err) => console.warn("Initial cert load err:", err));
@@ -147,11 +138,11 @@ export default function ChooseCertificate2Screen() {
       setShowDetail(true);
       setIsLoading(true);
       const res = await getCertInfo(requestId || "");
-      const rawData = res.Data || res.data;
+      const rawData = res.data;
       const d = Array.isArray(rawData) ? rawData[0] : rawData;
       if (d) {
         setCertInfo(d);
-        setSelectedCert(d.credentialId || d.CredentialId || d.serialNumber || d.SerialNumber || null);
+        setSelectedCert(d.credentialId || d.serialNumber || null);
       }
     } catch (err) {
       console.warn("Lỗi lấy thông tin chứng thư:", err);
@@ -162,14 +153,15 @@ export default function ChooseCertificate2Screen() {
   };
 
   // Derived values for card
-  const serialNo = certInfo?.serialNumber || certInfo?.SerialNumber || "—";
-  const credId = certInfo?.credentialId || certInfo?.CredentialId || "—";
-  const issuerDN = certInfo?.issuerDN || certInfo?.IssuerDN || "—";
-  const expireDate = formatDate(certInfo?.validTo || certInfo?.ValidTo);
-  const startDate = formatDate(certInfo?.validFrom || certInfo?.ValidFrom);
-  const subjectDN = certInfo?.subjectDN || certInfo?.SubjectDN || "—";
-  const subscriberId = certInfo?.subscriberId || certInfo?.SubscriberId || "—";
-  const phoneNumber = certInfo?.phoneNumber || certInfo?.PhoneNumber || "—";
+  const serialNo = certInfo?.serialNumber || "—";
+  const credId = certInfo?.credentialId || "—";
+  const issuerDN = certInfo?.issuerDN || "—";
+  const expireDateTime = formatDateTime(certInfo?.validTo);
+  const startDateTime = formatDateTime(certInfo?.validFrom);
+  const expireDate = formatDate(certInfo?.validTo);
+  const subjectDN = certInfo?.subjectDN || "—";
+  const subscriberId = certInfo?.subscriberId || "—";
+  const phoneNumber = certInfo?.phoneNumber || "—";
   const subjectName = getSubjectName(certInfo);
   const statusLabel = getCertStatusLabel(certInfo);
 
@@ -336,7 +328,7 @@ export default function ChooseCertificate2Screen() {
                   {/* Ngày bắt đầu - Ngày kết thúc */}
                   <CopyRow
                     label="Ngày bắt đầu - Ngày kết thúc"
-                    value={`${startDate} - ${expireDate}`}
+                    value={`${startDateTime} - ${expireDateTime}`}
                   />
                   <View style={detailStyles.divider} />
 

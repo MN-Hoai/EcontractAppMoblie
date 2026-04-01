@@ -3,16 +3,13 @@
  */
 
 export interface CustomerRequest {
-  FullName: string;
-  Phone?: string;
-  Email?: string;
-  IsCA: boolean;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  isCA: boolean;
 }
 
 export interface NormalizeAddressResponse {
-  Success?: boolean;
-  Message?: string;
-  Data?: any;
   success?: boolean;
   message?: string;
   data?: any;

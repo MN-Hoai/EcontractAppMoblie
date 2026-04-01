@@ -1,5 +1,6 @@
 import { getCertificateDetail, getCertInfo } from "@/services/certificate/certificate.service";
 import type { CertInfo } from "@/services/certificate/certificate-types";
+
 import { useAuthStore } from "@/store/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -48,19 +49,29 @@ export default function CertificateDetailScreen() {
   const [certInfo, setCertInfo] = useState<CertInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const formatDate = (dateStr?: string) => {
+  // Parse WCF /Date(ms+offset)/ or ISO string → dd/MM/yy HH:mm:ss
+  const formatDate = (dateStr?: string | null): string => {
     if (!dateStr) return "—";
-    const d = new Date(dateStr);
+    const wcf = dateStr.match(/\/Date\((\d+)(?:[+-]\d{4})?\)\//);
+    const d = wcf ? new Date(Number(wcf[1])) : new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString("vi-VN");
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const dd = pad(d.getDate());
+    const mm = pad(d.getMonth() + 1);
+    const yy = String(d.getFullYear()).slice(2);
+    const hh = pad(d.getHours());
+    const min = pad(d.getMinutes());
+    const ss = pad(d.getSeconds());
+    return `${dd}/${mm}/${yy} ${hh}:${min}:${ss}`;
   };
 
   const getCertStatusLabel = (info: CertInfo | null) => {
-    const s = info?.certStatus || info?.CertStatus || "";
+    const s = info?.certStatus || "";
     if (!s) return "—";
-    if (s.toLowerCase() === "valid") return "Đang hoạt động";
-    if (s.toLowerCase() === "revoked") return "Đã thu hồi";
-    if (s.toLowerCase() === "expired") return "Đã hết hạn";
+    const low = s.toLowerCase();
+    if (low === "valid") return "Đang hoạt động";
+    if (low === "revoked") return "Đã thu hồi";
+    if (low === "expired") return "Đã hết hạn";
     return s;
   };
 
@@ -80,7 +91,7 @@ export default function CertificateDetailScreen() {
           res = await getCertInfo(requestId || "");
         }
 
-        const rawData = res.Data || res.data;
+        const rawData = res.data;
         // Nếu API trả về mảng, lấy phần tử đầu tiên
         const d = Array.isArray(rawData) ? rawData[0] : rawData;
         if (d) setCertInfo(d);
@@ -93,7 +104,7 @@ export default function CertificateDetailScreen() {
     fetchDetail();
   }, [requestId, certIdFromParams]);
 
-  const subjectName = (certInfo?.subjectDN || certInfo?.SubjectDN)?.match(/CN=([^,]+)/)?.[1] || "—";
+  const subjectName = certInfo?.subjectDN?.match(/CN=([^,]+)/)?.[1] || "—";
   const statusLabel = getCertStatusLabel(certInfo);
   const isValid = statusLabel === "Đang hoạt động";
 
@@ -134,24 +145,24 @@ export default function CertificateDetailScreen() {
             <InfoRow label="Chủ thể" value={subjectName} />
             <View style={styles.divider} />
 
-            <InfoRow label="Số chứng thư" value={certInfo?.credentialId || certInfo?.CredentialId || "—"} canCopy />
+            <InfoRow label="Số chứng thư" value={certInfo?.credentialId || "—"} canCopy />
             <View style={styles.divider} />
 
-            <InfoRow label="Số Serial" value={certInfo?.serialNumber || certInfo?.SerialNumber || "—"} canCopy />
+            <InfoRow label="Số Serial" value={certInfo?.serialNumber || "—"} canCopy />
             <View style={styles.divider} />
 
-            <InfoRow label="Số thuê bao" value={certInfo?.subscriberId || certInfo?.SubscriberId || "—"} canCopy />
+            <InfoRow label="Số thuê bao" value={certInfo?.subscriberId || "—"} canCopy />
             <View style={styles.divider} />
 
-            <InfoRow label="Tổ chức phát hành" value={certInfo?.issuerDN || certInfo?.IssuerDN || "—"} />
+            <InfoRow label="Tổ chức phát hành" value={certInfo?.issuerDN || "—"} />
             <View style={styles.divider} />
 
-            <InfoRow label="Thông tin đầy đủ" value={certInfo?.subjectDN || certInfo?.SubjectDN || "—"} />
+            <InfoRow label="Thông tin đầy đủ" value={certInfo?.subjectDN || "—"} />
             <View style={styles.divider} />
 
             <InfoRow
               label="Thời hạn"
-              value={`${formatDate(certInfo?.validFrom || certInfo?.ValidFrom)} - ${formatDate(certInfo?.validTo || certInfo?.ValidTo)}`}
+              value={`${formatDate(certInfo?.validFrom)} - ${formatDate(certInfo?.validTo)}`}
             />
           </View>
 

@@ -2,48 +2,49 @@
  * Digital Contract domain types
  */
 
+export interface DigitalContractInfo {
+  id: string;
+  code: string;
+  contractCode: string;
+  contractName: string;
+  name: string;
+  status: number;
+  fileFinalPath: string | null;
+  createdDate: string | null;
+  updatedDate: string | null;
+  companyAId: string | null;
+  companyAName: string | null;
+  orgId: string | null;
+  orgName: string | null;
+  createdBy: string | null;
+  currentStepPriority: number | null;
+  totalSteps: number | null;
+  requestSentDate: string | null;
+}
+
+export interface DigitalContractDocument {
+  id: number;
+  name: string;
+  path: string;
+  type: string;
+  size: string;
+}
+
+export interface DigitalContractFinalDocument extends DigitalContractDocument {
+  pathFinal: string | null;
+}
+
 export interface DigitalContract {
-  Contract: {
-    Id: string;
-    Code: string;
-    ContractCode: string;
-    ContractName: string;
-    Name: string;
-    Status: number;
-    FileFinalPath: string | null;
-    CreatedDate: string | null;
-    UpdatedDate: string | null;
-    CompanyAId: string | null;
-    CompanyAName: string | null;
-    Org_Id: string | null;
-    Org_Name: string | null;
-    CreatedBy: string | null;
-    CurrentStepPriority: number | null;
-    TotalSteps: number | null;
-    RequestSentDate: string | null;
-  };
-  ContractDetail: any;
-  DocumentOriginal: {
-    Id: number;
-    Name: string;
-    Path: string;
-    Type: string;
-    Size: string;
-  } | null;
-  DocumentFinal: {
-    Id: number;
-    Name: string;
-    Path: string;
-    Path_Final: string | null;
-    Type: string;
-    Size: string;
-  } | null;
+  contract: DigitalContractInfo;
+  contractDetail: any;
+  documentOriginal: DigitalContractDocument | null;
+  documentFinal: DigitalContractFinalDocument | null;
 }
 
 export interface ContractListResponse {
-  Count: number;
-  Many: DigitalContract[];
-  Skip: number;
-  Take: number;
-  Message: string | null;
+  count: number;
+  many: DigitalContract[];
+  skip: number;
+  take: number;
+  message: string | null;
 }
