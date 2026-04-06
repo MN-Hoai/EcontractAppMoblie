@@ -76,8 +76,8 @@ export default function DigitalContractsScreen() {
                 true,
                 debouncedSearchText
             );
-            setContracts(data?.Many || []);
-            setTotalCount(data?.Count || 0);
+            setContracts(data?.many || []);
+            setTotalCount(data?.count || 0);
             setPage(pageNumber);
 
             // Tự động cuộn lên đầu khi sang trang mới
@@ -199,12 +199,12 @@ export default function DigitalContractsScreen() {
 
 
     const renderItem = ({ item }: { item: DigitalContract }) => {
-        const contractInfo = item.Contract;
+        const contractInfo = item.contract;
         if (!contractInfo) return null;
 
-        const statusInfo = getStatusInfo(contractInfo.Status, activeTab);
+        const statusInfo = getStatusInfo(contractInfo.status, activeTab);
 
-        const parsedDate = parseDotNetDate(contractInfo.RequestSentDate || contractInfo.CreatedDate);
+        const parsedDate = parseDotNetDate(contractInfo.requestSentDate || contractInfo.createdDate);
         const displayDate = parsedDate
             ? parsedDate.toLocaleString("vi-VN", {
                 day: "2-digit",
@@ -214,7 +214,7 @@ export default function DigitalContractsScreen() {
             : "N/A";
 
         // Sử dụng Path thay cho FileFinalPath (Ưu tiên DocumentFinal)
-        const filePath = item.DocumentFinal?.Path || item.DocumentOriginal?.Path || contractInfo.FileFinalPath || "";
+        const filePath = item.documentFinal?.path || item.documentOriginal?.path || contractInfo.fileFinalPath || "";
 
         return (
             <Animated.View
@@ -232,10 +232,10 @@ export default function DigitalContractsScreen() {
                     onPress={() => router.push({
                         pathname: "/contract-detail",
                         params: {
-                            id: contractInfo.Id,
-                            name: contractInfo.ContractName || contractInfo.Name,
+                            id: contractInfo.id,
+                            name: contractInfo.contractName || contractInfo.name,
                             path: filePath,
-                            status: contractInfo.Status
+                            status: contractInfo.status
                         }
                     })}
                 >
@@ -250,7 +250,7 @@ export default function DigitalContractsScreen() {
                         <View style={styles.contentContainer}>
                             <View style={styles.titleRow}>
                                 <ThemedText style={styles.contractTitle} numberOfLines={1}>
-                                    {contractInfo.ContractName || contractInfo.Name}
+                                    {contractInfo.contractName || contractInfo.name}
                                 </ThemedText>
                                 <View style={[
                                     styles.statusBadgeSmall,
@@ -267,7 +267,7 @@ export default function DigitalContractsScreen() {
                             </View>
 
                             <ThemedText style={styles.senderText} numberOfLines={1}>
-                                Người gửi: {contractInfo.CompanyAName || "Hệ thống"}
+                                Người gửi: {contractInfo.companyAName || "Hệ thống"}
                             </ThemedText>
 
                             <View style={styles.dateRow}>
@@ -431,7 +431,7 @@ export default function DigitalContractsScreen() {
                     ref={flatListRef}
                     data={contracts}
                     renderItem={renderItem}
-                    keyExtractor={(item) => item.Contract?.Id || Math.random().toString()}
+                    keyExtractor={(item) => item.contract?.id || Math.random().toString()}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     onRefresh={handleRefresh}

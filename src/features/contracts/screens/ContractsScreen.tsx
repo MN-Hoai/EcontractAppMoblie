@@ -48,32 +48,32 @@ export default function ContractsScreen() {
     const contracts = useMemo(() => {
         const data = contractsQuery.data || [];
         return data.map((c: Contract) => {
-            const cId = c.id || c.Id || "";
+            const cId = c.id || c.id || "";
             let typeStr = "processing";
             let statusText = "Đang xử lý";
 
-            if (c.Status === 1) {
+            if (c.status === 1) {
                 typeStr = "processing";
                 statusText = "Đang xử lý";
-            } else if (c.Status === 2) {
+            } else if (c.status === 2) {
                 typeStr = "completed";
                 statusText = "Hoàn thành";
-            } else if (c.Status === 3 || c.Status === 4) {
+            } else if (c.status === 3 || c.status === 4) {
                 typeStr = "waiting";
                 statusText = "Chờ duyệt";
             }
 
-            let formattedDate = c.ContractDate;
-            if (c.ContractDate && c.ContractDate.includes("T")) {
-                const d = new Date(c.ContractDate);
+            let formattedDate = c.contractDate;
+            if (c.contractDate && c.contractDate.includes("T")) {
+                const d = new Date(c.contractDate);
                 const dd = String(d.getDate()).padStart(2, "0");
                 const mm = String(d.getMonth() + 1).padStart(2, "0");
                 const yy = d.getFullYear();
                 const hh = String(d.getHours()).padStart(2, "0");
                 const min = String(d.getMinutes()).padStart(2, "0");
                 formattedDate = `${dd}/${mm}/${yy} ${hh}:${min}`;
-            } else if (c.ContractDate && !c.ContractDate.includes("/")) {
-                const parts = c.ContractDate.split("-");
+            } else if (c.contractDate && !c.contractDate.includes("/")) {
+                const parts = c.contractDate.split("-");
                 if (parts.length === 3) {
                     formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
                 }
@@ -81,7 +81,7 @@ export default function ContractsScreen() {
 
             return {
                 id: cId,
-                title: c.ContractName || "Hợp đồng không tên",
+                title: c.contractName || "Hợp đồng không tên",
                 status: statusText,
                 sender: "Hệ thống",
                 date: formattedDate || "—",

@@ -88,9 +88,9 @@ export default function ContractContentScreen() {
             setLoadingCa(true);
             const res = await checkCaStatusMutation.mutateAsync(user?.id || "");
 
-            const isSuccess = res.Success ?? res.success;
-            const data = res.Data ?? res.data;
-            const message = res.Message ?? res.message ?? "Bạn chưa tích hợp chứng thư số";
+            const isSuccess = res.success;
+            const data = res.data;
+            const message = res.message ?? "Bạn chưa tích hợp chứng thư số";
 
             if (isSuccess && data === true) {
                 // Have CA -> trigger sign contract directly

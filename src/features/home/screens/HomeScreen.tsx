@@ -54,7 +54,7 @@ export default function HomeScreen() {
     }, [certInfoQuery.data, certInfoQuery.isLoading, certInfoQuery.isFetching]);
 
     const certList: CertInfo[] = React.useMemo(() => {
-        const rawInfo = certInfoQuery.data?.data || certInfoQuery.data?.Data;
+        const rawInfo = certInfoQuery.data?.data ;
         if (!rawInfo) return [];
         return Array.isArray(rawInfo) ? rawInfo : [rawInfo];
     }, [certInfoQuery.data]);
@@ -210,7 +210,7 @@ export default function HomeScreen() {
                                 style={[styles.subContentCard, { width: 280 }]}
                                 onPress={() => router.push({
                                     pathname: "/(certificate)/certificate-detail",
-                                    params: { id: item.id || item.Id }
+                                    params: { id: item.id || item.id }
                                 })}
                                 activeOpacity={0.8}
                             >
@@ -221,7 +221,7 @@ export default function HomeScreen() {
                                     <View style={styles.subDataContent}>
                                         <ThemedText style={styles.subDataLabel}>Chứng thư {idx + 1}</ThemedText>
                                         <ThemedText style={styles.subDataValue} numberOfLines={1}>
-                                            {item.CredentialId || item.credentialId || "—"}
+                                            {item.credentialId || item.credentialId || "—"}
                                         </ThemedText>
                                     </View>
                                     <MaterialCommunityIcons name="chevron-right" size={24} color="rgba(255,255,255,0.4)" />
@@ -230,7 +230,7 @@ export default function HomeScreen() {
                                 <View style={styles.subDataFooter}>
                                     <MaterialCommunityIcons name="calendar-range" size={14} color="rgba(255,255,255,0.5)" />
                                     <ThemedText style={styles.subValidityText}>
-                                        Hết hạn: {formatDate(item.ValidTo || item.validTo)}
+                                        Hết hạn: {formatDate(item.validTo || item.validTo)}
                                     </ThemedText>
                                 </View>
                             </TouchableOpacity>

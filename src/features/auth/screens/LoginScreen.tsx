@@ -139,10 +139,10 @@ export default function LoginScreen() {
             setIsUpdatingCustomer(true);
             setCustomerError("");
             const customerData: CustomerRequest = {
-                FullName: customerName,
-                Phone: customerPhone,
-                Email: customerEmail,
-                IsCA: false
+                fullName: customerName,
+                phone: customerPhone,
+                email: customerEmail,
+                isCA: false
             };
 
             const addRes = await addOrUpdateCustomerMutation.mutateAsync({
